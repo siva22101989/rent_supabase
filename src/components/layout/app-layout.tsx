@@ -15,7 +15,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { LayoutGrid, ShieldAlert, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot } from 'lucide-react';
+import { LayoutGrid, ShieldAlert, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, CreditCard, History } from 'lucide-react';
 import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,7 +25,8 @@ const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutGrid },
   { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot },
   { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot },
-  { href: '/billing', label: 'Billing', icon: IndianRupee },
+  { href: '/payments', label: 'Payments', icon: CreditCard },
+  { href: '/billing', label: 'History', icon: History },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/anomaly-detection', label: 'Anomaly Detection', icon: ShieldAlert },

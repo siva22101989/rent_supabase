@@ -5,10 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { storageRecords as getStorageRecords, customers as getCustomers } from "@/lib/data";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 import type { Customer, StorageRecord } from "@/lib/definitions";
-import { ActionsMenu } from "@/components/billing/actions-menu";
-
 
 async function getCustomerName(customerId: string, customers: Customer[]) {
   return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
@@ -22,20 +19,21 @@ function formatCurrency(amount: number) {
     }).format(amount);
 }
 
-export default async function BillingPage() {
+export default async function PaymentsPage() {
     const allRecords = await getStorageRecords();
     const allCustomers = await getCustomers();
-    const withdrawnRecords = allRecords.filter(r => r.storageEndDate);
+    // Filter for records where a payment has been made.
+    const paidRecords = allRecords.filter(r => r.amountPaid > 0);
 
   return (
     <AppLayout>
       <PageHeader
-        title="Transaction History"
-        description="View all completed and billed storage records."
+        title="Payments Received"
+        description="A log of all payments received across all records."
       />
         <Card>
             <CardHeader>
-                <CardTitle>Completed Transactions</CardTitle>
+                <CardTitle>Payment History</CardTitle>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -46,13 +44,11 @@ export default async function BillingPage() {
                             <TableHead>Commodity</TableHead>
                             <TableHead>Date In</TableHead>
                             <TableHead>Date Out</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Total Paid</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
+                            <TableHead className="text-right">Amount Paid</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {await Promise.all(withdrawnRecords.map(async (record) => {
+                        {await Promise.all(paidRecords.map(async (record) => {
                             const customerName = await getCustomerName(record.customerId, allCustomers);
                             const endDate = record.storageEndDate ? (typeof record.storageEndDate === 'string' ? parseISO(record.storageEndDate) : record.storageEndDate) : null;
                             const startDate = typeof record.storageStartDate === 'string' ? parseISO(record.storageStartDate) : record.storageStartDate;
@@ -64,15 +60,7 @@ export default async function BillingPage() {
                                 <TableCell>{record.commodityDescription}</TableCell>
                                 <TableCell>{format(startDate, 'dd MMM yyyy')}</TableCell>
                                 <TableCell>{endDate ? format(endDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
-                                <TableCell>
-                                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                        Completed
-                                    </Badge>
-                                </TableCell>
                                 <TableCell className="text-right font-mono">{formatCurrency(record.amountPaid)}</TableCell>
-                                <TableCell>
-                                    <ActionsMenu record={record} />
-                                </TableCell>
                             </TableRow>
                         )}))}
                     </TableBody>
