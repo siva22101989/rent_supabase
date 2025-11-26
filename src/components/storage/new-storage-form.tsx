@@ -4,12 +4,11 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { addStorageRecord, type FormState } from '@/lib/actions';
 import type { Customer } from '@/lib/definitions';
-import { RATE_6_MONTHS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,7 +40,6 @@ function SubmitButton() {
 
 export function NewStorageForm({ customers }: { customers: Customer[] }) {
   const { toast } = useToast();
-  const [initialRent, setInitialRent] = useState(0);
 
   const form = useForm<NewStorageFormValues>({
     resolver: zodResolver(NewStorageSchema),
@@ -52,16 +50,6 @@ export function NewStorageForm({ customers }: { customers: Customer[] }) {
       customerId: '',
     },
   });
-
-  const bagsStored = form.watch('bagsStored');
-
-  useEffect(() => {
-    if (bagsStored > 0) {
-      setInitialRent(bagsStored * RATE_6_MONTHS);
-    } else {
-      setInitialRent(0);
-    }
-  }, [bagsStored]);
 
   const [state, formAction] = useFormState<FormState, FormData>(addStorageRecord, {
     message: '',
@@ -150,13 +138,6 @@ export function NewStorageForm({ customers }: { customers: Customer[] }) {
                   </PopoverContent>
                 </Popover>
             </div>
-          </div>
-          <div className="rounded-lg border bg-accent/30 p-4">
-            <h3 className="font-semibold text-primary">Initial Rent Calculation</h3>
-            <p className="text-sm text-muted-foreground">Based on the 6-month minimum policy (₹{RATE_6_MONTHS}/bag).</p>
-            <p className="text-2xl font-bold mt-2 text-primary">
-              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(initialRent)}
-            </p>
           </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">

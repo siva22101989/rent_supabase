@@ -43,7 +43,7 @@ export async function addStorageRecord(prevState: FormState, formData: FormData)
     storageStartDate,
     storageEndDate: null,
     billingCycle: '6-Month Initial' as const,
-    totalBilled: bagsStored * RATE_6_MONTHS,
+    totalBilled: 0, // Set initial bill to 0
   };
 
   storageRecords.unshift(newRecord);
