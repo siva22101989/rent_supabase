@@ -39,8 +39,8 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
         <div ref={ref} className="printable-area bg-white p-4">
             <Card className="w-full shadow-none border-0">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">Billing Statement</CardTitle>
-                    <CardDescription>Record ID: {record.id}</CardDescription>
+                    <CardTitle className="text-2xl">Srilakshmi Warehouse</CardTitle>
+                    <CardDescription>Billing Statement</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-2 gap-4 text-sm">

@@ -9,7 +9,7 @@ import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { RATE_6_MONTHS } from '@/lib/billing';
 import { Button } from '../ui/button';
-import { Download } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 
 function formatCurrency(amount: number) {
     return new Intl.NumberFormat('en-IN', {
@@ -82,8 +82,8 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
             <div ref={receiptRef} className="printable-area bg-white p-4">
                 <Card className="w-full shadow-none border-0">
                     <CardHeader className="text-center">
-                        <CardTitle className="text-2xl">Storage Inflow Receipt</CardTitle>
-                        <CardDescription>Record ID: {record.id}</CardDescription>
+                        <CardTitle className="text-2xl">Srilakshmi Warehouse</CardTitle>
+                        <CardDescription>Inflow Bill</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -137,8 +137,17 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
             </div>
             <div className="mt-6 flex justify-center print-hide">
                 <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                    <Download className="mr-2 h-4 w-4" />
-                    {isGenerating ? 'Downloading...' : 'Download PDF'}
+                    {isGenerating ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Downloading...
+                        </>
+                    ) : (
+                        <>
+                            <Download className="mr-2 h-4 w-4" />
+                            Download PDF
+                        </>
+                    )}
                 </Button>
             </div>
         </div>
