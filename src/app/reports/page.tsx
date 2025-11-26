@@ -25,10 +25,14 @@ export default async function ReportsPage() {
     const allCustomers = await getCustomers();
     
     const recordsWithBalance = allRecords.map(record => {
-        const totalBilled = record.hamaliPayable + record.totalRentBilled;
+        const totalBilled = record.hamaliPayable + (record.totalRentBilled || 0);
         const balanceDue = totalBilled - record.amountPaid;
         return { ...record, totalBilled, balanceDue };
-    }).sort((a, b) => b.storageStartDate.getTime() - a.storageStartDate.getTime());
+    }).sort((a, b) => {
+        const dateA = a.storageStartDate instanceof Date ? a.storageStartDate.getTime() : 0;
+        const dateB = b.storageStartDate instanceof Date ? b.storageStartDate.getTime() : 0;
+        return dateB - dateA;
+    });
 
   return (
     <AppLayout>
@@ -60,7 +64,7 @@ export default async function ReportsPage() {
                             return (
                             <TableRow key={record.id}>
                                 <TableCell className="font-medium">{customerName}</TableCell>
-                                <TableCell>{format(record.storageStartDate, 'dd MMM yyyy')}</TableCell>
+                                <TableCell>{record.storageStartDate ? format(record.storageStartDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                                 <TableCell>
                                     {record.storageEndDate ? format(record.storageEndDate, 'dd MMM yyyy') : 'N/A'}
                                 </TableCell>
