@@ -38,13 +38,13 @@ export default async function BillingPage() {
                  <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Record ID</TableHead>
+                            <TableHead className="w-[120px]">Record ID</TableHead>
                             <TableHead>Customer</TableHead>
                             <TableHead>Commodity</TableHead>
-                            <TableHead className="text-right">Total Billed</TableHead>
                             <TableHead>Date In</TableHead>
                             <TableHead>Date Out</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Total Billed</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -55,7 +55,6 @@ export default async function BillingPage() {
                                 <TableCell className="font-medium">{record.id}</TableCell>
                                 <TableCell>{customerName}</TableCell>
                                 <TableCell>{record.commodityDescription}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
                                 <TableCell>{format(record.storageStartDate, 'dd MMM yyyy')}</TableCell>
                                 <TableCell>{record.storageEndDate ? format(record.storageEndDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                                 <TableCell>
@@ -63,6 +62,8 @@ export default async function BillingPage() {
                                         Completed
                                     </Badge>
                                 </TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
+
                             </TableRow>
                         )}))}
                     </TableBody>
