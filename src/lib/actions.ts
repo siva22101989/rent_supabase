@@ -180,67 +180,6 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
 }
 
-
-const BillingRecordSchema = z.object({
-  recordId: z.string(),
-  amountPaid: z.coerce.number().positive('Total billed amount must be a positive number.'),
-  storageEndDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-});
-
-export type BillingFormState = {
-    message: string;
-    success: boolean;
-};
-
-export async function updateBillingRecord(prevState: BillingFormState, formData: FormData) {
-    const validatedFields = BillingRecordSchema.safeParse({
-        recordId: formData.get('recordId'),
-        amountPaid: formData.get('amountPaid'),
-        storageEndDate: formData.get('storageEndDate'),
-    });
-
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
-    }
-
-    const currentRecords = await storageRecords();
-    const { recordId, amountPaid, storageEndDate } = validatedFields.data;
-    
-    const recordIndex = currentRecords.findIndex(r => r.id === recordId);
-
-    if (recordIndex === -1) {
-        return { message: 'Record not found.', success: false };
-    }
-
-    currentRecords[recordIndex] = {
-        ...currentRecords[recordIndex],
-        amountPaid,
-        storageEndDate: new Date(storageEndDate),
-    };
-
-    await saveStorageRecords(currentRecords);
-
-    revalidateTag('storageRecords');
-    return { message: 'Record updated successfully.', success: true };
-}
-
-
-export async function deleteBillingRecord(formData: FormData) {
-    const recordId = formData.get('recordId') as string;
-    if (!recordId) {
-        return;
-    }
-
-    let currentRecords = await storageRecords();
-    currentRecords = currentRecords.filter(r => r.id !== recordId);
-    await saveStorageRecords(currentRecords);
-
-    revalidateTag('storageRecords');
-}
-
-
 const StorageRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(2, 'Commodity description is required.'),

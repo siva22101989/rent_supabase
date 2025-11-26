@@ -32,7 +32,6 @@ const navItems = [
   { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot },
   { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot },
   { href: '/payments/pending', label: 'Payments', icon: CreditCard },
-  { href: '/billing', label: 'History', icon: History },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/anomaly-detection', label: 'Anomaly Detection', icon: ShieldAlert },
@@ -50,48 +49,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
           <SidebarMenu>
             {navItems.map((item) => (
-              item.subItems ? (
-                 <SidebarMenuItem key={item.label} asChild>
-                    <Collapsible>
-                        <CollapsibleTrigger asChild>
-                             <SidebarMenuButton
-                                className="justify-between"
-                                tooltip={{ children: item.label }}
-                             >
-                                <div className="flex items-center gap-2">
-                                    <item.icon />
-                                    <span>{item.label}</span>
-                                </div>
-                                <ChevronRight className="size-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                            </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent asChild>
-                            <SidebarMenuSub>
-                                {item.subItems.map(subItem => (
-                                     <SidebarMenuItem key={subItem.href}>
-                                        <SidebarMenuSubButton asChild isActive={pathname === subItem.href}>
-                                            <Link href={subItem.href}>{subItem.label}</Link>
-                                        </SidebarMenuSubButton>
-                                    </SidebarMenuItem>
-                                ))}
-                            </SidebarMenuSub>
-                        </CollapsibleContent>
-                    </Collapsible>
-                 </SidebarMenuItem>
-              ) : (
-                <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/')}
-                    tooltip={{ children: item.label }}
-                    >
-                    <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                    </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-              )
+              <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/')}
+                  tooltip={{ children: item.label }}
+                  >
+                  <Link href={item.href}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                  </Link>
+                  </SidebarMenuButton>
+              </SidebarMenuItem>
             ))}
           </SidebarMenu>
         </SidebarContent>
