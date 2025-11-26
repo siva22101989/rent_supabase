@@ -67,19 +67,18 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         return bagsToWithdrawNum > selectedRecord.bagsStored;
     }, [bagsToWithdrawNum, selectedRecord]);
 
-    const additionalRent = useMemo(() => {
-        if (!selectedRecord || bagsToWithdrawNum <= 0) return 0;
-        return calculateFinalRent(selectedRecord, new Date(), bagsToWithdrawNum).rent;
+    const { additionalRent, pendingHamali } = useMemo(() => {
+        if (!selectedRecord || bagsToWithdrawNum <= 0) {
+            return { additionalRent: 0, pendingHamali: 0 };
+        }
+        const billingInfo = calculateFinalRent(selectedRecord, new Date(), bagsToWithdrawNum);
+        
+        const hamaliPerBag = selectedRecord.bagsStored > 0 ? selectedRecord.hamaliCharges / selectedRecord.bagsStored : 0;
+        const currentPendingHamali = hamaliPerBag * bagsToWithdrawNum;
+
+        return { additionalRent: billingInfo.rent, pendingHamali: currentPendingHamali };
     }, [selectedRecord, bagsToWithdrawNum]);
     
-    const pendingHamali = useMemo(() => {
-        if (!selectedRecord || !selectedRecord.bagsStored || bagsToWithdrawNum <= 0) return 0;
-        // Hamali is charged on inflow, so this is just for display if needed.
-        // Assuming we want to show hamali associated with the bags being withdrawn.
-        const hamaliPerBag = selectedRecord.hamaliCharges / selectedRecord.bagsStored;
-        return hamaliPerBag * bagsToWithdrawNum;
-    }, [selectedRecord, bagsToWithdrawNum]);
-
 
     useEffect(() => {
         if (state.message) {

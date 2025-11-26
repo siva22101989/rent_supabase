@@ -54,54 +54,47 @@ export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
   // After 12 months
   else {
     const yearsStored = Math.floor(monthsStored / 12);
-    const renewalYears = yearsStored + 1;
-    nextBillingDate = addMonths(startDate, renewalYears * 12);
-    status = `In 1-Year Renewal (Y${renewalYears})`;
+    const renewalYears = yearsStored; // The number of full years passed
+    nextBillingDate = addMonths(startDate, (renewalYears + 1) * 12);
+    status = `In 1-Year Renewal (Y${renewalYears + 1})`;
     currentRate = RATE_1_YEAR;
     
     // Check if the current date is past the last paid renewal date
-    const lastRenewalDate = addMonths(startDate, yearsStored * 12);
-    if (!isAfter(lastRenewalDate, today)) {
-      alert = `Renewal for Year ${renewalYears + 1} is due.`;
+    // The initial 12 months are covered by the first year rate.
+    const lastRenewalDueDate = addMonths(startDate, renewalYears * 12);
+
+    if (!isAfter(lastRenewalDueDate, today)) {
+        alert = `Renewal for Year ${renewalYears + 1} is due.`;
     }
   }
 
   return { status, nextBillingDate, currentRate, alert };
 }
 
+
 export function calculateFinalRent(record: StorageRecord, withdrawalDate: Date, bagsToWithdraw: number): { rent: number } {
   const startDate = startOfDay(record.storageStartDate);
   const endDate = startOfDay(withdrawalDate);
   const monthsStored = differenceInCalendarMonths(endDate, startDate);
 
-  // Initial rent for 6 months is already part of the record's `totalBilled` on inflow.
-  const rentAlreadyPaid = RATE_6_MONTHS * (record.hamaliCharges > 0 ? (record.totalBilled - record.hamaliCharges) / RATE_6_MONTHS : record.bagsStored);
-  
-  let totalRentOwed = 0;
+  const rentAlreadyPaidPerBag = (record.totalBilled - record.hamaliCharges) / record.bagsStored;
+
+  let totalRentOwedPerBag = 0;
 
   if (monthsStored < 6) {
     // Withdrawing within the first 6 months. Rent is already covered.
-    totalRentOwed = rentAlreadyPaid;
-  } else if (monthsStored >= 6 && monthsStored < 12) {
+    totalRentOwedPerBag = RATE_6_MONTHS;
+  } else if (monthsStored < 12) {
     // Withdrawing between 6 and 12 months. Owe the full year rate.
-    totalRentOwed = RATE_1_YEAR * record.bagsStored;
+    totalRentOwedPerBag = RATE_1_YEAR;
   } else { // monthsStored >= 12
-    // Withdrawing after one or more years.
     const yearsStored = Math.floor(monthsStored / 12);
-    // Base rent is the first year's rate.
-    totalRentOwed = RATE_1_YEAR * record.bagsStored;
-    // Add rent for subsequent full years.
-    if (yearsStored > 1) {
-      totalRentOwed += (RATE_1_YEAR * record.bagsStored * (yearsStored - 1));
-    }
+    // Total owed is for (yearsStored + 1) full years.
+    // e.g., stored for 13 months = 2 years of rent. 1 year + 1 renewal.
+    totalRentOwedPerBag = RATE_1_YEAR * (yearsStored + 1);
   }
 
-  // Calculate rent proportion for bags being withdrawn
-  const rentPerBagOwed = totalRentOwed / record.bagsStored;
-  const rentAlreadyPaidPerBag = rentAlreadyPaid / record.bagsStored;
+  const additionalRentForWithdrawnBags = (totalRentOwedPerBag - rentAlreadyPaidPerBag) * bagsToWithdraw;
   
-  const additionalRentForWithdrawnBags = (rentPerBagOwed - rentAlreadyPaidPerBag) * bagsToWithdraw;
-  
-  // Ensure we don't have negative rent
   return { rent: Math.max(0, additionalRentForWithdrawnBags) };
 }
