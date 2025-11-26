@@ -1,5 +1,5 @@
 
-import { differenceInCalendarMonths, addMonths, isAfter, startOfDay, differenceInYears, addYears } from 'date-fns';
+import { differenceInCalendarMonths, addMonths, isAfter, startOfDay, differenceInYears, addYears, differenceInMonths } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
 
 // Rates
@@ -72,7 +72,16 @@ export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
 }
 
 
-export function calculateFinalRent(record: StorageRecord, withdrawalDate: Date, bagsToWithdraw: number): { rent: number } {
+export function calculateFinalRent(
+    record: StorageRecord, 
+    withdrawalDate: Date, 
+    bagsToWithdraw: number
+): { 
+    rent: number;
+    monthsStored: number;
+    totalRentOwedPerBag: number;
+    rentAlreadyPaidPerBag: number;
+} {
   const startDate = startOfDay(record.storageStartDate);
   const endDate = startOfDay(withdrawalDate);
   
@@ -97,6 +106,12 @@ export function calculateFinalRent(record: StorageRecord, withdrawalDate: Date, 
   }
   
   const additionalRentForWithdrawnBags = (totalRentOwedPerBag - rentAlreadyPaidPerBag) * bagsToWithdraw;
+  const monthsStored = differenceInMonths(endDate, startDate);
 
-  return { rent: Math.max(0, additionalRentForWithdrawnBags) };
+  return { 
+      rent: Math.max(0, additionalRentForWithdrawnBags),
+      monthsStored,
+      totalRentOwedPerBag,
+      rentAlreadyPaidPerBag
+  };
 }
