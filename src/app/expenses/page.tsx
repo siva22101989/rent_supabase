@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, IndianRupee, TrendingUp, TrendingDown } from "lucide-react";
+import { PlusCircle, IndianRupee, TrendingUp, TrendingDown, Scale } from "lucide-react";
 import { storageRecords as getStorageRecords } from "@/lib/data";
 
 function formatCurrency(amount: number) {
@@ -22,6 +22,9 @@ export default async function ExpensesPage() {
       return total + recordPayments;
   }, 0);
 
+  const totalExpenses = 0; // Placeholder until expense tracking is built
+  const totalBalance = totalIncome - totalExpenses;
+
   return (
     <AppLayout>
       <PageHeader
@@ -34,7 +37,7 @@ export default async function ExpensesPage() {
         </Button>
       </PageHeader>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Income</CardTitle>
@@ -53,9 +56,21 @@ export default async function ExpensesPage() {
                  <TrendingDown className="h-4 w-4 text-muted-foreground text-red-500" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-destructive">{formatCurrency(0)}</div>
+                <div className="text-2xl font-bold text-destructive">{formatCurrency(totalExpenses)}</div>
                  <p className="text-xs text-muted-foreground">
                     Expense tracking is coming soon.
+                </p>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+                 <Scale className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className={`text-2xl font-bold ${totalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(totalBalance)}</div>
+                 <p className="text-xs text-muted-foreground">
+                    Net balance after all income and expenses.
                 </p>
             </CardContent>
         </Card>
