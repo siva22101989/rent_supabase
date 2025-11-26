@@ -5,8 +5,7 @@ import { InflowReceipt } from "@/components/inflow/inflow-receipt";
 import { storageRecords as getStorageRecords, customers as getCustomers } from "@/lib/data";
 import { notFound } from "next/navigation";
 
-export default async function InflowReceiptPage({ params }: { params: { recordId: string } }) {
-  const { recordId } = params;
+export default async function InflowReceiptPage({ params: { recordId } }: { params: { recordId: string } }) {
   const allRecords = await getStorageRecords();
   const allCustomers = await getCustomers();
   const record = allRecords.find(r => r.id === recordId);
