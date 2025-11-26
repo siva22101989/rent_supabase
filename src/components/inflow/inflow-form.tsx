@@ -129,7 +129,7 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
-                                <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" required onChange={e => setHamaliPaid(Number(e.target.value))}/>
+                                <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" onChange={e => setHamaliPaid(Number(e.target.value))}/>
                             </div>
                             <div className="flex justify-between items-center font-semibold text-base">
                                 <span className="text-destructive">Hamali Pending</span>

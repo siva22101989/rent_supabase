@@ -65,7 +65,7 @@ const InflowSchema = z.object({
     storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
     bagsStored: z.coerce.number().int().positive('Number of bags must be a positive number.'),
     hamaliRate: z.coerce.number().positive('Hamali rate must be a positive number.'),
-    hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.'),
+    hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.').optional(),
 });
 
 export type InflowFormState = {
@@ -101,7 +101,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         storageStartDate: new Date(storageStartDate),
         storageEndDate: null,
         billingCycle: '6-Month Initial' as const,
-        amountPaid: hamaliPaid,
+        amountPaid: hamaliPaid || 0,
         hamaliPayable: hamaliPayable,
     };
 
