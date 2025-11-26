@@ -161,7 +161,14 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                     name="bagsToWithdraw" 
                                     type="number" 
                                     value={bagsToWithdraw}
-                                    onChange={(e) => setBagsToWithdraw(e.target.value)}
+                                    onChange={(e) => {
+                                        const value = Number(e.target.value);
+                                        if (selectedRecord && value > selectedRecord.bagsStored) {
+                                            setBagsToWithdraw(selectedRecord.bagsStored);
+                                        } else {
+                                            setBagsToWithdraw(value < 0 ? 0 : value);
+                                        }
+                                    }}
                                     max={selectedRecord.bagsStored}
                                     min={1}
                                     placeholder="Enter number of bags"
