@@ -166,7 +166,6 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         name="bagsToWithdraw" 
                                         type="number" 
                                         placeholder="0"
-                                        max={selectedRecord.bagsStored}
                                         required 
                                         onChange={e => setBagsToWithdraw(Number(e.target.value))}
                                     />
