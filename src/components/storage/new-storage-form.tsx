@@ -107,7 +107,7 @@ export function NewStorageForm({ customers }: { customers: Customer[] }) {
               <Input
                 id="commodityDescription"
                 name="commodityDescription"
-                placeholder="e.g., Coffee Beans, Grade A"
+                placeholder="e.g., Paddy, Bengalgram"
                 required
               />
             </div>

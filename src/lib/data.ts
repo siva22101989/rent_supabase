@@ -6,16 +6,16 @@ export const RATE_1_YEAR = 55;
 
 // Mock Data
 export const customers: Customer[] = [
-  { id: 'cust_1', name: 'Global Coffee Co.', email: 'contact@globalcoffee.com' },
-  { id: 'cust_2', name: 'Bean Traders Inc.', email: 'trading@beaninc.com' },
-  { id: 'cust_3', name: 'Agro Supplies Ltd.', email: 'supplies@agro.co' },
+  { id: 'cust_1', name: 'Global Agri Co.', email: 'contact@globalagri.com' },
+  { id: 'cust_2', name: 'Grain Traders Inc.', email: 'trading@graininc.com' },
+  { id: 'cust_3', name: 'Farm Supplies Ltd.', email: 'supplies@farm.co' },
 ];
 
 export const storageRecords: StorageRecord[] = [
   {
     id: 'rec_1',
     customerId: 'cust_1',
-    commodityDescription: 'Coffee Beans, Grade A',
+    commodityDescription: 'Paddy, Grade A',
     bagsStored: 150,
     storageStartDate: new Date('2023-11-15'),
     storageEndDate: null,
@@ -25,7 +25,7 @@ export const storageRecords: StorageRecord[] = [
   {
     id: 'rec_2',
     customerId: 'cust_2',
-    commodityDescription: 'Maize, Bulk',
+    commodityDescription: 'Bengalgram, Bulk',
     bagsStored: 500,
     storageStartDate: new Date(),
     storageEndDate: null,
