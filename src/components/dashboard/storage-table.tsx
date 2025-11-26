@@ -61,7 +61,7 @@ export async function StorageTable() {
                     Active
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">{formatCurrency(record.hamaliCharges)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(record.amountPaid)}</TableCell>
                 <TableCell>
                     <ActionsMenu record={record} customers={allCustomers} />
                 </TableCell>

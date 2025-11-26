@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useActionState, useEffect, useState } from 'react';
@@ -43,6 +44,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const [finalRent, setFinalRent] = useState(0);
     const [storageMonths, setStorageMonths] = useState(0);
     const [rentPerBag, setRentPerBag] = useState({ totalOwed: 0 });
+    const [hamaliPending, setHamaliPending] = useState(0);
 
     const selectedRecord = records.find(r => r.id === selectedRecordId);
 
@@ -64,15 +66,25 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     }, [state, toast]);
 
     useEffect(() => {
-        if (selectedRecord && bagsToWithdraw > 0) {
-            const { rent, monthsStored, totalRentOwedPerBag } = calculateFinalRent(selectedRecord, withdrawalDate, bagsToWithdraw);
-            setFinalRent(rent);
-            setStorageMonths(monthsStored);
-            setRentPerBag({ totalOwed: totalRentOwedPerBag });
+        if (selectedRecord) {
+            const pending = selectedRecord.hamaliPayable - selectedRecord.amountPaid;
+            setHamaliPending(pending > 0 ? pending : 0);
+
+            if (bagsToWithdraw > 0) {
+                const { rent, monthsStored, totalRentOwedPerBag } = calculateFinalRent(selectedRecord, withdrawalDate, bagsToWithdraw);
+                setFinalRent(rent);
+                setStorageMonths(monthsStored);
+                setRentPerBag({ totalOwed: totalRentOwedPerBag });
+            } else {
+                setFinalRent(0);
+                setStorageMonths(0);
+                setRentPerBag({ totalOwed: 0 });
+            }
         } else {
             setFinalRent(0);
             setStorageMonths(0);
             setRentPerBag({ totalOwed: 0 });
+            setHamaliPending(0);
         }
     }, [selectedRecord, bagsToWithdraw, withdrawalDate]);
 
@@ -151,17 +163,17 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         <span className="font-mono">{storageMonths} months</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Total Rent Due / bag</span>
-                                        <span className="font-mono">₹{rentPerBag.totalOwed.toFixed(2)}</span>
+                                        <span className="text-muted-foreground">Rent Due for {bagsToWithdraw} bags</span>
+                                        <span className="font-mono">₹{finalRent.toFixed(2)}</span>
                                     </div>
                                      <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Bags Withdrawing</span>
-                                        <span className="font-mono">x {bagsToWithdraw}</span>
+                                        <span className="text-muted-foreground">Pending Hamali Charges</span>
+                                        <span className="font-mono">₹{hamaliPending.toFixed(2)}</span>
                                     </div>
                                     <Separator />
                                     <div className="flex justify-between items-center font-semibold text-base">
-                                        <span className="text-foreground">Total Rent Payable Now</span>
-                                        <span className="font-mono">₹{finalRent.toFixed(2)}</span>
+                                        <span className="text-foreground">Total Payable Now</span>
+                                        <span className="font-mono">₹{(finalRent + hamaliPending).toFixed(2)}</span>
                                     </div>
                                 </div>
                                 <input type="hidden" name="finalRent" value={finalRent} />

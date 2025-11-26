@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useActionState, useEffect, useState } from 'react';
@@ -37,6 +38,7 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
     const [bags, setBags] = useState(0);
     const [rate, setRate] = useState(0);
     const [hamali, setHamali] = useState(0);
+    const [hamaliPaid, setHamaliPaid] = useState(0);
 
     useEffect(() => {
         if (state.message) {
@@ -111,9 +113,17 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                     <div className="space-y-4">
                         <h4 className="font-medium">Billing Summary</h4>
                         <div className="space-y-2">
-                             <div className="flex justify-between items-center font-semibold text-base">
-                                <span className="text-foreground">Total Hamali Payable</span>
+                             <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Total Hamali Payable</span>
                                 <span className="font-mono">₹{hamali.toFixed(2)}</span>
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
+                                <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" required onChange={e => setHamaliPaid(Number(e.target.value))}/>
+                            </div>
+                            <div className="flex justify-between items-center font-semibold text-base">
+                                <span className="text-destructive">Hamali Pending</span>
+                                <span className="font-mono text-destructive">₹{(hamali - hamaliPaid).toFixed(2)}</span>
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Rent will be calculated at the time of withdrawal.

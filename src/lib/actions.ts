@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -63,6 +64,7 @@ const InflowSchema = z.object({
     location: z.string().min(1, 'Location is required.'),
     bagsStored: z.coerce.number().int().positive('Number of bags must be a positive number.'),
     hamaliRate: z.coerce.number().positive('Hamali rate must be a positive number.'),
+    hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.'),
 });
 
 export type InflowFormState = {
@@ -77,6 +79,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         location: formData.get('location'),
         bagsStored: formData.get('bagsStored'),
         hamaliRate: formData.get('hamaliRate'),
+        hamaliPaid: formData.get('hamaliPaid'),
     });
 
     if (!validatedFields.success) {
@@ -85,9 +88,9 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         return { message: `Invalid data: ${message}`, success: false };
     }
 
-    const { bagsStored, hamaliRate, ...rest } = validatedFields.data;
+    const { bagsStored, hamaliRate, hamaliPaid, ...rest } = validatedFields.data;
 
-    const hamaliCharges = bagsStored * hamaliRate;
+    const hamaliPayable = bagsStored * hamaliRate;
     
     const newRecord = {
         id: `rec_${Date.now()}`,
@@ -95,9 +98,9 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         bagsStored,
         storageStartDate: new Date(),
         storageEndDate: null,
-        billingCycle: '6-Month Initial' as const, // This can be simplified later if not needed
-        totalBilled: hamaliCharges, // Only hamali is billed at inflow
-        hamaliCharges,
+        billingCycle: '6-Month Initial' as const,
+        amountPaid: hamaliPaid,
+        hamaliPayable: hamaliPayable,
     };
 
     const currentRecords = await storageRecords();
@@ -150,15 +153,17 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     }
 
     const isFullWithdrawal = bagsToWithdraw === originalRecord.bagsStored;
+    const hamaliPending = originalRecord.hamaliPayable - originalRecord.amountPaid;
+    const totalPayableNow = finalRent + hamaliPending;
 
     if (isFullWithdrawal) {
         originalRecord.storageEndDate = new Date(withdrawalDate);
         originalRecord.billingCycle = 'Completed';
-        originalRecord.totalBilled += finalRent;
+        originalRecord.amountPaid += totalPayableNow;
     } else {
         // Partial withdrawal: update bag count and add rent to total billed.
         originalRecord.bagsStored -= bagsToWithdraw;
-        originalRecord.totalBilled += finalRent;
+        originalRecord.amountPaid += totalPayableNow;
     }
     
     currentRecords[recordIndex] = originalRecord;
@@ -172,7 +177,7 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
 
 const BillingRecordSchema = z.object({
   recordId: z.string(),
-  totalBilled: z.coerce.number().positive('Total billed amount must be a positive number.'),
+  amountPaid: z.coerce.number().positive('Total billed amount must be a positive number.'),
   storageEndDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
 });
 
@@ -184,7 +189,7 @@ export type BillingFormState = {
 export async function updateBillingRecord(prevState: BillingFormState, formData: FormData) {
     const validatedFields = BillingRecordSchema.safeParse({
         recordId: formData.get('recordId'),
-        totalBilled: formData.get('totalBilled'),
+        amountPaid: formData.get('amountPaid'),
         storageEndDate: formData.get('storageEndDate'),
     });
 
@@ -195,7 +200,7 @@ export async function updateBillingRecord(prevState: BillingFormState, formData:
     }
 
     const currentRecords = await storageRecords();
-    const { recordId, totalBilled, storageEndDate } = validatedFields.data;
+    const { recordId, amountPaid, storageEndDate } = validatedFields.data;
     
     const recordIndex = currentRecords.findIndex(r => r.id === recordId);
 
@@ -205,7 +210,7 @@ export async function updateBillingRecord(prevState: BillingFormState, formData:
 
     currentRecords[recordIndex] = {
         ...currentRecords[recordIndex],
-        totalBilled,
+        amountPaid,
         storageEndDate: new Date(storageEndDate),
     };
 
@@ -235,8 +240,8 @@ const StorageRecordSchema = z.object({
   commodityDescription: z.string().min(2, 'Commodity description is required.'),
   location: z.string().min(1, 'Location is required.'),
   bagsStored: z.coerce.number().int().positive('Bags must be a positive number.'),
-  hamaliCharges: z.coerce.number().nonnegative('Hamali charges must be a non-negative number.'),
-  totalBilled: z.coerce.number().nonnegative('Total billed must be a non-negative number.'),
+  hamaliPayable: z.coerce.number().nonnegative('Hamali charges must be a non-negative number.'),
+  amountPaid: z.coerce.number().nonnegative('Total billed must be a non-negative number.'),
   storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
 });
 
@@ -247,8 +252,8 @@ export async function updateStorageRecord(recordId: string, prevState: InflowFor
         commodityDescription: formData.get('commodityDescription'),
         location: formData.get('location'),
         bagsStored: formData.get('bagsStored'),
-        hamaliCharges: formData.get('hamaliCharges'),
-        totalBilled: formData.get('totalBilled'),
+        hamaliPayable: formData.get('hamaliPayable'),
+        amountPaid: formData.get('amountPaid'),
         storageStartDate: formData.get('storageStartDate'),
     });
 

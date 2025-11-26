@@ -76,7 +76,7 @@ export default async function BillingPage() {
                             <TableHead>Date In</TableHead>
                             <TableHead>Date Out</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Total Billed</TableHead>
+                            <TableHead className="text-right">Total Paid</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -98,7 +98,7 @@ export default async function BillingPage() {
                                         Completed
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(record.amountPaid)}</TableCell>
                                 <TableCell>
                                     <ActionsMenu record={record} />
                                 </TableCell>

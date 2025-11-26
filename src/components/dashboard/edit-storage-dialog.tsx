@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -131,29 +132,29 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="hamaliCharges" className="text-right">
-                Hamali
+              <Label htmlFor="hamaliPayable" className="text-right">
+                Hamali Payable
               </Label>
               <Input 
-                id="hamaliCharges" 
-                name="hamaliCharges" 
+                id="hamaliPayable" 
+                name="hamaliPayable" 
                 type="number"
                 step="0.01"
-                defaultValue={record.hamaliCharges} 
+                defaultValue={record.hamaliPayable} 
                 className="col-span-3" 
                 required 
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="totalBilled" className="text-right">
-                Total Billed
+              <Label htmlFor="amountPaid" className="text-right">
+                Amount Paid
               </Label>
               <Input 
-                id="totalBilled" 
-                name="totalBilled" 
+                id="amountPaid" 
+                name="amountPaid" 
                 type="number"
                 step="0.01"
-                defaultValue={record.totalBilled} 
+                defaultValue={record.amountPaid} 
                 className="col-span-3" 
                 required 
               />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
@@ -34,6 +35,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
     
     const [duration, setDuration] = useState({ days: 0, months: 0 });
     const [rentBreakdown, setRentBreakdown] = useState({ totalOwed: 0 });
+    const [hamaliPending, setHamaliPending] = useState(0);
 
     useEffect(() => {
         const startDate = new Date(record.storageStartDate);
@@ -49,8 +51,13 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
 
         const { totalRentOwedPerBag } = calculateFinalRent(record, endDate, withdrawnBags);
         setRentBreakdown({ totalOwed: totalRentOwedPerBag });
+
+        const pending = record.hamaliPayable - record.amountPaid;
+        setHamaliPending(pending > 0 ? pending : 0);
         
     }, [record, withdrawnBags]);
+
+    const totalPayable = finalRent + hamaliPending;
 
     const handleDownloadPdf = async () => {
         const element = receiptRef.current;
@@ -130,17 +137,17 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
                             <h3 className="font-semibold mb-2">Final Billing Summary</h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span>Total Rent Due (per bag)</span>
-                                    <span>{formatCurrency(rentBreakdown.totalOwed)}</span>
+                                    <span>Total Rent Due ({withdrawnBags} bags)</span>
+                                    <span>{formatCurrency(finalRent)}</span>
                                 </div>
                                  <div className="flex justify-between">
-                                    <span className="font-medium">Amount per Bag × Bags Withdrawn</span>
-                                    <span>{formatCurrency(rentBreakdown.totalOwed)} × {withdrawnBags}</span>
+                                    <span className="font-medium">Pending Hamali Charges</span>
+                                    <span>{formatCurrency(hamaliPending)}</span>
                                 </div>
                                 <Separator className="my-2" />
                                 <div className="flex justify-between font-bold text-base">
-                                    <span>Total Rent Paid Now</span>
-                                    <span>{formatCurrency(finalRent)}</span>
+                                    <span>Total Paid Now</span>
+                                    <span>{formatCurrency(totalPayable)}</span>
                                 </div>
                             </div>
                         </div>

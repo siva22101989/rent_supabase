@@ -22,6 +22,6 @@ export type StorageRecord = {
   storageStartDate: Date;
   storageEndDate: Date | null;
   billingCycle: '6-Month Initial' | '1-Year Rollover' | '1-Year Renewal' | 'Completed';
-  totalBilled: number;
-  hamaliCharges: number;
+  amountPaid: number; // Renamed from totalBilled
+  hamaliPayable: number; // Renamed from hamaliCharges
 };

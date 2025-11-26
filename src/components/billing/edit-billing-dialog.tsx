@@ -74,15 +74,15 @@ export function EditBillingDialog({ record, children }: { record: StorageRecord,
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="totalBilled" className="text-right">
-                Total Billed
+              <Label htmlFor="amountPaid" className="text-right">
+                Amount Paid
               </Label>
               <Input 
-                id="totalBilled" 
-                name="totalBilled" 
+                id="amountPaid" 
+                name="amountPaid" 
                 type="number"
                 step="0.01"
-                defaultValue={record.totalBilled} 
+                defaultValue={record.amountPaid} 
                 className="col-span-3" 
                 required 
               />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
@@ -22,6 +23,7 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const hamaliPending = record.hamaliPayable - record.amountPaid;
 
     useEffect(() => {
         setFormattedDate(format(new Date(record.storageStartDate), 'dd MMM yyyy, hh:mm a'));
@@ -92,9 +94,17 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                         <div>
                             <h3 className="font-semibold mb-2">Billing Summary</h3>
                             <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span>Total Hamali Payable</span>
+                                    <span>{formatCurrency(record.hamaliPayable)}</span>
+                                </div>
                                 <div className="flex justify-between font-bold text-base">
                                     <span>Hamali Charges Paid</span>
-                                    <span>{formatCurrency(record.hamaliCharges)}</span>
+                                    <span>{formatCurrency(record.amountPaid)}</span>
+                                </div>
+                                 <div className="flex justify-between font-medium text-destructive">
+                                    <span>Hamali Charges Pending</span>
+                                    <span>{formatCurrency(hamaliPending)}</span>
                                 </div>
                             </div>
                         </div>
@@ -104,7 +114,7 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                         <div className="text-xs text-muted-foreground space-y-2">
                            <p>
                                 <strong>Terms & Conditions:</strong>
-                                This receipt confirms the storage of the above-mentioned goods. Rent will be calculated at the time of withdrawal.
+                                This receipt confirms the storage of the above-mentioned goods. Rent and any pending charges will be calculated at the time of withdrawal.
                             </p>
                             <p>This is a computer-generated receipt and does not require a signature.</p>
                         </div>
