@@ -1,3 +1,4 @@
+
 import { differenceInCalendarMonths, addMonths, isAfter, startOfDay, differenceInYears, differenceInMonths } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
 
@@ -75,3 +76,4 @@ export function calculateFinalRent(
       rentAlreadyPaidPerBag // Will be 0
   };
 }
+
