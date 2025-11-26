@@ -1,13 +1,15 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { RATE_6_MONTHS } from '@/lib/billing';
 import { Button } from '../ui/button';
-import { Printer } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 function formatCurrency(amount: number) {
     return new Intl.NumberFormat('en-IN', {
@@ -18,8 +20,9 @@ function formatCurrency(amount: number) {
 }
 
 export function InflowReceipt({ record, customer }: { record: StorageRecord, customer: Customer }) {
-    const componentRef = useRef(null);
+    const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         // Format the date only on the client-side to avoid hydration mismatch
@@ -28,14 +31,56 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
 
     const initialRent = record.bagsStored * RATE_6_MONTHS;
     
-    const handlePrint = () => {
-        window.print();
+    const handleDownloadPdf = async () => {
+        const element = receiptRef.current;
+        if (!element) return;
+
+        setIsGenerating(true);
+
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 2, // Increase scale for better quality
+                useCORS: true,
+                backgroundColor: '#ffffff',
+            });
+            
+            const imgData = canvas.toDataURL('image/png');
+            
+            // A4 size in mm: 210 x 297
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            
+            const ratio = imgWidth / imgHeight;
+            let widthInPdf = pdfWidth - 20; // with margin
+            let heightInPdf = widthInPdf / ratio;
+
+            // if receipt is too long, it might need to span multiple pages, but for now we'll scale to fit one.
+            if (heightInPdf > pdfHeight - 20) {
+                heightInPdf = pdfHeight - 20; // with margin
+                widthInPdf = heightInPdf * ratio;
+            }
+
+            const x = (pdfWidth - widthInPdf) / 2;
+            const y = 10; // top margin
+
+            pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
+            pdf.save(`receipt-${record.id}.pdf`);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            // Optionally, show a toast notification for the error
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     return (
         <div className="max-w-2xl mx-auto">
-            <div ref={componentRef} className="printable-area">
-                <Card className="w-full shadow-none border-0 md:border md:shadow-sm">
+            <div ref={receiptRef} className="printable-area bg-white p-4">
+                <Card className="w-full shadow-none border-0">
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl">Storage Inflow Receipt</CardTitle>
                         <CardDescription>Record ID: {record.id}</CardDescription>
@@ -90,9 +135,9 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                 </Card>
             </div>
             <div className="mt-6 flex justify-center print-hide">
-                <Button onClick={handlePrint}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print Receipt
+                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                    <Download className="mr-2 h-4 w-4" />
+                    {isGenerating ? 'Downloading...' : 'Download PDF'}
                 </Button>
             </div>
         </div>
