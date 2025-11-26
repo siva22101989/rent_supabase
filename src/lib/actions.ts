@@ -95,7 +95,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         id: `rec_${Date.now()}`,
         ...rest,
         bagsStored,
-        storageStartDate: new Date().toISOString(),
+        storageStartDate: new Date(),
         storageEndDate: null,
         billingCycle: '6-Month Initial' as const,
         totalBilled: hamaliCharges + initialRent,
@@ -110,12 +110,70 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     redirect(`/inflow/receipt/${newRecord.id}`);
 }
 
+const OutflowSchema = z.object({
+    recordId: z.string().min(1, 'A storage record must be selected.'),
+    bagsToWithdraw: z.coerce.number().int().positive('Bags to withdraw must be a positive number.'),
+    withdrawalDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+    finalRent: z.coerce.number().nonnegative('Final rent cannot be negative.'),
+});
+
 export type OutflowFormState = {
-  message: string;
-  success: boolean;
+    message: string;
+    success: boolean;
 };
 
-// The addOutflow action is removed as requested.
+export async function addOutflow(prevState: OutflowFormState, formData: FormData) {
+    const validatedFields = OutflowSchema.safeParse({
+        recordId: formData.get('recordId'),
+        bagsToWithdraw: formData.get('bagsToWithdraw'),
+        withdrawalDate: formData.get('withdrawalDate'),
+        finalRent: formData.get('finalRent'),
+    });
+
+    if (!validatedFields.success) {
+        const error = validatedFields.error.flatten().fieldErrors;
+        const message = Object.values(error).flat().join(', ');
+        return { message: `Invalid data: ${message}`, success: false };
+    }
+    
+    const currentRecords = await storageRecords();
+    const { recordId, bagsToWithdraw, withdrawalDate, finalRent } = validatedFields.data;
+    
+    const recordIndex = currentRecords.findIndex(r => r.id === recordId);
+
+    if (recordIndex === -1) {
+        return { message: 'Record not found.', success: false };
+    }
+
+    const originalRecord = currentRecords[recordIndex];
+
+    if (bagsToWithdraw > originalRecord.bagsStored) {
+        return { message: 'Cannot withdraw more bags than are in storage.', success: false };
+    }
+
+    const isFullWithdrawal = bagsToWithdraw === originalRecord.bagsStored;
+
+    if (isFullWithdrawal) {
+        originalRecord.storageEndDate = new Date(withdrawalDate);
+        originalRecord.billingCycle = 'Completed';
+        originalRecord.totalBilled += finalRent;
+    } else {
+        // Partial withdrawal: update bag count and billed amount.
+        // A new record could be created for the withdrawn part, but for simplicity, we update the existing one.
+        originalRecord.bagsStored -= bagsToWithdraw;
+        originalRecord.totalBilled += finalRent;
+        // The hamali charges are not recalculated, as they were for the initial inflow.
+    }
+    
+    currentRecords[recordIndex] = originalRecord;
+
+    await saveStorageRecords(currentRecords);
+
+    revalidateTag('storageRecords');
+    // Redirect to a new outflow receipt page
+    redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}`);
+}
+
 
 const BillingRecordSchema = z.object({
   recordId: z.string(),

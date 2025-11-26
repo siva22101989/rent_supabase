@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -14,7 +15,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { LayoutGrid, ShieldAlert, Users, FileText, IndianRupee, ArrowDownToDot } from 'lucide-react';
+import { LayoutGrid, ShieldAlert, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot } from 'lucide-react';
 import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,7 +24,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutGrid },
   { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot },
-  // { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot },
+  { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot },
   { href: '/billing', label: 'Billing', icon: IndianRupee },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/reports', label: 'Reports', icon: FileText },
