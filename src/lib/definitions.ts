@@ -24,4 +24,5 @@ export type StorageRecord = {
   billingCycle: '6-Month Initial' | '1-Year Rollover' | '1-Year Renewal' | 'Completed';
   amountPaid: number; // Renamed from totalBilled
   hamaliPayable: number; // Renamed from hamaliCharges
+  totalRentBilled: number;
 };

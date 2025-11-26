@@ -103,6 +103,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         billingCycle: '6-Month Initial' as const,
         amountPaid: hamaliPaid || 0,
         hamaliPayable: hamaliPayable,
+        totalRentBilled: 0,
     };
 
     const currentRecords = await storageRecords();
@@ -163,10 +164,12 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
         originalRecord.storageEndDate = new Date(withdrawalDate);
         originalRecord.billingCycle = 'Completed';
         originalRecord.amountPaid += paymentMade;
+        originalRecord.totalRentBilled += finalRent;
     } else {
         // Partial withdrawal: update bag count and add rent to total billed.
         originalRecord.bagsStored -= bagsToWithdraw;
         originalRecord.amountPaid += paymentMade;
+        originalRecord.totalRentBilled += finalRent;
     }
     
     currentRecords[recordIndex] = originalRecord;
@@ -285,4 +288,44 @@ export async function updateStorageRecord(recordId: string, prevState: InflowFor
 
     revalidateTag('storageRecords');
     return { message: 'Record updated successfully.', success: true };
+}
+
+
+const PaymentSchema = z.object({
+  recordId: z.string(),
+  paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
+});
+
+export type PaymentFormState = {
+    message: string;
+    success: boolean;
+};
+
+export async function addPayment(prevState: PaymentFormState, formData: FormData) {
+    const validatedFields = PaymentSchema.safeParse({
+        recordId: formData.get('recordId'),
+        paymentAmount: formData.get('paymentAmount'),
+    });
+
+    if (!validatedFields.success) {
+        const error = validatedFields.error.flatten().fieldErrors;
+        const message = Object.values(error).flat().join(', ');
+        return { message: `Invalid data: ${message}`, success: false };
+    }
+    
+    const currentRecords = await storageRecords();
+    const { recordId, paymentAmount } = validatedFields.data;
+    
+    const recordIndex = currentRecords.findIndex(r => r.id === recordId);
+    
+    if (recordIndex === -1) {
+        return { message: 'Record not found.', success: false };
+    }
+    
+    currentRecords[recordIndex].amountPaid += paymentAmount;
+    
+    await saveStorageRecords(currentRecords);
+    
+    revalidateTag('storageRecords');
+    return { message: 'Payment added successfully.', success: true };
 }

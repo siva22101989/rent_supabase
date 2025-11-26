@@ -4,8 +4,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { storageRecords as getStorageRecords, customers as getCustomers } from "@/lib/data";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import type { Customer, StorageRecord } from "@/lib/definitions";
+import { Badge } from "@/components/ui/badge";
+import { AddPaymentDialog } from "@/components/payments/add-payment-dialog";
 
 async function getCustomerName(customerId: string, customers: Customer[]) {
   return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
@@ -19,48 +21,57 @@ function formatCurrency(amount: number) {
     }).format(amount);
 }
 
-export default async function PaymentsPage() {
+export default async function PendingPaymentsPage() {
     const allRecords = await getStorageRecords();
     const allCustomers = await getCustomers();
-    // Filter for records where a payment has been made.
-    const paidRecords = allRecords.filter(r => r.amountPaid > 0);
+    
+    const pendingRecords = allRecords.map(record => {
+        const totalBilled = record.hamaliPayable + record.totalRentBilled;
+        const balanceDue = totalBilled - record.amountPaid;
+        return { ...record, totalBilled, balanceDue };
+    }).filter(record => record.balanceDue > 0);
 
   return (
     <AppLayout>
       <PageHeader
-        title="Payment History"
-        description="A log of all payments received across all records."
+        title="Pending Payments"
+        description="View all records with an outstanding balance."
       />
         <Card>
             <CardHeader>
-                <CardTitle>All Payments Received</CardTitle>
+                <CardTitle>Outstanding Balances</CardTitle>
             </CardHeader>
             <CardContent>
                  <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[120px]">Record ID</TableHead>
+                            <TableHead>Record ID</TableHead>
                             <TableHead>Customer</TableHead>
-                            <TableHead>Commodity</TableHead>
-                            <TableHead>Date In</TableHead>
-                            <TableHead>Date Out</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Total Billed</TableHead>
                             <TableHead className="text-right">Amount Paid</TableHead>
+                            <TableHead className="text-right">Balance Due</TableHead>
+                            <TableHead className="w-[100px] text-right"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {await Promise.all(paidRecords.map(async (record) => {
+                        {await Promise.all(pendingRecords.map(async (record) => {
                             const customerName = await getCustomerName(record.customerId, allCustomers);
-                            const endDate = record.storageEndDate ? (typeof record.storageEndDate === 'string' ? parseISO(record.storageEndDate) : record.storageEndDate) : null;
-                            const startDate = typeof record.storageStartDate === 'string' ? parseISO(record.storageStartDate) : record.storageStartDate;
-
                             return (
                             <TableRow key={record.id}>
                                 <TableCell className="font-medium">{record.id}</TableCell>
                                 <TableCell>{customerName}</TableCell>
-                                <TableCell>{record.commodityDescription}</TableCell>
-                                <TableCell>{format(startDate, 'dd MMM yyyy')}</TableCell>
-                                <TableCell>{endDate ? format(endDate, 'dd MMM yyyy') : 'Active'}</TableCell>
+                                <TableCell>
+                                    <Badge variant={record.storageEndDate ? "secondary" : "default"} className={record.storageEndDate ? 'bg-green-100 text-green-800' : ''}>
+                                        {record.storageEndDate ? 'Completed' : 'Active'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
                                 <TableCell className="text-right font-mono">{formatCurrency(record.amountPaid)}</TableCell>
+                                <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.balanceDue)}</TableCell>
+                                <TableCell className="text-right">
+                                    <AddPaymentDialog record={record} />
+                                </TableCell>
                             </TableRow>
                         )}))}
                     </TableBody>

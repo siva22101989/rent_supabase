@@ -14,18 +14,31 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { LayoutGrid, ShieldAlert, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, CreditCard, History } from 'lucide-react';
 import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { ChevronRight } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutGrid },
   { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot },
   { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot },
-  { href: '/payments', label: 'Payments', icon: CreditCard },
+  { 
+    label: 'Payments', 
+    icon: CreditCard,
+    subItems: [
+        { href: '/payments/pending', label: 'Pending Payments' },
+        { href: '/payments', label: 'Payment History' },
+    ]
+  },
   { href: '/billing', label: 'History', icon: History },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/reports', label: 'Reports', icon: FileText },
@@ -44,18 +57,48 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
           <SidebarMenu>
             {navItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === item.href}
-                  tooltip={{ children: item.label }}
-                >
-                  <Link href={item.href}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              item.subItems ? (
+                 <SidebarMenuItem key={item.label} asChild>
+                    <Collapsible>
+                        <CollapsibleTrigger asChild>
+                             <SidebarMenuButton
+                                className="justify-between"
+                                tooltip={{ children: item.label }}
+                             >
+                                <div className="flex items-center gap-2">
+                                    <item.icon />
+                                    <span>{item.label}</span>
+                                </div>
+                                <ChevronRight className="size-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                            </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent asChild>
+                            <SidebarMenuSub>
+                                {item.subItems.map(subItem => (
+                                     <SidebarMenuItem key={subItem.href}>
+                                        <SidebarMenuSubButton asChild isActive={pathname === subItem.href}>
+                                            <Link href={subItem.href}>{subItem.label}</Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenuSub>
+                        </CollapsibleContent>
+                    </Collapsible>
+                 </SidebarMenuItem>
+              ) : (
+                <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                    tooltip={{ children: item.label }}
+                    >
+                    <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
             ))}
           </SidebarMenu>
         </SidebarContent>
