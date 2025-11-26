@@ -1,20 +1,17 @@
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
-import { OutflowForm } from "@/components/outflow/outflow-form";
-import { storageRecords as getStorageRecords, customers as getCustomers } from "@/lib/data";
 
-export default async function OutflowPage() {
-  const allRecords = await getStorageRecords();
-  const allCustomers = await getCustomers();
-  const activeRecords = allRecords.filter(r => !r.storageEndDate);
+export default function OutflowPage() {
   return (
     <AppLayout>
       <PageHeader
         title="Process Outflow"
-        description="Withdraw a storage record and finalize billing."
+        description="This feature is currently being rebuilt."
       />
-      <OutflowForm records={activeRecords} customers={allCustomers}/>
+      <div className="flex items-center justify-center h-48 bg-muted rounded-lg">
+        <p className="text-muted-foreground">Coming soon...</p>
+      </div>
     </AppLayout>
   );
 }
