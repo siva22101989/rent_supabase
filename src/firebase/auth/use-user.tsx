@@ -1,6 +1,6 @@
 'use client';
 
-import { Auth, onAuthStateChanged, User, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { useState, useEffect } from 'react';
 
@@ -25,4 +25,4 @@ const useUserHook = () => {
     return { user, loading };
 };
 
-export { useUserHook as useUser, firebaseSignOut as signOut, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword };
+export { useUserHook as useUser, firebaseSignOut as signOut };

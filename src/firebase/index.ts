@@ -12,7 +12,7 @@ import {
   DocumentReference,
 } from 'firebase/firestore';
 import { useUser } from './auth/use-user';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 export { useUser, doc, collection, query, where, orderBy, getDocs, onSnapshot };
 
@@ -22,22 +22,24 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const memoizedQuery = useMemo(() => q, [JSON.stringify(q)]);
+
   useEffect(() => {
-    if (!q) {
+    if (!memoizedQuery) {
       setData([]);
       setLoading(false);
       return;
     };
     
     setLoading(true);
-    const unsubscribe = onSnapshot(q, snapshot => {
+    const unsubscribe = onSnapshot(memoizedQuery, snapshot => {
       const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as T[];
       setData(docs);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [q]);
+  }, [memoizedQuery]);
 
   return { data, loading };
 }
@@ -46,15 +48,17 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const memoizedRef = useMemo(() => ref, [ref?.path]);
+
   useEffect(() => {
-    if (!ref) {
+    if (!memoizedRef) {
         setData(null);
         setLoading(false);
         return;
     }
 
     setLoading(true);
-    const unsubscribe = onSnapshot(ref, doc => {
+    const unsubscribe = onSnapshot(memoizedRef, doc => {
       if (doc.exists()) {
         setData({ ...doc.data(), id: doc.id } as T);
       } else {
@@ -64,7 +68,7 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
     });
 
     return () => unsubscribe();
-  }, [ref]);
+  }, [memoizedRef]);
 
   return { data, loading };
 }
