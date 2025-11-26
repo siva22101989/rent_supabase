@@ -53,14 +53,19 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const [state, formAction] = useActionState(addOutflow, initialState);
     
     const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-    const [bagsToWithdraw, setBagsToWithdraw] = useState(0);
+    const [bagsToWithdraw, setBagsToWithdraw] = useState<number | string>('');
 
     const selectedRecord = useMemo(() => records.find(r => r.id === selectedRecordId), [records, selectedRecordId]);
 
+    const bagsToWithdrawNum = useMemo(() => {
+        const num = Number(bagsToWithdraw);
+        return isNaN(num) ? 0 : num;
+    }, [bagsToWithdraw]);
+
     const additionalRent = useMemo(() => {
-        if (!selectedRecord || bagsToWithdraw <= 0) return 0;
-        return calculateFinalRent(selectedRecord, new Date(), bagsToWithdraw).rent;
-    }, [selectedRecord, bagsToWithdraw]);
+        if (!selectedRecord || bagsToWithdrawNum <= 0) return 0;
+        return calculateFinalRent(selectedRecord, new Date(), bagsToWithdrawNum).rent;
+    }, [selectedRecord, bagsToWithdrawNum]);
     
     const hamaliPerBag = useMemo(() => {
         if (!selectedRecord || !selectedRecord.bagsStored) return 0;
@@ -86,7 +91,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         if (selectedRecord) {
             setBagsToWithdraw(selectedRecord.bagsStored);
         } else {
-            setBagsToWithdraw(0);
+            setBagsToWithdraw('');
         }
     }, [selectedRecord]);
 
@@ -148,9 +153,10 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                     name="bagsToWithdraw" 
                                     type="number" 
                                     value={bagsToWithdraw}
-                                    onChange={(e) => setBagsToWithdraw(Number(e.target.value))}
+                                    onChange={(e) => setBagsToWithdraw(e.target.value)}
                                     max={selectedRecord.bagsStored}
                                     min={1}
+                                    placeholder="Enter number of bags"
                                     required
                                 />
                             </div>
@@ -162,7 +168,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                 <CardContent className='space-y-3 text-green-800'>
                                      <div className="flex justify-between items-center font-medium">
                                         <span>Pending Hamali Charges:</span>
-                                        <span className='font-mono'>{formatCurrency(hamaliPerBag * bagsToWithdraw)}</span>
+                                        <span className='font-mono'>{formatCurrency(hamaliPerBag * bagsToWithdrawNum)}</span>
                                     </div>
                                     <div className="flex justify-between items-center font-medium">
                                         <span>Additional Rent Due:</span>
@@ -170,7 +176,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                     </div>
                                     <div className="flex justify-between items-center font-bold text-lg border-t border-green-300 pt-3 mt-3">
                                         <span>Total Amount Due:</span>
-                                        <span className='font-mono'>{formatCurrency((hamaliPerBag * bagsToWithdraw) + additionalRent)}</span>
+                                        <span className='font-mono'>{formatCurrency((hamaliPerBag * bagsToWithdrawNum) + additionalRent)}</span>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -179,7 +185,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
                 </CardContent>
                 <CardFooter>
-                    <SubmitButton disabled={!selectedRecord || bagsToWithdraw <= 0 || bagsToWithdraw > (selectedRecord?.bagsStored ?? 0)} />
+                    <SubmitButton disabled={!selectedRecord || bagsToWithdrawNum <= 0 || bagsToWithdrawNum > (selectedRecord?.bagsStored ?? 0)} />
                 </CardFooter>
             </Card>
         </form>
