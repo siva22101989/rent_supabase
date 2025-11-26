@@ -22,7 +22,7 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const memoizedQuery = useMemo(() => q, [JSON.stringify(q)]);
+  const memoizedQuery = useMemo(() => q, [q ? JSON.stringify(q) : null]);
 
   useEffect(() => {
     if (!memoizedQuery) {
@@ -36,6 +36,10 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
       const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as T[];
       setData(docs);
       setLoading(false);
+    }, (error) => {
+        console.error("Error fetching collection:", error);
+        setData([]);
+        setLoading(false);
     });
 
     return () => unsubscribe();
@@ -65,6 +69,10 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
         setData(null);
       }
       setLoading(false);
+    }, (error) => {
+        console.error("Error fetching document:", error);
+        setData(null);
+        setLoading(false);
     });
 
     return () => unsubscribe();

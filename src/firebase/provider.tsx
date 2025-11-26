@@ -30,6 +30,7 @@ export const FirebaseProvider = ({
   });
 
   useEffect(() => {
+    // This code will only run on the client
     const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     const firestore = getFirestore(firebaseApp);
     const auth = getAuth(firebaseApp);
