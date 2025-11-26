@@ -1,5 +1,5 @@
 
-import { differenceInCalendarMonths, addMonths, isAfter, startOfDay, differenceInDays } from 'date-fns';
+import { differenceInCalendarMonths, addMonths, isAfter, startOfDay } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
 
 // Rates
@@ -29,69 +29,71 @@ export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
   const monthsStored = differenceInCalendarMonths(today, startDate);
 
   let alert: string | null = null;
+  let status: string;
+  let nextBillingDate: Date | null;
+  let currentRate: number;
 
-  // After 1 year, it's always in a 1-year renewal cycle
-  if (monthsStored >= 12) {
+  const initial6MonthDate = addMonths(startDate, 6);
+  const initial12MonthDate = addMonths(startDate, 12);
+
+  // Before 6 months
+  if (isAfter(initial6MonthDate, today)) {
+    status = 'Active - 6-Month Term';
+    nextBillingDate = initial6MonthDate;
+    currentRate = RATE_6_MONTHS;
+  } 
+  // Between 6 and 12 months
+  else if (isAfter(initial12MonthDate, today)) {
+    status = 'Active - 1-Year Rollover';
+    nextBillingDate = initial12MonthDate;
+    currentRate = RATE_1_YEAR;
+    if (record.billingCycle === '6-Month Initial') {
+        alert = `1-Year Rollover top-up is due.`;
+    }
+  } 
+  // After 12 months
+  else {
     const yearsStored = Math.floor(monthsStored / 12);
-    const nextBillingDate = addMonths(startDate, (yearsStored + 1) * 12);
-    const status = `In 1-Year Renewal (Y${yearsStored + 1})`;
-
-    if (isAfter(today, nextBillingDate) || today.getTime() === nextBillingDate.getTime()) {
-      alert = `Renewal for Year ${yearsStored + 2} is due.`;
+    const renewalYears = yearsStored + 1;
+    nextBillingDate = addMonths(startDate, renewalYears * 12);
+    status = `In 1-Year Renewal (Y${renewalYears})`;
+    currentRate = RATE_1_YEAR;
+    
+    // Check if the current date is past the last paid renewal date
+    const lastRenewalDate = addMonths(startDate, yearsStored * 12);
+    if (!isAfter(lastRenewalDate, today)) {
+      alert = `Renewal for Year ${renewalYears + 1} is due.`;
     }
-
-    return { status, nextBillingDate, currentRate: RATE_1_YEAR, alert };
   }
 
-  // Between 6 and 11 months, it's in the 1-year rollover period
-  if (monthsStored >= 6) {
-    const nextBillingDate = addMonths(startDate, 12);
-    const status = 'Active - 1-Year Rollover';
-
-    const rolloverDate = addMonths(startDate, 6);
-    if ((isAfter(today, rolloverDate) || today.getTime() === rolloverDate.getTime()) && record.billingCycle === '6-Month Initial') {
-      alert = `1-Year Rollover top-up is due.`;
-    }
-
-    return { status, nextBillingDate, currentRate: RATE_1_YEAR, alert };
-  }
-
-  // Between 0 and 5 months, it's in the initial 6-month term
-  const nextBillingDate = addMonths(startDate, 6);
-  const status = 'Active - 6-Month Term';
-  return { status, nextBillingDate, currentRate: RATE_6_MONTHS, alert };
+  return { status, nextBillingDate, currentRate, alert };
 }
 
-
 export function calculateFinalRent(record: StorageRecord, withdrawalDate: Date, bagsToWithdraw: number): { rent: number } {
-  const today = startOfDay(withdrawalDate);
   const startDate = record.storageStartDate;
   
-  // Calculate months stored at the time of withdrawal
-  const monthsStored = differenceInCalendarMonths(today, startDate);
+  // Total months from start until withdrawal
+  const monthsStored = differenceInCalendarMonths(startOfDay(withdrawalDate), startDate);
 
   let rentDue = 0;
 
-  // Case 1: Withdrawal within the initial 6-month period, but after the 6-month mark passes.
-  // This triggers a rollover to the 1-year rate.
+  // Case 1: Withdrawal after 6 months but before 12 months
+  // User has paid for 6 months (₹36). They need to pay the difference to meet the 1-year rate (₹55).
   if (monthsStored >= 6 && monthsStored < 12 && record.billingCycle === '6-Month Initial') {
-      // The user has already paid for 6 months, so they owe the difference for the 1-year rate.
       rentDue = (RATE_1_YEAR - RATE_6_MONTHS) * bagsToWithdraw;
   }
-  // Case 2: Withdrawal after a 12-month period has passed.
-  // This triggers a renewal for another year.
+  // Case 2: Withdrawal after 12 months or more
   else if (monthsStored >= 12) {
-      const yearsStored = Math.floor(monthsStored / 12);
-      const renewalDate = addMonths(startDate, yearsStored * 12);
+    const yearsStoredOnWithdrawal = Math.floor(monthsStored / 12);
+    const renewalDate = addMonths(startDate, yearsStoredOnWithdrawal * 12);
 
-      // If the withdrawal happens on or after the renewal date for the next year, a new year's rent is due.
-      if (isAfter(today, renewalDate) || today.getTime() === renewalDate.getTime()) {
-          rentDue = RATE_1_YEAR * bagsToWithdraw;
-      }
+    // If withdrawing on or after the anniversary date for a new year, the full year's rent is due.
+    if (!isAfter(renewalDate, startOfDay(withdrawalDate))) {
+        rentDue = RATE_1_YEAR * bagsToWithdraw;
+    }
   }
-
-  // If no specific condition is met, it means withdrawal is happening within a pre-paid period
-  // (e.g., within the first 5 months of the 6-month term, or within a paid year).
-  // In those cases, no *additional* rent is due for the withdrawal itself.
-  return { rent: rentDue > 0 ? rentDue : 0 };
+  
+  // If withdrawing within the first 6 months, or within a year that has already been paid for,
+  // no *additional* rent is due.
+  return { rent: rentDue };
 }
