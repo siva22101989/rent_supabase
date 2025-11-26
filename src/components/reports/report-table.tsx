@@ -30,9 +30,9 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
         const balanceDue = totalBilled - amountPaid;
         return { ...record, totalBilled, amountPaid, balanceDue };
     }).sort((a, b) => {
-        const dateA = a.storageStartDate instanceof Date ? a.storageStartDate.getTime() : 0;
-        const dateB = b.storageStartDate instanceof Date ? b.storageStartDate.getTime() : 0;
-        return dateB - dateA;
+        const dateA = a.storageStartDate;
+        const dateB = b.storageStartDate;
+        return dateB.getTime() - dateA.getTime();
     });
 
     const totalBags = recordsWithBalance.reduce((acc, record) => acc + record.bagsStored, 0);
