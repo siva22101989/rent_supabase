@@ -3,7 +3,6 @@ import { createContext, useContext } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
-import { useFirebaseApp, useFirestore, useAuth as useFirebaseAuth } from 'reactfire';
 
 type FirebaseContextValue = {
   firebaseApp: FirebaseApp;
@@ -32,9 +31,7 @@ export const useFirebase = () => {
   return context;
 };
 
-// These hooks can now be used in client components that are descendants of FirebaseClientProvider
-export { useFirebaseApp, useFirestore };
-
-export const useAuth = () => {
-    return useFirebaseAuth();
-}
+// Hooks to get specific Firebase services from context
+export const useFirebaseApp = () => useFirebase().firebaseApp;
+export const useFirestore = () => useFirebase().firestore;
+export const useAuth = () => useFirebase().auth;

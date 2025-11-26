@@ -1,24 +1,24 @@
 'use client';
 
 import { Auth, onAuthStateChanged, User, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { useAuth, useSubscription } from 'reactfire';
+import { useAuth } from '@/firebase';
+import { useState, useEffect } from 'react';
 
 const useUserHook = () => {
     const auth = useAuth();
-    const { status, data: user } = useSubscription(
-        ['user', auth.currentUser?.uid],
-        () => {
-            return new Promise<User | null>((resolve) => {
-                const unsubscribe = onAuthStateChanged(auth, (user) => {
-                    resolve(user);
-                    unsubscribe();
-                });
-            });
-        },
-        { suspense: false }
-    );
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    return { user: user || null, loading: status === 'loading' };
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setUser(user);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [auth]);
+
+    return { user, loading };
 };
 
-export { useUserHook as useUser, signInWithPopup, GoogleAuthProvider, firebaseSignOut as signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword };
+export { useUserHook as useUser, signOut, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword };

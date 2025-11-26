@@ -1,13 +1,9 @@
 'use client';
 
-import {
-  FirebaseAppProvider,
-  FirestoreProvider,
-  AuthProvider,
-} from 'reactfire';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { useFirebase } from './provider';
+import React from 'react';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { useFirebase, FirebaseProvider } from './provider';
 
 export const FirebaseClientProvider = ({
   children,
@@ -16,23 +12,13 @@ export const FirebaseClientProvider = ({
 }) => {
   const { firebaseApp, firestore: serverFirestore, auth: serverAuth } = useFirebase();
 
-  // Initialize client-side instances
-  const firestore = typeof window !== 'undefined' ? getFirestore(firebaseApp) : serverFirestore;
-  const auth = typeof window !== 'undefined' ? getAuth(firebaseApp) : serverAuth;
-  
-  // No emulators in production.
-  // if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  //   connectFirestoreEmulator(firestore, 'localhost', 8080);
-  //   connectAuthEmulator(auth, 'http://localhost:9099');
-  // }
+  // These instances are now client-side only
+  const firestore = getFirestore(firebaseApp);
+  const auth = getAuth(firebaseApp);
   
   return (
-    <FirebaseAppProvider firebaseApp={firebaseApp}>
-      <AuthProvider sdk={auth}>
-        <FirestoreProvider sdk={firestore}>
-            {children}
-        </FirestoreProvider>
-      </AuthProvider>
-    </FirebaseAppProvider>
+    <FirebaseProvider firebaseApp={firebaseApp} auth={auth} firestore={firestore}>
+        {children}
+    </FirebaseProvider>
   );
 };
