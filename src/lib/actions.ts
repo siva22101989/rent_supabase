@@ -105,7 +105,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     await saveStorageRecords(currentRecords);
 
     revalidateTag('storageRecords');
-    redirect('/');
+    redirect(`/inflow/receipt/${newRecord.id}`);
 }
 
 export type OutflowFormState = {
