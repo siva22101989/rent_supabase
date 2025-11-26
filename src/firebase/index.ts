@@ -3,9 +3,9 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 import { useCollection, useCollectionData, useDocument, useDocumentData } from 'reactfire';
-
+import { useUser } from './auth/use-user';
 // Re-exporting hooks from reactfire for convenience
-export { useCollection, useCollectionData, useDocument, useDocumentData };
+export { useCollection, useCollectionData, useDocument, useDocumentData, useUser };
 
 // Re-exporting providers and context hooks
 export * from './provider';

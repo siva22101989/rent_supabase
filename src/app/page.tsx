@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useUser } from "@/firebase/auth/use-user";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 type NavItem = {
   href: string;
@@ -23,7 +26,7 @@ const navItems: NavItem[] = [
   { href: '/payments/pending', label: 'Payments', description: 'Manage pending payments.', icon: IndianRupee },
   { href: '/customers', label: 'Customers', description: 'View and manage customers.', icon: Users },
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
-  { href: '/expenses', label: 'Expenses', description: 'Track and manage expenses. (Coming Soon)', icon: CreditCard },
+  { href: '/expenses', label: 'Expenses', description: 'Track and manage expenses.', icon: CreditCard },
 ];
 
 function NavCard({ item }: { item: NavItem }) {
@@ -48,6 +51,23 @@ function NavCard({ item }: { item: NavItem }) {
 
 
 export default function DashboardPage() {
+  const { user, loading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <AppLayout>
       <PageHeader
