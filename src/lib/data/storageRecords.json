@@ -10,7 +10,13 @@
     "billingCycle": "6-Month Initial",
     "amountPaid": 0,
     "hamaliPayable": 9990,
-    "totalRentBilled": 0
+    "totalRentBilled": 0,
+    "payments": [
+      {
+        "amount": 5000,
+        "date": "2025-11-26T00:00:00.000Z"
+      }
+    ]
   },
   {
     "id": "rec_1764159463756",
