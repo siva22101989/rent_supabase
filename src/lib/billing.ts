@@ -51,9 +51,6 @@ export function calculateFinalRent(
   let totalRentOwedPerBag = 0;
   const monthsStored = differenceInMonths(endDate, startDate);
 
-  const sixMonthsLater = addMonths(startDate, 6);
-  const twelveMonthsLater = addMonths(startDate, 12);
-
   // If withdrawal is within the first 6 months (0-6 months), charge the 6-month rate.
   if (monthsStored <= 6) {
     totalRentOwedPerBag = RATE_6_MONTHS;
@@ -64,9 +61,9 @@ export function calculateFinalRent(
   } 
   // If withdrawal is after 1 year, charge based on the number of years.
   else {
-    // Calculate years. 13 months is the start of year 2. 25 months is the start of year 3.
-    const years = Math.ceil(monthsStored / 12);
-    totalRentOwedPerBag = RATE_1_YEAR * years;
+    // 55 for the first year + 36 for each additional year or part of a year.
+    const additionalYears = Math.ceil((monthsStored - 12) / 12);
+    totalRentOwedPerBag = RATE_1_YEAR + (additionalYears * RATE_6_MONTHS);
   }
   
   const finalRentForWithdrawnBags = totalRentOwedPerBag * bagsToWithdraw;
