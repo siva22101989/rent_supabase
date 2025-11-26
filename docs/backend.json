@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "customer": {
+      "title": "Customer",
+      "description": "Represents a customer of the warehouse.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The full name of the customer."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email address of the customer."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The phone number of the customer."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the customer."
+        }
+      },
+      "required": ["name", "phone", "address"]
+    },
+    "storageRecord": {
+      "title": "Storage Record",
+      "description": "Represents a record of items being stored by a customer.",
+      "type": "object",
+      "properties": {
+        "customerId": {
+          "type": "string",
+          "description": "The ID of the customer who owns these items."
+        },
+        "commodityDescription": {
+          "type": "string",
+          "description": "A description of the commodity being stored."
+        },
+        "location": {
+          "type": "string",
+          "description": "The location within the warehouse where the items are stored."
+        },
+        "bagsStored": {
+          "type": "number",
+          "description": "The number of bags being stored."
+        },
+        "storageStartDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date when the storage period began."
+        },
+        "storageEndDate": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The date when the storage period ended. Null if still active."
+        },
+        "billingCycle": {
+          "type": "string",
+          "enum": ["6-Month Initial", "1-Year Rollover", "1-Year Renewal", "Completed"],
+          "description": "The current billing cycle for the record."
+        },
+        "payments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/payment"
+          }
+        },
+        "hamaliPayable": {
+          "type": "number",
+          "description": "The total hamali (loading/unloading) charges payable."
+        },
+        "totalRentBilled": {
+            "type": "number",
+            "description": "The total rent amount that has been billed for this record."
+        }
+      },
+      "required": [
+        "customerId",
+        "commodityDescription",
+        "location",
+        "bagsStored",
+        "storageStartDate",
+        "billingCycle",
+        "hamaliPayable",
+        "totalRentBilled"
+      ]
+    },
+    "payment": {
+      "title": "Payment",
+      "description": "Represents a payment made towards a storage record.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "description": "The amount of the payment."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the payment was made."
+        }
+      },
+      "required": ["amount", "date"]
+    }
+  },
+  "auth": {
+    "providers": []
+  },
+  "firestore": {
+    "/customers/{customerId}": {
+      "schema": "customer",
+      "description": "Stores individual customer documents."
+    },
+    "/storageRecords/{recordId}": {
+      "schema": "storageRecord",
+      "description": "Stores individual storage records."
+    }
+  }
+}

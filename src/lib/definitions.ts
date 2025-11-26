@@ -1,3 +1,4 @@
+import type { Timestamp } from 'firebase/firestore';
 
 export type Customer = {
   id: string;
@@ -14,18 +15,17 @@ export type Commodity = {
 
 export type Payment = {
   amount: number;
-  date: Date;
+  date: Date | Timestamp;
 };
 
-// Dates are stored as ISO strings in JSON, but will be converted to Date objects when read.
 export type StorageRecord = {
   id: string;
   customerId: string;
   commodityDescription: string;
   location: string;
   bagsStored: number;
-  storageStartDate: Date;
-  storageEndDate: Date | null;
+  storageStartDate: Date | Timestamp;
+  storageEndDate: Date | Timestamp | null;
   billingCycle: '6-Month Initial' | '1-Year Rollover' | '1-Year Renewal' | 'Completed';
   payments: Payment[];
   hamaliPayable: number;

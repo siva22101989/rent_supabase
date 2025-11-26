@@ -2,10 +2,11 @@
 'use server';
 
 import { z } from 'zod';
-import { storageRecords, customers, saveCustomers, saveStorageRecords } from '@/lib/data';
+import { storageRecords, customers, saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, getStorageRecord } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidateTag } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -44,14 +45,11 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
     }
 
     const newCustomer = {
-        id: `cust_${Date.now()}`,
         ...validatedFields.data,
         email: validatedFields.data.email ?? '',
     };
-
-    const currentCustomers = await customers();
-    currentCustomers.unshift(newCustomer);
-    await saveCustomers(currentCustomers);
+    
+    await saveCustomer(newCustomer);
     
     revalidateTag('customers');
     redirect('/customers');
@@ -94,14 +92,13 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     const hamaliPayable = bagsStored * hamaliRate;
     const payments = [];
     if (hamaliPaid && hamaliPaid > 0) {
-        payments.push({ amount: hamaliPaid, date: new Date(storageStartDate) });
+        payments.push({ amount: hamaliPaid, date: Timestamp.fromDate(new Date(storageStartDate)) });
     }
     
     const newRecord = {
-        id: `rec_${Date.now()}`,
         ...rest,
         bagsStored,
-        storageStartDate: new Date(storageStartDate),
+        storageStartDate: Timestamp.fromDate(new Date(storageStartDate)),
         storageEndDate: null,
         billingCycle: '6-Month Initial' as const,
         payments: payments,
@@ -109,12 +106,10 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         totalRentBilled: 0,
     };
 
-    const currentRecords = await storageRecords();
-    currentRecords.unshift(newRecord);
-    await saveStorageRecords(currentRecords);
+    const newRecordId = await saveStorageRecord(newRecord);
 
     revalidateTag('storageRecords');
-    redirect(`/inflow/receipt/${newRecord.id}`);
+    redirect(`/inflow/receipt/${newRecordId}`);
 }
 
 const OutflowSchema = z.object({
@@ -145,16 +140,13 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
         return { message: `Invalid data: ${message}`, success: false };
     }
     
-    const currentRecords = await storageRecords();
     const { recordId, bagsToWithdraw, withdrawalDate, finalRent, amountPaidNow } = validatedFields.data;
     
-    const recordIndex = currentRecords.findIndex(r => r.id === recordId);
+    const originalRecord = await getStorageRecord(recordId);
 
-    if (recordIndex === -1) {
+    if (!originalRecord) {
         return { message: 'Record not found.', success: false };
     }
-
-    const originalRecord = currentRecords[recordIndex];
 
     if (bagsToWithdraw > originalRecord.bagsStored) {
         return { message: 'Cannot withdraw more bags than are in storage.', success: false };
@@ -162,34 +154,31 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
 
     const isFullWithdrawal = bagsToWithdraw === originalRecord.bagsStored;
     const paymentMade = amountPaidNow || 0;
-
-    if (!originalRecord.payments) {
-      originalRecord.payments = [];
-    }
+    
+    const recordUpdate: Partial<StorageRecord> = {
+        payments: originalRecord.payments || [],
+    };
 
     if (paymentMade > 0) {
-        originalRecord.payments.push({ amount: paymentMade, date: new Date(withdrawalDate) });
+        recordUpdate.payments!.push({ amount: paymentMade, date: new Date(withdrawalDate) });
     }
 
     if (isFullWithdrawal) {
-        originalRecord.storageEndDate = new Date(withdrawalDate);
-        originalRecord.billingCycle = 'Completed';
-        originalRecord.totalRentBilled += finalRent;
+        recordUpdate.storageEndDate = new Date(withdrawalDate);
+        recordUpdate.billingCycle = 'Completed';
+        recordUpdate.totalRentBilled = (originalRecord.totalRentBilled || 0) + finalRent;
     } else {
-        // Partial withdrawal: update bag count and add rent to total billed.
-        originalRecord.bagsStored -= bagsToWithdraw;
-        originalRecord.totalRentBilled += finalRent;
+        recordUpdate.bagsStored = originalRecord.bagsStored - bagsToWithdraw;
+        recordUpdate.totalRentBilled = (originalRecord.totalRentBilled || 0) + finalRent;
     }
     
-    currentRecords[recordIndex] = originalRecord;
-
-    await saveStorageRecords(currentRecords);
+    await updateStorageRecord(recordId, recordUpdate);
 
     revalidateTag('storageRecords');
     redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
 }
 
-const StorageRecordSchema = z.object({
+const StorageRecordUpdateSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(2, 'Commodity description is required.'),
   location: z.string().min(1, 'Location is required.'),
@@ -199,8 +188,8 @@ const StorageRecordSchema = z.object({
 });
 
 
-export async function updateStorageRecord(recordId: string, prevState: InflowFormState, formData: FormData) {
-    const validatedFields = StorageRecordSchema.safeParse({
+export async function updateStorageRecordAction(recordId: string, prevState: InflowFormState, formData: FormData) {
+    const validatedFields = StorageRecordUpdateSchema.safeParse({
         customerId: formData.get('customerId'),
         commodityDescription: formData.get('commodityDescription'),
         location: formData.get('location'),
@@ -214,29 +203,13 @@ export async function updateStorageRecord(recordId: string, prevState: InflowFor
         const message = Object.values(error).flat().join(', ');
         return { message: `Invalid data: ${message}`, success: false };
     }
-
-    const currentRecords = await storageRecords();
-    const recordIndex = currentRecords.findIndex(r => r.id === recordId);
-
-    if (recordIndex === -1) {
-        return { message: 'Record not found.', success: false };
-    }
-
-    const originalRecord = currentRecords[recordIndex];
-    // Note: This simplified update doesn't allow changing payment history directly.
-    // We're preserving the existing payments array.
-
-    currentRecords[recordIndex] = {
-        ...originalRecord,
-        customerId: validatedFields.data.customerId,
-        commodityDescription: validatedFields.data.commodityDescription,
-        location: validatedFields.data.location,
-        bagsStored: validatedFields.data.bagsStored,
-        hamaliPayable: validatedFields.data.hamaliPayable,
-        storageStartDate: new Date(validatedFields.data.storageStartDate),
+    
+    const dataToUpdate = {
+        ...validatedFields.data,
+        storageStartDate: new Date(validatedFields.data.storageStartDate)
     };
 
-    await saveStorageRecords(currentRecords);
+    await updateStorageRecord(recordId, dataToUpdate);
 
     revalidateTag('storageRecords');
     return { message: 'Record updated successfully.', success: true };
@@ -267,27 +240,14 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
         return { message: `Invalid data: ${message}`, success: false };
     }
     
-    const currentRecords = await storageRecords();
     const { recordId, paymentAmount, paymentDate } = validatedFields.data;
     
-    const recordIndex = currentRecords.findIndex(r => r.id === recordId);
-    
-    if (recordIndex === -1) {
-        return { message: 'Record not found.', success: false };
-    }
-    
-    const record = currentRecords[recordIndex];
-    
-    if (!record.payments) {
-        record.payments = [];
-    }
-
-    record.payments.push({
+    const payment = {
         amount: paymentAmount,
         date: new Date(paymentDate),
-    });
+    };
     
-    await saveStorageRecords(currentRecords);
+    await addPaymentToRecord(recordId, payment);
     
     revalidateTag('storageRecords');
     return { message: 'Payment added successfully.', success: true };

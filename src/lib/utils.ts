@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { Timestamp } from "firebase/firestore";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -11,4 +12,15 @@ export function formatCurrency(amount: number) {
       currency: 'INR',
       minimumFractionDigits: 2,
   }).format(amount);
+}
+
+export function toDate(date: Date | Timestamp | string): Date {
+    if (date instanceof Date) {
+        return date;
+    }
+    if (typeof date === 'string') {
+        return new Date(date);
+    }
+    // Assumes it's a Firestore Timestamp
+    return (date as Timestamp).toDate();
 }

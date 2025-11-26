@@ -1,86 +1,147 @@
-
 'use server';
 
-import type { Customer, StorageRecord, Payment } from '@/lib/definitions';
-import fs from 'fs/promises';
-import path from 'path';
-import { unstable_cache as cache, revalidateTag } from 'next/cache';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  writeBatch,
+  query,
+  orderBy,
+  deleteDoc,
+  getDoc,
+  addDoc,
+  Timestamp,
+} from 'firebase/firestore';
+import {getFirestore} from 'firebase-admin/firestore';
+import {adminDb} from '@/firebase/admin';
+import type {Customer, StorageRecord, Payment} from '@/lib/definitions';
+import {revalidateTag} from 'next/cache';
+import {unstable_cache as cache} from 'next/cache';
 
-// Data file paths
-const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
-const customersPath = path.join(dataDir, 'customers.json');
-const storageRecordsPath = path.join(dataDir, 'storageRecords.json');
-
-// Helper function to read JSON file
-async function readJsonFile<T>(filePath: string): Promise<T[]> {
-  try {
-    const fileContent = await fs.readFile(filePath, 'utf-8');
-    const data = JSON.parse(fileContent);
-    // Date strings need to be converted back to Date objects
-    if (filePath === storageRecordsPath) {
-        return (data as any[]).map(record => ({
-            ...record,
-            storageStartDate: record.storageStartDate ? new Date(record.storageStartDate) : new Date(),
-            storageEndDate: record.storageEndDate ? new Date(record.storageEndDate) : null,
-            // Migrate old 'amountPaid' to new 'payments' array and ensure it always exists
-            payments: record.payments 
-              ? record.payments.map((p: any) => ({ ...p, date: new Date(p.date) })) 
-              : (record.amountPaid ? [{ amount: record.amountPaid, date: new Date(record.storageStartDate) }] : []),
-            amountPaid: undefined, // remove old field
-        })) as T[];
+function deconstructTimestamps(obj: any) {
+  const newObj: any = {};
+  for (const key in obj) {
+    if (obj[key] instanceof Timestamp) {
+      newObj[key] = obj[key].toDate();
+    } else {
+      newObj[key] = obj[key];
     }
-    return data as T[];
-  } catch (error) {
-    // If file doesn't exist or is empty, return an empty array
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      await writeJsonFile(filePath, []);
-      return [];
-    }
-    console.error(`Error reading file ${filePath}:`, error);
-    return [];
   }
+  return newObj;
 }
 
-// Helper function to write JSON file
-async function writeJsonFile<T>(filePath: string, data: T[]): Promise<void> {
-  try {
-    await fs.mkdir(dataDir, { recursive: true });
-    // When writing, ensure payments array is correctly formatted
-    const dataToWrite = filePath === storageRecordsPath
-        ? (data as StorageRecord[]).map(record => {
-            const { ...rest } = record;
-            // The 'amountPaid' property is deprecated and should not be saved.
-            // It was a virtual property during migration.
-            return rest;
-          })
-        : data;
-
-    await fs.writeFile(filePath, JSON.stringify(dataToWrite, null, 2), 'utf-8');
-  } catch (error) {
-    console.error(`Error writing file ${filePath}:`, error);
-  }
-}
-
-
-// Cached data access functions
 export const customers = cache(
-  async () => readJsonFile<Customer>(customersPath), 
-  ['customers'], 
-  { tags: ['customers'] }
-);
-export const storageRecords = cache(
-  async () => readJsonFile<StorageRecord>(storageRecordsPath), 
-  ['storageRecords'], 
-  { tags: ['storageRecords'] }
+  async (): Promise<Customer[]> => {
+    const db = adminDb;
+    const customersCollection = collection(db, 'customers');
+    const q = query(customersCollection, orderBy('name', 'asc'));
+    const snapshot = await getDocs(q);
+    const customers = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...deconstructTimestamps(doc.data()),
+    })) as Customer[];
+    return customers;
+  },
+  ['customers'],
+  {tags: ['customers']}
 );
 
-// Data mutation functions
-export const saveCustomers = async (data: Customer[]): Promise<void> => {
-  await writeJsonFile(customersPath, data);
+export const storageRecords = cache(
+  async (): Promise<StorageRecord[]> => {
+    const db = adminDb;
+    const recordsCollection = collection(db, 'storageRecords');
+    const q = query(
+      recordsCollection,
+      orderBy('storageStartDate', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    const records = snapshot.docs.map(doc => {
+      const data = deconstructTimestamps(doc.data());
+      return {
+        id: doc.id,
+        ...data,
+      } as StorageRecord;
+    }) as StorageRecord[];
+    return records;
+  },
+  ['storageRecords'],
+  {tags: ['storageRecords']}
+);
+
+export const getStorageRecord = async (
+  id: string
+): Promise<StorageRecord | null> => {
+  const db = adminDb;
+  const docRef = doc(db, 'storageRecords', id);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    return {
+      id: docSnap.id,
+      ...deconstructTimestamps(docSnap.data()),
+    } as StorageRecord;
+  } else {
+    return null;
+  }
+};
+
+
+export const getCustomer = async (
+  id: string
+): Promise<Customer | null> => {
+  const db = adminDb;
+  const docRef = doc(db, 'customers', id);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    return {
+      id: docSnap.id,
+      ...docSnap.data(),
+    } as Customer;
+  } else {
+    return null;
+  }
+};
+
+
+export const saveCustomer = async (customer: Omit<Customer, 'id'>) => {
+  const db = adminDb;
+  const docRef = await addDoc(collection(db, 'customers'), customer);
   revalidateTag('customers');
+  return docRef.id;
+};
+
+export const saveStorageRecord = async (record: Omit<StorageRecord, 'id'>) => {
+  const db = adminDb;
+  const docRef = await addDoc(collection(db, 'storageRecords'), record);
+  revalidateTag('storageRecords');
+  return docRef.id;
+}
+
+export const updateStorageRecord = async (id: string, data: Partial<StorageRecord>) => {
+    const db = adminDb;
+    const docRef = doc(db, 'storageRecords', id);
+    await setDoc(docRef, data, { merge: true });
+    revalidateTag('storageRecords');
+}
+
+export const addPaymentToRecord = async (recordId: string, payment: Payment) => {
+    const db = adminDb;
+    const record = await getStorageRecord(recordId);
+    if (!record) throw new Error('Record not found');
+
+    const updatedPayments = record.payments ? [...record.payments, payment] : [payment];
+    await updateStorageRecord(recordId, { payments: updatedPayments });
+    revalidateTag('storageRecords');
+}
+
+
+// These functions are no longer used but kept for reference during transition
+export const saveCustomers = async (data: Customer[]): Promise<void> => {
+  console.warn('saveCustomers is deprecated. Use Firestore functions instead.');
 };
 
 export const saveStorageRecords = async (data: StorageRecord[]): Promise<void> => {
-  await writeJsonFile(storageRecordsPath, data);
-  revalidateTag('storageRecords');
+  console.warn('saveStorageRecords is deprecated. Use Firestore functions instead.');
 };

@@ -6,9 +6,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { EditStorageDialog } from "./edit-storage-dialog";
 import { BillReceiptDialog } from "./bill-receipt-dialog";
+import { toDate } from "@/lib/utils";
 
 export function ActionsMenu({ record, customers }: { record: StorageRecord, customers: Customer[] }) {
     const customer = customers.find(c => c.id === record.customerId);
+
+    const safeRecord = {
+        ...record,
+        storageStartDate: toDate(record.storageStartDate),
+        storageEndDate: record.storageEndDate ? toDate(record.storageEndDate) : null,
+        payments: record.payments.map(p => ({...p, date: toDate(p.date)}))
+    }
 
     return (
         <DropdownMenu>
@@ -19,13 +27,13 @@ export function ActionsMenu({ record, customers }: { record: StorageRecord, cust
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <EditStorageDialog record={record} customers={customers}>
+                <EditStorageDialog record={safeRecord} customers={customers}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                         Edit
                     </DropdownMenuItem>
                 </EditStorageDialog>
                 {customer && (
-                    <BillReceiptDialog record={record} customer={customer}>
+                    <BillReceiptDialog record={safeRecord} customer={customer}>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                             <Download className="mr-2 h-4 w-4" />
                             Download Bill

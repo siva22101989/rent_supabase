@@ -11,7 +11,7 @@ import { format, differenceInDays, differenceInMonths } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { calculateFinalRent } from '@/lib/billing';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, toDate } from '@/lib/utils';
 
 type OutflowReceiptProps = {
   record: StorageRecord;
@@ -32,8 +32,9 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
     const [hamaliPending, setHamaliPending] = useState(0);
 
     useEffect(() => {
-        const startDate = new Date(record.storageStartDate);
-        const endDate = record.storageEndDate ? new Date(record.storageEndDate) : new Date();
+        if (!record) return;
+        const startDate = toDate(record.storageStartDate);
+        const endDate = record.storageEndDate ? toDate(record.storageEndDate) : new Date();
         
         setFormattedStartDate(format(startDate, 'dd MMM yyyy'));
         setFormattedEndDate(format(endDate, 'dd MMM yyyy, hh:mm a'));
@@ -43,13 +44,20 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
             months: differenceInMonths(endDate, startDate)
         });
 
-        const { totalRentOwedPerBag } = calculateFinalRent(record, endDate, withdrawnBags);
+        const safeRecord = {
+            ...record,
+            storageStartDate: startDate,
+        }
+
+        const { totalRentOwedPerBag } = calculateFinalRent(safeRecord, endDate, withdrawnBags);
         setRentBreakdown({ totalOwed: totalRentOwedPerBag });
 
-        // Recalculate pending hamali based on what was *originally* owed vs paid
         const originalHamaliPayable = record.hamaliPayable;
-        const totalPaidBeforeThisTx = record.payments.reduce((acc, p) => acc + p.amount, 0) - paidNow;
-        const pending = originalHamaliPayable - totalPaidBeforeThisTx;
+        const totalPaidForHamali = (record.payments || [])
+            .filter(p => toDate(p.date) <= startDate)
+            .reduce((acc, p) => acc + p.amount, 0);
+        
+        const pending = originalHamaliPayable - totalPaidForHamali;
 
         setHamaliPending(pending > 0 ? pending : 0);
         
@@ -92,6 +100,10 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
             setIsGenerating(false);
         }
     };
+
+    if (!record) {
+        return <div className="max-w-2xl mx-auto">Loading receipt...</div>;
+    }
 
     return (
         <div className="max-w-2xl mx-auto">

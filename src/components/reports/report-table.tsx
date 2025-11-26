@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { format } from "date-fns";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, toDate } from '@/lib/utils';
 
 type ReportTableProps = {
     records: StorageRecord[];
@@ -33,8 +32,8 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
         const balanceDue = totalBilled - amountPaid;
         return { ...record, totalBilled, amountPaid, balanceDue };
     }).sort((a, b) => {
-        const dateA = new Date(a.storageStartDate);
-        const dateB = new Date(b.storageStartDate);
+        const dateA = toDate(a.storageStartDate);
+        const dateB = toDate(b.storageStartDate);
         return dateB.getTime() - dateA.getTime();
     });
 
@@ -68,12 +67,14 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                 <TableBody>
                     {recordsWithBalance.map((record) => {
                         const customerName = getCustomerName(record.customerId);
+                        const startDate = toDate(record.storageStartDate);
+                        const endDate = record.storageEndDate ? toDate(record.storageEndDate) : null;
                         return (
                         <TableRow key={record.id}>
                             <TableCell className="font-medium">{customerName}</TableCell>
-                            <TableCell>{record.storageStartDate ? format(new Date(record.storageStartDate), 'dd MMM yyyy') : 'N/A'}</TableCell>
+                            <TableCell>{startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                             <TableCell>
-                                {record.storageEndDate ? format(new Date(record.storageEndDate), 'dd MMM yyyy') : 'N/A'}
+                                {endDate ? format(endDate, 'dd MMM yyyy') : 'N/A'}
                             </TableCell>
                             <TableCell>
                                 <Badge variant={record.storageEndDate ? "secondary" : "default"} className={record.storageEndDate ? 'bg-zinc-100 text-zinc-800' : 'bg-green-100 text-green-800'}>
@@ -81,10 +82,10 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                                 </Badge>
                             </TableCell>
                             <TableCell className="text-right">{record.bagsStored}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(record.amountPaid)}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled || 0)}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(record.amountPaid || 0)}</TableCell>
                             <TableCell className={`text-right font-mono ${record.balanceDue > 0 ? 'text-destructive' : ''}`}>
-                                {formatCurrency(record.balanceDue)}
+                                {formatCurrency(record.balanceDue || 0)}
                             </TableCell>
                         </TableRow>
                     )})}

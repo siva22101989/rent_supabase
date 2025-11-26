@@ -1,28 +1,49 @@
+'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, Warehouse, IndianRupee } from "lucide-react";
-import { storageRecords as getStorageRecords } from "@/lib/data";
 import { calculateFinalRent } from "@/lib/billing";
 import { formatCurrency } from "@/lib/utils";
+import { useCollection } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { useMemo } from "react";
+import type { StorageRecord } from "@/lib/definitions";
 
-export default async function StoragePage() {
-  const allRecords = await getStorageRecords();
+export default function StoragePage() {
+  const firestore = useFirestore();
+  const recordsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'storageRecords');
+  }, [firestore]);
+  
+  const { data: allRecords, loading } = useCollection<StorageRecord>(recordsQuery);
 
-  const totalInflow = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+  const stats = useMemo(() => {
+    if (!allRecords) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0, estimatedRent: 0 };
+    
+    const totalInflow = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+    
+    const completedRecords = allRecords.filter(r => r.storageEndDate);
+    const totalOutflow = completedRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
-  const completedRecords = allRecords.filter(r => r.storageEndDate);
-  const totalOutflow = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+    const balanceStock = totalInflow - totalOutflow;
 
-  const balanceStock = totalInflow - totalOutflow;
+    const activeRecords = allRecords.filter(r => !r.storageEndDate);
+    const estimatedRent = activeRecords.reduce((total, record) => {
+      const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
+      return total + rent;
+    }, 0);
 
-  const activeRecords = allRecords.filter(r => !r.storageEndDate);
-  const estimatedRent = activeRecords.reduce((total, record) => {
-    const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
-    return total + rent;
-  }, 0);
+    return { totalInflow, totalOutflow, balanceStock, estimatedRent };
 
+  }, [allRecords]);
+
+  if (loading) {
+    return <AppLayout><div>Loading...</div></AppLayout>;
+  }
 
   return (
     <AppLayout>
@@ -38,7 +59,7 @@ export default async function StoragePage() {
                 <ArrowDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{totalInflow} bags</div>
+                <div className="text-2xl font-bold">{stats.totalInflow} bags</div>
             </CardContent>
         </Card>
         <Card>
@@ -47,7 +68,7 @@ export default async function StoragePage() {
                 <ArrowUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{totalOutflow} bags</div>
+                <div className="text-2xl font-bold">{stats.totalOutflow} bags</div>
             </CardContent>
         </Card>
         <Card>
@@ -56,7 +77,7 @@ export default async function StoragePage() {
                 <Warehouse className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{balanceStock} bags</div>
+                <div className="text-2xl font-bold">{stats.balanceStock} bags</div>
             </CardContent>
         </Card>
         <Card>
@@ -65,7 +86,7 @@ export default async function StoragePage() {
                 <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(estimatedRent)}</div>
+                <div className="text-2xl font-bold">{formatCurrency(stats.estimatedRent)}</div>
                 <p className="text-xs text-muted-foreground">
                     Based on current active stock
                 </p>

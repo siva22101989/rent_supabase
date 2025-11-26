@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
@@ -10,18 +9,20 @@ import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, toDate } from '@/lib/utils';
+import type { Timestamp } from 'firebase/firestore';
 
 export function InflowReceipt({ record, customer }: { record: StorageRecord, customer: Customer }) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     
-    const amountPaid = record.payments.reduce((acc, p) => acc + p.amount, 0);
+    const amountPaid = record.payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
     const hamaliPending = record.hamaliPayable - amountPaid;
 
     useEffect(() => {
-        setFormattedDate(format(new Date(record.storageStartDate), 'dd MMM yyyy, hh:mm a'));
+        const startDate = toDate(record.storageStartDate);
+        setFormattedDate(format(startDate, 'dd MMM yyyy, hh:mm a'));
     }, [record.storageStartDate]);
 
     const handleDownloadPdf = async () => {

@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useActionState } from 'react';
+import { useActionState } from 'react-dom';
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
-import { updateStorageRecord, type InflowFormState } from '@/lib/actions';
+import { updateStorageRecordAction, type InflowFormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -45,8 +44,7 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
   const [isOpen, setIsOpen] = useState(false);
   
   const initialState: InflowFormState = { message: '', success: false };
-  // We need to bind the recordId to the server action
-  const updateAction = updateStorageRecord.bind(null, record.id);
+  const updateAction = updateStorageRecordAction.bind(null, record.id);
   const [state, formAction] = useActionState(updateAction, initialState);
 
   useEffect(() => {
@@ -62,10 +60,6 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
       });
     }
   }, [state, toast]);
-  
-  // Note: This dialog does not allow editing the payment history directly.
-  // We are passing a simplified `amountPaid` for display purposes if needed,
-  // but it is not submitted.
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

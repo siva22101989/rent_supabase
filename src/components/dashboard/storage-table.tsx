@@ -1,5 +1,4 @@
-
-
+'use client';
 import {
   Table,
   TableBody,
@@ -9,22 +8,39 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { customers as getCustomers, storageRecords as getStorageRecords } from "@/lib/data";
 import { getRecordStatus } from "@/lib/billing";
 import { format } from 'date-fns';
 import { ActionsMenu } from "./actions-menu";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, toDate } from "@/lib/utils";
+import { useCollection } from "@/firebase";
+import { collection, query, where, orderBy } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { useMemo } from "react";
+import type { Customer, StorageRecord } from "@/lib/definitions";
 
-async function getCustomerName(customerId: string) {
-  const customers = await getCustomers();
-  return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
-}
+export function StorageTable() {
+  const firestore = useFirestore();
 
-export async function StorageTable() {
-    const allRecords = await getStorageRecords();
-    const allCustomers = await getCustomers();
-    const activeRecords = allRecords.filter(r => !r.storageEndDate);
-    
+  const recordsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null));
+  }, [firestore]);
+  const { data: activeRecords, loading: recordsLoading } = useCollection<StorageRecord>(recordsQuery);
+
+  const customersQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'customers'));
+  }, [firestore]);
+  const { data: allCustomers, loading: customersLoading } = useCollection<Customer>(customersQuery);
+
+  const getCustomerName = (customerId: string) => {
+    return allCustomers?.find(c => c.id === customerId)?.name ?? 'Unknown';
+  };
+
+  if (recordsLoading || customersLoading) {
+    return <div>Loading table...</div>;
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -40,17 +56,17 @@ export async function StorageTable() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {await Promise.all(activeRecords.map(async (record) => {
-            const statusInfo = getRecordStatus(record);
-            const customerName = await getCustomerName(record.customerId);
+        {activeRecords && allCustomers && activeRecords.map((record) => {
+            const customerName = getCustomerName(record.customerId);
             const amountPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            const startDate = toDate(record.storageStartDate);
             return (
               <TableRow key={record.id}>
                 <TableCell className="font-medium">{customerName}</TableCell>
                 <TableCell>{record.commodityDescription}</TableCell>
                 <TableCell>{record.location}</TableCell>
                 <TableCell className="text-right">{record.bagsStored}</TableCell>
-                <TableCell>{record.storageStartDate ? format(record.storageStartDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
+                <TableCell>{startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                 <TableCell>
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
                     Active
@@ -62,7 +78,7 @@ export async function StorageTable() {
                 </TableCell>
               </TableRow>
             )
-        }))}
+        })}
       </TableBody>
     </Table>
   );

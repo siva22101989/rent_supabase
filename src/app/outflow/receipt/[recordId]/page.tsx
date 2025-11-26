@@ -1,34 +1,43 @@
-
+'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
-import { storageRecords as getStorageRecords, customers as getCustomers } from "@/lib/data";
-import { notFound } from "next/navigation";
+import { notFound, useParams, useSearchParams } from "next/navigation";
+import { useDoc } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { useMemo } from "react";
+import type { Customer, StorageRecord } from "@/lib/definitions";
 
-type OutflowReceiptPageProps = {
-  params: { recordId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-};
+export default function OutflowReceiptPage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const recordId = params.recordId as string;
+  const firestore = useFirestore();
 
-export default async function OutflowReceiptPage({ params, searchParams }: OutflowReceiptPageProps) {
-  const { recordId } = params;
-  const allRecords = await getStorageRecords();
-  const allCustomers = await getCustomers();
-  const record = allRecords.find(r => r.id === recordId);
+  const recordRef = useMemo(() => {
+    if (!firestore || !recordId) return null;
+    return doc(firestore, 'storageRecords', recordId);
+  }, [firestore, recordId]);
+  const { data: record, loading: recordLoading } = useDoc<StorageRecord>(recordRef);
 
-  if (!record) {
-    notFound();
+  const customerRef = useMemo(() => {
+    if (!firestore || !record?.customerId) return null;
+    return doc(firestore, 'customers', record.customerId);
+  }, [firestore, record]);
+  const { data: customer, loading: customerLoading } = useDoc<Customer>(customerRef);
+
+  const withdrawnBags = Number(searchParams.get('withdrawn')) || 0;
+  const finalRent = Number(searchParams.get('rent')) || 0;
+  const paidNow = Number(searchParams.get('paidNow')) || 0;
+
+  if (recordLoading || customerLoading) {
+    return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
-  const customer = allCustomers.find(c => c.id === record.customerId);
-
-  if (!customer) {
+  if (!record || !customer) {
     notFound();
   }
-
-  const withdrawnBags = Number(searchParams.withdrawn) || 0;
-  const finalRent = Number(searchParams.rent) || 0;
-  const paidNow = Number(searchParams.paidNow) || 0;
   
   return (
     <AppLayout>

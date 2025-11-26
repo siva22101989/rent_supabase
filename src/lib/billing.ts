@@ -1,6 +1,6 @@
-
 import { differenceInCalendarMonths, addMonths, isAfter, startOfDay, differenceInYears, differenceInMonths } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
+import { toDate } from './utils';
 
 // Rates
 export const RATE_6_MONTHS = 36;
@@ -14,7 +14,13 @@ export type RecordStatusInfo = {
 };
 
 export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
-  if (record.storageEndDate) {
+  const safeRecord = {
+    ...record,
+    storageStartDate: toDate(record.storageStartDate),
+    storageEndDate: record.storageEndDate ? toDate(record.storageEndDate) : null
+  };
+
+  if (safeRecord.storageEndDate) {
     return {
       status: `Withdrawn`,
       nextBillingDate: null,
@@ -44,7 +50,7 @@ export function calculateFinalRent(
     totalRentOwedPerBag: number;
     rentAlreadyPaidPerBag: number; // This will now always be 0
 } {
-  const startDate = startOfDay(record.storageStartDate);
+  const startDate = startOfDay(toDate(record.storageStartDate));
   const endDate = startOfDay(withdrawalDate);
   
   const rentAlreadyPaidPerBag = 0; // Rent is never paid in advance.
@@ -62,11 +68,10 @@ export function calculateFinalRent(
   } else {
     // After 1 year
     const fullYearsPastFirst = Math.floor((monthsStored - 1) / 12);
-    const remainingMonths = monthsStored - (fullYearsPastFirst * 12);
+    
+    totalRentOwedPerBag = fullYearsPastFirst * RATE_1_YEAR;
 
-    if (fullYearsPastFirst > 0) {
-        totalRentOwedPerBag = fullYearsPastFirst * RATE_1_YEAR;
-    }
+    const remainingMonths = monthsStored - (fullYearsPastFirst * 12);
 
     if (remainingMonths > 0) {
         if (remainingMonths <= 6) {
@@ -86,4 +91,3 @@ export function calculateFinalRent(
       rentAlreadyPaidPerBag // Will be 0
   };
 }
-

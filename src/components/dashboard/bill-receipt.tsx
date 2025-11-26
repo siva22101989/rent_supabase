@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { getRecordStatus, type RecordStatusInfo } from '@/lib/billing';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, toDate } from '@/lib/utils';
 
 type BillReceiptProps = {
   record: StorageRecord;
@@ -20,9 +20,14 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
     const [formattedBillDate, setFormattedBillDate] = useState('');
 
     useEffect(() => {
+        const safeRecord = {
+            ...record,
+            storageStartDate: toDate(record.storageStartDate),
+            storageEndDate: record.storageEndDate ? toDate(record.storageEndDate) : null,
+        }
         // Hydration safety
-        setStatusInfo(getRecordStatus(record));
-        setFormattedStartDate(format(new Date(record.storageStartDate), 'dd MMM yyyy'));
+        setStatusInfo(getRecordStatus(safeRecord));
+        setFormattedStartDate(format(safeRecord.storageStartDate, 'dd MMM yyyy'));
         setFormattedBillDate(format(new Date(), 'dd MMM yyyy'));
     }, [record]);
 

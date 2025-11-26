@@ -15,6 +15,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
+import { toDate } from '@/lib/utils';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -54,10 +55,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     useEffect(() => {
         if (state.message) {
             if (state.success) {
-                toast({
-                    title: 'Success!',
-                    description: state.message,
-                });
+                // Redirect is handled by the action, no toast needed for success
             } else {
                 toast({
                     title: 'Error',
@@ -70,12 +68,17 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
     useEffect(() => {
         if (selectedRecord) {
-            const amountPaid = selectedRecord.payments.reduce((acc, p) => acc + p.amount, 0);
+            const amountPaid = (selectedRecord.payments || []).reduce((acc, p) => acc + p.amount, 0);
             const pending = selectedRecord.hamaliPayable - amountPaid;
             setHamaliPending(pending > 0 ? pending : 0);
+            
+            const safeRecord = {
+                ...selectedRecord,
+                storageStartDate: toDate(selectedRecord.storageStartDate)
+            };
 
             if (bagsToWithdraw > 0) {
-                const { rent, monthsStored, totalRentOwedPerBag } = calculateFinalRent(selectedRecord, withdrawalDate, bagsToWithdraw);
+                const { rent, monthsStored, totalRentOwedPerBag } = calculateFinalRent(safeRecord, withdrawalDate, bagsToWithdraw);
                 setFinalRent(rent);
                 setStorageMonths(monthsStored);
                 setRentPerBag({ totalOwed: totalRentOwedPerBag });
@@ -96,7 +99,6 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         setSelectedCustomerId(customerId);
         setSelectedRecordId('');
         setBagsToWithdraw(0);
-        // Also reset calculation states
         setFinalRent(0);
         setStorageMonths(0);
         setRentPerBag({ totalOwed: 0 });
@@ -157,7 +159,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     {selectedRecord && (
                         <>
                              <div className="text-sm text-muted-foreground p-2 bg-secondary/50 rounded-md">
-                                Inflow Date: <span className="font-medium text-foreground">{format(selectedRecord.storageStartDate, 'dd MMM yyyy')}</span>
+                                Inflow Date: <span className="font-medium text-foreground">{format(toDate(selectedRecord.storageStartDate), 'dd MMM yyyy')}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
