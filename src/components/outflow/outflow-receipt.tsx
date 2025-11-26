@@ -25,9 +25,10 @@ type OutflowReceiptProps = {
   customer: Customer;
   withdrawnBags: number;
   finalRent: number;
+  paidNow: number;
 };
 
-export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: OutflowReceiptProps) {
+export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, paidNow }: OutflowReceiptProps) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedStartDate, setFormattedStartDate] = useState('');
     const [formattedEndDate, setFormattedEndDate] = useState('');
@@ -52,12 +53,18 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
         const { totalRentOwedPerBag } = calculateFinalRent(record, endDate, withdrawnBags);
         setRentBreakdown({ totalOwed: totalRentOwedPerBag });
 
-        const pending = record.hamaliPayable - record.amountPaid;
+        // Recalculate pending hamali based on what was *originally* owed vs paid
+        const originalHamaliPayable = record.hamaliPayable;
+        const totalPaidBeforeThisTx = record.amountPaid - paidNow; // Subtract current payment to get previous total
+        const hamaliPaidBeforeThisTx = totalPaidBeforeThisTx; // Assuming all previous payments went to hamali first
+        const pending = originalHamaliPayable - hamaliPaidBeforeThisTx;
+
         setHamaliPending(pending > 0 ? pending : 0);
         
-    }, [record, withdrawnBags]);
+    }, [record, withdrawnBags, paidNow]);
 
     const totalPayable = finalRent + hamaliPending;
+    const balanceDue = totalPayable - paidNow;
 
     const handleDownloadPdf = async () => {
         const element = receiptRef.current;
@@ -138,7 +145,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between items-center">
                                     <span>Rent Due</span>
-                                    <span className='font-mono'>{withdrawnBags} &times; {formatCurrency(rentBreakdown.totalOwed)} = {formatCurrency(finalRent)}</span>
+                                    <span className='font-mono'>{withdrawnBags} bags &times; {formatCurrency(rentBreakdown.totalOwed)}/bag = {formatCurrency(finalRent)}</span>
                                 </div>
                                  <div className="flex justify-between">
                                     <span className="font-medium">Pending Hamali Charges</span>
@@ -146,8 +153,17 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
                                 </div>
                                 <Separator className="my-2" />
                                 <div className="flex justify-between font-bold text-base">
-                                    <span>Total Paid Now</span>
+                                    <span>Total Payable</span>
                                     <span>{formatCurrency(totalPayable)}</span>
+                                </div>
+                                <div className="flex justify-between font-bold text-base">
+                                    <span>Total Paid Now</span>
+                                    <span>{formatCurrency(paidNow)}</span>
+                                </div>
+                                <Separator className="my-2 border-dashed" />
+                                <div className="flex justify-between font-bold text-lg text-destructive">
+                                    <span>Balance Due</span>
+                                    <span>{formatCurrency(balanceDue)}</span>
                                 </div>
                             </div>
                         </div>

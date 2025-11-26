@@ -118,6 +118,7 @@ const OutflowSchema = z.object({
     bagsToWithdraw: z.coerce.number().int().positive('Bags to withdraw must be a positive number.'),
     withdrawalDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
     finalRent: z.coerce.number().nonnegative('Final rent cannot be negative.'),
+    amountPaidNow: z.coerce.number().nonnegative('Amount paid must be non-negative.').optional(),
 });
 
 export type OutflowFormState = {
@@ -131,6 +132,7 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
         bagsToWithdraw: formData.get('bagsToWithdraw'),
         withdrawalDate: formData.get('withdrawalDate'),
         finalRent: formData.get('finalRent'),
+        amountPaidNow: formData.get('amountPaidNow'),
     });
 
     if (!validatedFields.success) {
@@ -140,7 +142,7 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     }
     
     const currentRecords = await storageRecords();
-    const { recordId, bagsToWithdraw, withdrawalDate, finalRent } = validatedFields.data;
+    const { recordId, bagsToWithdraw, withdrawalDate, finalRent, amountPaidNow } = validatedFields.data;
     
     const recordIndex = currentRecords.findIndex(r => r.id === recordId);
 
@@ -155,17 +157,16 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     }
 
     const isFullWithdrawal = bagsToWithdraw === originalRecord.bagsStored;
-    const hamaliPending = originalRecord.hamaliPayable - originalRecord.amountPaid;
-    const totalPayableNow = finalRent + hamaliPending;
+    const paymentMade = amountPaidNow || 0;
 
     if (isFullWithdrawal) {
         originalRecord.storageEndDate = new Date(withdrawalDate);
         originalRecord.billingCycle = 'Completed';
-        originalRecord.amountPaid += totalPayableNow;
+        originalRecord.amountPaid += paymentMade;
     } else {
         // Partial withdrawal: update bag count and add rent to total billed.
         originalRecord.bagsStored -= bagsToWithdraw;
-        originalRecord.amountPaid += totalPayableNow;
+        originalRecord.amountPaid += paymentMade;
     }
     
     currentRecords[recordIndex] = originalRecord;
@@ -173,7 +174,7 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     await saveStorageRecords(currentRecords);
 
     revalidateTag('storageRecords');
-    redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}`);
+    redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
 }
 
 

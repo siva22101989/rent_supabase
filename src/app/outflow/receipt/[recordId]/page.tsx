@@ -28,6 +28,7 @@ export default async function OutflowReceiptPage({ params, searchParams }: Outfl
 
   const withdrawnBags = Number(searchParams.withdrawn) || 0;
   const finalRent = Number(searchParams.rent) || 0;
+  const paidNow = Number(searchParams.paidNow) || 0;
   
   return (
     <AppLayout>
@@ -41,6 +42,7 @@ export default async function OutflowReceiptPage({ params, searchParams }: Outfl
             customer={customer}
             withdrawnBags={withdrawnBags}
             finalRent={finalRent}
+            paidNow={paidNow}
         />
       </div>
     </AppLayout>

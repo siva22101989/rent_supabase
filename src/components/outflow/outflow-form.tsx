@@ -47,6 +47,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const [hamaliPending, setHamaliPending] = useState(0);
 
     const selectedRecord = records.find(r => r.id === selectedRecordId);
+    const totalPayable = finalRent + hamaliPending;
 
     useEffect(() => {
         if (state.message) {
@@ -171,9 +172,23 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         <span className="font-mono">₹{hamaliPending.toFixed(2)}</span>
                                     </div>
                                     <Separator />
-                                    <div className="flex justify-between items-center font-semibold text-base">
-                                        <span className="text-foreground">Total Payable Now</span>
-                                        <span className="font-mono">₹{(finalRent + hamaliPending).toFixed(2)}</span>
+                                    <div className="flex justify-between items-center font-semibold text-lg">
+                                        <span className="text-foreground">Total Payable</span>
+                                        <span className="font-mono">₹{totalPayable.toFixed(2)}</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="amountPaidNow">Total Paid Now</Label>
+                                        <Input
+                                            id="amountPaidNow"
+                                            name="amountPaidNow"
+                                            type="number"
+                                            placeholder="0.00"
+                                            step="0.01"
+                                            max={totalPayable.toFixed(2)}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Enter the amount paid by the customer. Leave blank if unpaid.
+                                        </p>
                                     </div>
                                 </div>
                                 <input type="hidden" name="finalRent" value={finalRent} />
