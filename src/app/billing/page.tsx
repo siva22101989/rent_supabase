@@ -7,11 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import type { Customer, StorageRecord } from "@/lib/definitions";
-import { EditBillingDialog } from "@/components/billing/edit-billing-dialog";
-import { DeleteBillingDialog } from "@/components/billing/delete-billing-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { ActionsMenu } from "@/components/billing/actions-menu";
 
 
 async function getCustomerName(customerId: string, customers: Customer[]) {
@@ -24,31 +20,6 @@ function formatCurrency(amount: number) {
         currency: 'INR',
         minimumFractionDigits: 2,
     }).format(amount);
-}
-
-function ActionsMenu({ record }: { record: StorageRecord }) {
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <EditBillingDialog record={record}>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        Edit
-                    </DropdownMenuItem>
-                </EditBillingDialog>
-                <DeleteBillingDialog recordId={record.id}>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
-                        Delete
-                    </DropdownMenuItem>
-                </DeleteBillingDialog>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
 }
 
 export default async function BillingPage() {
