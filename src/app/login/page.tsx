@@ -51,6 +51,7 @@ export default function LoginPage() {
   }, [user, userLoading, router]);
 
   const handleGoogleSignIn = async () => {
+    if (!auth) return;
     setIsGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
@@ -64,6 +65,7 @@ export default function LoginPage() {
   };
 
   const onLoginSubmit = async (data: LoginFormData) => {
+    if (!auth) return;
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
@@ -76,6 +78,7 @@ export default function LoginPage() {
   };
 
   const onRegisterSubmit = async (data: RegisterFormData) => {
+    if (!auth) return;
     setIsLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -123,11 +126,11 @@ export default function LoginPage() {
                 </div>
               </CardContent>
               <CardFooter className="flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading || !auth}>
                   {isLoading && <Loader2 className="mr-2 animate-spin" />}
                   Login
                 </Button>
-                 <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
+                 <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading || !auth}>
                   {isGoogleLoading ? <Loader2 className="mr-2 animate-spin" /> : <Chrome className="mr-2" />}
                   Sign in with Google
                 </Button>
@@ -155,7 +158,7 @@ export default function LoginPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || !auth}>
                   {isLoading && <Loader2 className="mr-2 animate-spin" />}
                   Create Account
                 </Button>

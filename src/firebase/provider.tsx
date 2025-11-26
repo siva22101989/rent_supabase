@@ -1,13 +1,17 @@
 'use client';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { firebaseConfig } from './config';
 
 type FirebaseContextValue = {
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
+  firebaseApp: FirebaseApp | null;
+  firestore: Firestore | null;
+  auth: Auth | null;
 };
 
 const FirebaseContext = createContext<FirebaseContextValue | undefined>(
@@ -16,8 +20,23 @@ const FirebaseContext = createContext<FirebaseContextValue | undefined>(
 
 export const FirebaseProvider = ({
   children,
-  ...value
-}: React.PropsWithChildren<FirebaseContextValue>) => {
+}: {
+  children: React.ReactNode;
+}) => {
+  const [value, setValue] = useState<FirebaseContextValue>({
+    firebaseApp: null,
+    firestore: null,
+    auth: null,
+  });
+
+  useEffect(() => {
+    const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    const firestore = getFirestore(firebaseApp);
+    const auth = getAuth(firebaseApp);
+    setValue({ firebaseApp, firestore, auth });
+  }, []);
+
+
   return (
     <FirebaseContext.Provider value={value}>{children}</FirebaseContext.Provider>
   );
@@ -31,7 +50,6 @@ export const useFirebase = () => {
   return context;
 };
 
-// Hooks to get specific Firebase services from context
-export const useFirebaseApp = () => useFirebase().firebaseApp;
-export const useFirestore = () => useFirebase().firestore;
-export const useAuth = () => useFirebase().auth;
+export const useFirebaseApp = () => useFirebase()?.firebaseApp;
+export const useFirestore = () => useFirebase()?.firestore;
+export const useAuth = () => useFirebase()?.auth;

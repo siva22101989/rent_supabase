@@ -1,22 +1,25 @@
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, useCollection, useDocument, doc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { firebaseConfig } from './config';
+// This file is a barrel for all things related to Firebase.
+// It re-exports hooks, providers, and initialization functions.
+
+import { doc, collection, query, where, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
 import { useUser } from './auth/use-user';
 
 // Re-exporting hooks and utilities
-export { useCollection, useDocument, useUser, doc, collection, query, where, orderBy, getDocs };
+export { useUser, doc, collection, query, where, orderBy, getDocs, onSnapshot };
 
 // Re-exporting providers and context hooks
 export * from './provider';
-export * from './client-provider';
 
-export function initializeFirebase() {
-  const apps = getApps();
-  const firebaseApp = !apps.length ? initializeApp(firebaseConfig) : getApp();
-  // These are server-side instances
-  const firestore = getFirestore(firebaseApp);
-  const auth = getAuth(firebaseApp);
+// Placeholder for custom hooks.
+// In a real app, you would have files like `useCollection.ts` and `useDoc.ts`
+// For now, we'll define them here conceptually.
 
-  return { firebaseApp, firestore, auth };
-}
+export const useCollection = (query: any) => {
+  // Dummy implementation
+  return { data: [], loading: true };
+};
+
+export const useDoc = (ref: any) => {
+  // Dummy implementation
+  return { data: null, loading: true };
+};

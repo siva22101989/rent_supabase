@@ -10,12 +10,16 @@ const useUserHook = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
+        if (auth) {
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+                setUser(user);
+                setLoading(false);
+            });
+            return () => unsubscribe();
+        } else {
+            // If auth is not ready, we are still loading.
+            setLoading(true);
+        }
     }, [auth]);
 
     return { user, loading };

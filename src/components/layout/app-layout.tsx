@@ -10,15 +10,18 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { useUser, signOut } from '@/firebase/auth/use-user';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/firebase';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isDashboard = pathname === '/';
   const { user } = useUser();
   const router = useRouter();
+  const auth = useAuth();
 
   const handleLogout = async () => {
-    await signOut();
+    if (!auth) return;
+    await signOut(auth);
     router.push('/login');
   };
 
@@ -55,7 +58,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer" disabled={!auth}>
                   <LogOut className="mr-2" />
                   Log out
                 </DropdownMenuItem>
