@@ -21,4 +21,4 @@ const useUserHook = () => {
     return { user, loading };
 };
 
-export { useUserHook as useUser, signOut, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword };
+export { useUserHook as useUser, firebaseSignOut as signOut, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword };
