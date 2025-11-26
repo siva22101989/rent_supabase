@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -25,7 +26,9 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
     }
 
     const recordsWithBalance = records.map(record => {
-        const totalBilled = record.hamaliPayable + (record.totalRentBilled || 0);
+        const hamali = record.hamaliPayable || 0;
+        const rent = record.totalRentBilled || 0;
+        const totalBilled = hamali + rent;
         const amountPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
         const balanceDue = totalBilled - amountPaid;
         return { ...record, totalBilled, amountPaid, balanceDue };
