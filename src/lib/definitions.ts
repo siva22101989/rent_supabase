@@ -6,6 +6,12 @@ export type Customer = {
   address: string;
 };
 
+export type Product = {
+  id: string;
+  name: string;
+  description: string;
+};
+
 export type Commodity = {
   id: string;
   description: string;
