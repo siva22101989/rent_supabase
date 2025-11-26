@@ -4,9 +4,9 @@
 import { z } from 'zod';
 import { storageRecords, customers, saveCustomers, saveStorageRecords } from '@/lib/data';
 import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
-import { calculateFinalRent, RATE_6_MONTHS, RATE_1_YEAR } from '@/lib/billing';
+import { calculateFinalRent, RATE_6_MONTHS } from '@/lib/billing';
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -249,4 +249,52 @@ export async function deleteBillingRecord(formData: FormData) {
 
     revalidateTag('storageRecords');
     // No redirect needed, just revalidation will refresh the page data
+}
+
+
+const StorageRecordSchema = z.object({
+  customerId: z.string().min(1, 'Customer is required.'),
+  commodityDescription: z.string().min(2, 'Commodity description is required.'),
+  bagsStored: z.coerce.number().int().positive('Bags must be a positive number.'),
+  hamaliCharges: z.coerce.number().nonnegative('Hamali charges must be a non-negative number.'),
+  totalBilled: z.coerce.number().nonnegative('Total billed must be a non-negative number.'),
+  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+});
+
+
+export async function updateStorageRecord(recordId: string, prevState: InflowFormState, formData: FormData) {
+    const validatedFields = StorageRecordSchema.safeParse({
+        customerId: formData.get('customerId'),
+        commodityDescription: formData.get('commodityDescription'),
+        bagsStored: formData.get('bagsStored'),
+        hamaliCharges: formData.get('hamaliCharges'),
+        totalBilled: formData.get('totalBilled'),
+        storageStartDate: formData.get('storageStartDate'),
+    });
+
+    if (!validatedFields.success) {
+        const error = validatedFields.error.flatten().fieldErrors;
+        const message = Object.values(error).flat().join(', ');
+        return { message: `Invalid data: ${message}`, success: false };
+    }
+
+    const currentRecords = await storageRecords();
+    const recordIndex = currentRecords.findIndex(r => r.id === recordId);
+
+    if (recordIndex === -1) {
+        return { message: 'Record not found.', success: false };
+    }
+
+    const originalRecord = currentRecords[recordIndex];
+
+    currentRecords[recordIndex] = {
+        ...originalRecord,
+        ...validatedFields.data,
+        storageStartDate: new Date(validatedFields.data.storageStartDate),
+    };
+
+    await saveStorageRecords(currentRecords);
+
+    revalidateTag('storageRecords');
+    return { message: 'Record updated successfully.', success: true };
 }
