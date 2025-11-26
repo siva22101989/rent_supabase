@@ -137,12 +137,12 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
                             <h3 className="font-semibold mb-2">Final Billing Summary</h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between items-center">
-                                    <span>Total Rent Due</span>
+                                    <span>Rent Due</span>
                                     <span className='font-mono'>{withdrawnBags} &times; {formatCurrency(rentBreakdown.totalOwed)} = {formatCurrency(finalRent)}</span>
                                 </div>
                                  <div className="flex justify-between">
                                     <span className="font-medium">Pending Hamali Charges</span>
-                                    <span>{formatCurrency(hamaliPending)}</span>
+                                    <span className='font-mono'>{formatCurrency(hamaliPending)}</span>
                                 </div>
                                 <Separator className="my-2" />
                                 <div className="flex justify-between font-bold text-base">

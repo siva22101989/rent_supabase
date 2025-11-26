@@ -4,11 +4,11 @@
     "customerId": "cust_1764151917394",
     "commodityDescription": "PADDY",
     "location": "A3",
-    "bagsStored": 100,
+    "bagsStored": 50,
     "storageStartDate": "2025-04-26T00:00:00.000Z",
     "storageEndDate": null,
     "billingCycle": "6-Month Initial",
-    "amountPaid": 0,
+    "amountPaid": 3750,
     "hamaliPayable": 1000
   },
   {
