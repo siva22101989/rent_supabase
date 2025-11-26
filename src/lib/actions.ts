@@ -54,8 +54,9 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
     currentCustomers.unshift(newCustomer);
     await saveCustomers(currentCustomers);
     
-    revalidatePath('/customers');
-    revalidatePath('/inflow');
+    // No longer needed due to revalidateTag
+    // revalidatePath('/customers');
+    // revalidatePath('/inflow');
     redirect('/customers');
 }
 
@@ -105,9 +106,10 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     currentRecords.unshift(newRecord);
     await saveStorageRecords(currentRecords);
 
-    revalidatePath('/');
-    revalidatePath('/billing');
-    revalidatePath('/inflow');
+    // No longer needed due to revalidateTag
+    // revalidatePath('/');
+    // revalidatePath('/billing');
+    // revalidatePath('/inflow');
     redirect('/');
 }
 
@@ -188,9 +190,10 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     }
 
     await saveStorageRecords(currentRecords);
-
-    revalidatePath('/');
-    revalidatePath('/billing');
-    revalidatePath('/outflow');
+    
+    // No longer needed due to revalidateTag
+    // revalidatePath('/');
+    // revalidatePath('/billing');
+    // revalidatePath('/outflow');
     redirect('/billing');
 }
