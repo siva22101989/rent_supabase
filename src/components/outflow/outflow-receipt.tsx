@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
@@ -34,13 +33,12 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
     const [isGenerating, setIsGenerating] = useState(false);
     
     const [duration, setDuration] = useState({ days: 0, months: 0 });
-    const [rentBreakdown, setRentBreakdown] = useState({ totalOwed: 0, alreadyPaid: 0 });
+    const [rentBreakdown, setRentBreakdown] = useState({ totalOwed: 0 });
 
     useEffect(() => {
         const startDate = new Date(record.storageStartDate);
         const endDate = record.storageEndDate ? new Date(record.storageEndDate) : new Date();
         
-        // Format dates only on the client-side to avoid hydration mismatch
         setFormattedStartDate(format(startDate, 'dd MMM yyyy'));
         setFormattedEndDate(format(endDate, 'dd MMM yyyy, hh:mm a'));
 
@@ -49,8 +47,8 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
             months: differenceInMonths(endDate, startDate)
         });
 
-        const { totalRentOwedPerBag, rentAlreadyPaidPerBag } = calculateFinalRent(record, endDate, withdrawnBags);
-        setRentBreakdown({ totalOwed: totalRentOwedPerBag, alreadyPaid: rentAlreadyPaidPerBag });
+        const { totalRentOwedPerBag } = calculateFinalRent(record, endDate, withdrawnBags);
+        setRentBreakdown({ totalOwed: totalRentOwedPerBag });
         
     }, [record, withdrawnBags]);
 
@@ -132,24 +130,16 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent }: O
                             <h3 className="font-semibold mb-2">Final Billing Summary</h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span>Total Rent Owed (per bag)</span>
+                                    <span>Total Rent Due (per bag)</span>
                                     <span>{formatCurrency(rentBreakdown.totalOwed)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Rent Already Paid (per bag)</span>
-                                    <span>- {formatCurrency(rentBreakdown.alreadyPaid)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Additional Rent Due (per bag)</span>
-                                    <span>{formatCurrency(rentBreakdown.totalOwed - rentBreakdown.alreadyPaid)}</span>
                                 </div>
                                  <div className="flex justify-between">
                                     <span className="font-medium">Amount per Bag × Bags Withdrawn</span>
-                                    <span>{formatCurrency(rentBreakdown.totalOwed - rentBreakdown.alreadyPaid)} × {withdrawnBags}</span>
+                                    <span>{formatCurrency(rentBreakdown.totalOwed)} × {withdrawnBags}</span>
                                 </div>
                                 <Separator className="my-2" />
                                 <div className="flex justify-between font-bold text-base">
-                                    <span>Total Amount Paid Now</span>
+                                    <span>Total Rent Paid Now</span>
                                     <span>{formatCurrency(finalRent)}</span>
                                 </div>
                             </div>

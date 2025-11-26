@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -6,7 +5,7 @@ import { storageRecords, customers, saveCustomers, saveStorageRecords } from '@/
 import { redirect } from 'next/navigation';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
-import { calculateFinalRent, RATE_6_MONTHS } from '@/lib/billing';
+import { calculateFinalRent } from '@/lib/billing';
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -89,7 +88,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     const { bagsStored, hamaliRate, ...rest } = validatedFields.data;
 
     const hamaliCharges = bagsStored * hamaliRate;
-    const initialRent = bagsStored * RATE_6_MONTHS;
     
     const newRecord = {
         id: `rec_${Date.now()}`,
@@ -97,8 +95,8 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         bagsStored,
         storageStartDate: new Date(),
         storageEndDate: null,
-        billingCycle: '6-Month Initial' as const,
-        totalBilled: hamaliCharges + initialRent,
+        billingCycle: '6-Month Initial' as const, // This can be simplified later if not needed
+        totalBilled: hamaliCharges, // Only hamali is billed at inflow
         hamaliCharges,
     };
 
@@ -158,11 +156,9 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
         originalRecord.billingCycle = 'Completed';
         originalRecord.totalBilled += finalRent;
     } else {
-        // Partial withdrawal: update bag count and billed amount.
-        // A new record could be created for the withdrawn part, but for simplicity, we update the existing one.
+        // Partial withdrawal: update bag count and add rent to total billed.
         originalRecord.bagsStored -= bagsToWithdraw;
         originalRecord.totalBilled += finalRent;
-        // The hamali charges are not recalculated, as they were for the initial inflow.
     }
     
     currentRecords[recordIndex] = originalRecord;
@@ -170,7 +166,6 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     await saveStorageRecords(currentRecords);
 
     revalidateTag('storageRecords');
-    // Redirect to a new outflow receipt page
     redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}`);
 }
 
@@ -224,7 +219,6 @@ export async function updateBillingRecord(prevState: BillingFormState, formData:
 export async function deleteBillingRecord(formData: FormData) {
     const recordId = formData.get('recordId') as string;
     if (!recordId) {
-        // This should not happen if the form is set up correctly
         return;
     }
 
@@ -233,7 +227,6 @@ export async function deleteBillingRecord(formData: FormData) {
     await saveStorageRecords(currentRecords);
 
     revalidateTag('storageRecords');
-    // No redirect needed, just revalidation will refresh the page data
 }
 
 

@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Customer } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { RATE_6_MONTHS } from '@/lib/billing';
 import { Separator } from '../ui/separator';
 
 function SubmitButton() {
@@ -38,8 +37,6 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
     const [bags, setBags] = useState(0);
     const [rate, setRate] = useState(0);
     const [hamali, setHamali] = useState(0);
-    const [initialRent, setInitialRent] = useState(0);
-    const [totalAmount, setTotalAmount] = useState(0);
 
     useEffect(() => {
         if (state.message) {
@@ -63,11 +60,7 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
         const rateValue = rate || 0;
         
         const calculatedHamali = bagsValue * rateValue;
-        const calculatedRent = bagsValue * RATE_6_MONTHS;
-        
         setHamali(calculatedHamali);
-        setInitialRent(calculatedRent);
-        setTotalAmount(calculatedHamali + calculatedRent);
     }, [bags, rate]);
 
 
@@ -118,18 +111,13 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                     <div className="space-y-4">
                         <h4 className="font-medium">Billing Summary</h4>
                         <div className="space-y-2">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Total Hamali Charges</span>
+                             <div className="flex justify-between items-center font-semibold text-base">
+                                <span className="text-foreground">Total Hamali Payable</span>
                                 <span className="font-mono">₹{hamali.toFixed(2)}</span>
                             </div>
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Initial Rent (6 Months)</span>
-                                <span className="font-mono">₹{initialRent.toFixed(2)}</span>
-                            </div>
-                             <div className="flex justify-between items-center font-semibold text-base">
-                                <span className="text-foreground">Total Amount Payable</span>
-                                <span className="font-mono">₹{totalAmount.toFixed(2)}</span>
-                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Rent will be calculated at the time of withdrawal.
+                            </p>
                         </div>
                     </div>
                 </CardContent>

@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
-import { RATE_6_MONTHS } from '@/lib/billing';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
 
@@ -25,12 +24,9 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
     const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
-        // Format the date only on the client-side to avoid hydration mismatch
         setFormattedDate(format(new Date(record.storageStartDate), 'dd MMM yyyy, hh:mm a'));
     }, [record.storageStartDate]);
 
-    const initialRent = record.bagsStored * RATE_6_MONTHS;
-    
     const handleDownloadPdf = async () => {
         const element = receiptRef.current;
         if (!element) return;
@@ -38,40 +34,29 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
         setIsGenerating(true);
 
         try {
-            const canvas = await html2canvas(element, {
-                scale: 2, // Increase scale for better quality
-                useCORS: true,
-                backgroundColor: '#ffffff',
-            });
-            
+            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
             const imgData = canvas.toDataURL('image/png');
-            
-            // A4 size in mm: 210 x 297
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            
             const imgWidth = canvas.width;
             const imgHeight = canvas.height;
-            
             const ratio = imgWidth / imgHeight;
-            let widthInPdf = pdfWidth - 20; // with margin
+            let widthInPdf = pdfWidth - 20;
             let heightInPdf = widthInPdf / ratio;
 
-            // if receipt is too long, it might need to span multiple pages, but for now we'll scale to fit one.
             if (heightInPdf > pdfHeight - 20) {
-                heightInPdf = pdfHeight - 20; // with margin
+                heightInPdf = pdfHeight - 20;
                 widthInPdf = heightInPdf * ratio;
             }
 
             const x = (pdfWidth - widthInPdf) / 2;
-            const y = 10; // top margin
+            const y = 10;
 
             pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
             pdf.save(`receipt-${record.id}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);
-            // Optionally, show a toast notification for the error
         } finally {
             setIsGenerating(false);
         }
@@ -107,18 +92,9 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                         <div>
                             <h3 className="font-semibold mb-2">Billing Summary</h3>
                             <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span>Hamali Charges</span>
-                                    <span>{formatCurrency(record.hamaliCharges)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Initial Rent (for 6 months)</span>
-                                    <span>{formatCurrency(initialRent)}</span>
-                                </div>
-                                <Separator className="my-2" />
                                 <div className="flex justify-between font-bold text-base">
-                                    <span>Total Amount Paid</span>
-                                    <span>{formatCurrency(record.totalBilled)}</span>
+                                    <span>Hamali Charges Paid</span>
+                                    <span>{formatCurrency(record.hamaliCharges)}</span>
                                 </div>
                             </div>
                         </div>
@@ -128,7 +104,7 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                         <div className="text-xs text-muted-foreground space-y-2">
                            <p>
                                 <strong>Terms & Conditions:</strong>
-                                This receipt confirms the storage of the above-mentioned goods. The initial rent covers the first 6 months of storage. Subsequent rent will be charged annually at the prevailing rate.
+                                This receipt confirms the storage of the above-mentioned goods. Rent will be calculated at the time of withdrawal.
                             </p>
                             <p>This is a computer-generated receipt and does not require a signature.</p>
                         </div>

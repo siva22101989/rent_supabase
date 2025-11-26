@@ -1,5 +1,4 @@
-
-import { differenceInCalendarMonths, addMonths, isAfter, startOfDay, differenceInYears, addYears, differenceInMonths } from 'date-fns';
+import { differenceInCalendarMonths, addMonths, isAfter, startOfDay, differenceInYears, differenceInMonths } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
 
 // Rates
@@ -14,9 +13,6 @@ export type RecordStatusInfo = {
 };
 
 export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
-  const today = startOfDay(new Date());
-  const startDate = record.storageStartDate;
-  
   if (record.storageEndDate) {
     return {
       status: `Withdrawn`,
@@ -26,49 +22,14 @@ export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
     };
   }
   
-  const monthsStored = differenceInCalendarMonths(today, startDate);
-
-  let alert: string | null = null;
-  let status: string;
-  let nextBillingDate: Date | null;
-  let currentRate: number;
-
-  const initial6MonthDate = addMonths(startDate, 6);
-  const initial12MonthDate = addMonths(startDate, 12);
-
-  // Before 6 months
-  if (isAfter(initial6MonthDate, today)) {
-    status = 'Active - 6-Month Term';
-    nextBillingDate = initial6MonthDate;
-    currentRate = RATE_6_MONTHS;
-  } 
-  // Between 6 and 12 months
-  else if (isAfter(initial12MonthDate, today)) {
-    status = 'Active - 1-Year Rollover';
-    nextBillingDate = initial12MonthDate;
-    currentRate = RATE_1_YEAR;
-    if (record.billingCycle === '6-Month Initial') {
-        alert = `1-Year Rollover top-up is due.`;
-    }
-  } 
-  // After 12 months
-  else {
-    const yearsStored = Math.floor(monthsStored / 12);
-    const renewalYears = yearsStored; // The number of full years passed
-    nextBillingDate = addMonths(startDate, (renewalYears + 1) * 12);
-    status = `In 1-Year Renewal (Y${renewalYears + 1})`;
-    currentRate = RATE_1_YEAR;
-    
-    // Check if the current date is past the last paid renewal date
-    // The initial 12 months are covered by the first year rate.
-    const lastRenewalDueDate = addMonths(startDate, renewalYears * 12);
-
-    if (!isAfter(lastRenewalDueDate, today)) {
-        alert = `Renewal for Year ${renewalYears + 1} is due.`;
-    }
-  }
-
-  return { status, nextBillingDate, currentRate, alert };
+  // Since rent is only calculated at withdrawal, the status is always simply "Active".
+  // The concept of next billing date or current rate before withdrawal is not applicable.
+  return {
+    status: 'Active',
+    nextBillingDate: null,
+    currentRate: 0,
+    alert: null,
+  };
 }
 
 
@@ -80,38 +41,40 @@ export function calculateFinalRent(
     rent: number;
     monthsStored: number;
     totalRentOwedPerBag: number;
-    rentAlreadyPaidPerBag: number;
+    rentAlreadyPaidPerBag: number; // This will now always be 0
 } {
   const startDate = startOfDay(record.storageStartDate);
   const endDate = startOfDay(withdrawalDate);
   
-  const rentAlreadyPaidPerBag = (record.totalBilled - record.hamaliCharges) / record.bagsStored;
+  const rentAlreadyPaidPerBag = 0; // Rent is never paid in advance.
 
   let totalRentOwedPerBag = 0;
 
   const sixMonthsLater = addMonths(startDate, 6);
   const twelveMonthsLater = addMonths(startDate, 12);
 
+  // If withdrawal is within the first 6 months, charge the 6-month rate.
   if (!isAfter(endDate, sixMonthsLater)) {
-    // Withdrawal is on or before the 6-month mark. Rent is already covered.
     totalRentOwedPerBag = RATE_6_MONTHS;
-  } else if (!isAfter(endDate, twelveMonthsLater)) {
-    // Withdrawal is after 6 months but on or before the 12-month mark. Owe the full year rate.
+  } 
+  // If withdrawal is after 6 months but within the first year, charge the 1-year rate.
+  else if (!isAfter(endDate, twelveMonthsLater)) {
     totalRentOwedPerBag = RATE_1_YEAR;
-  } else {
-    // Withdrawal is after 12 months.
+  } 
+  // If withdrawal is after 1 year, charge based on the number of years.
+  else {
     const years = differenceInYears(endDate, startDate);
     // e.g., 13 months is 1 year diff, needs 2 years rent. 25 months is 2 years diff, needs 3 years rent.
     totalRentOwedPerBag = RATE_1_YEAR * (years + 1);
   }
   
-  const additionalRentForWithdrawnBags = (totalRentOwedPerBag - rentAlreadyPaidPerBag) * bagsToWithdraw;
+  const finalRentForWithdrawnBags = totalRentOwedPerBag * bagsToWithdraw;
   const monthsStored = differenceInMonths(endDate, startDate);
 
   return { 
-      rent: Math.max(0, additionalRentForWithdrawnBags),
+      rent: Math.max(0, finalRentForWithdrawnBags),
       monthsStored,
       totalRentOwedPerBag,
-      rentAlreadyPaidPerBag
+      rentAlreadyPaidPerBag // Will be 0
   };
 }

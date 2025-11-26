@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useActionState, useEffect, useState } from 'react';
@@ -13,8 +12,7 @@ import type { Customer, StorageRecord } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
-import { calculateFinalRent, RATE_1_YEAR, RATE_6_MONTHS } from '@/lib/billing';
-import { differenceInMonths } from 'date-fns';
+import { calculateFinalRent } from '@/lib/billing';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -43,7 +41,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     
     const [finalRent, setFinalRent] = useState(0);
     const [storageMonths, setStorageMonths] = useState(0);
-    const [rentPerBag, setRentPerBag] = useState({ totalOwed: 0, alreadyPaid: 0 });
+    const [rentPerBag, setRentPerBag] = useState({ totalOwed: 0 });
 
     const selectedRecord = records.find(r => r.id === selectedRecordId);
 
@@ -66,14 +64,14 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
     useEffect(() => {
         if (selectedRecord && bagsToWithdraw > 0) {
-            const { rent, monthsStored, totalRentOwedPerBag, rentAlreadyPaidPerBag } = calculateFinalRent(selectedRecord, withdrawalDate, bagsToWithdraw);
+            const { rent, monthsStored, totalRentOwedPerBag } = calculateFinalRent(selectedRecord, withdrawalDate, bagsToWithdraw);
             setFinalRent(rent);
             setStorageMonths(monthsStored);
-            setRentPerBag({ totalOwed: totalRentOwedPerBag, alreadyPaid: rentAlreadyPaidPerBag });
+            setRentPerBag({ totalOwed: totalRentOwedPerBag });
         } else {
             setFinalRent(0);
             setStorageMonths(0);
-            setRentPerBag({ totalOwed: 0, alreadyPaid: 0 });
+            setRentPerBag({ totalOwed: 0 });
         }
     }, [selectedRecord, bagsToWithdraw, withdrawalDate]);
 
@@ -149,16 +147,8 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         <span className="font-mono">{storageMonths} months</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Total Rent Owed / bag</span>
+                                        <span className="text-muted-foreground">Total Rent Due / bag</span>
                                         <span className="font-mono">₹{rentPerBag.totalOwed.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Rent Already Paid / bag</span>
-                                        <span className="font-mono">- ₹{rentPerBag.alreadyPaid.toFixed(2)}</span>
-                                    </div>
-                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Additional Rent Due / bag</span>
-                                        <span className="font-mono">₹{(rentPerBag.totalOwed - rentPerBag.alreadyPaid).toFixed(2)}</span>
                                     </div>
                                      <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Bags Withdrawing</span>
@@ -166,7 +156,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                     </div>
                                     <Separator />
                                     <div className="flex justify-between items-center font-semibold text-base">
-                                        <span className="text-foreground">Total Amount Payable Now</span>
+                                        <span className="text-foreground">Total Rent Payable Now</span>
                                         <span className="font-mono">₹{finalRent.toFixed(2)}</span>
                                     </div>
                                 </div>

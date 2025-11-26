@@ -41,9 +41,7 @@ export async function StorageTable() {
           <TableHead className="text-right">Bags</TableHead>
           <TableHead>Start Date</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Next Billing</TableHead>
-          <TableHead className="text-right">Rate</TableHead>
-          <TableHead className="text-right">Hamali</TableHead>
+          <TableHead className="text-right">Hamali Paid</TableHead>
           <TableHead className="w-[50px]"></TableHead>
         </TableRow>
       </TableHeader>
@@ -63,10 +61,6 @@ export async function StorageTable() {
                     Active
                   </Badge>
                 </TableCell>
-                <TableCell>
-                    {statusInfo.nextBillingDate ? format(statusInfo.nextBillingDate, 'dd MMM yyyy') : 'N/A'}
-                </TableCell>
-                <TableCell className="text-right">{formatCurrency(statusInfo.currentRate)}</TableCell>
                 <TableCell className="text-right">{formatCurrency(record.hamaliCharges)}</TableCell>
                 <TableCell>
                     <ActionsMenu record={record} customers={allCustomers} />
