@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Customer } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { RATE_6_MONTHS } from '@/lib/billing';
+import { Separator } from '../ui/separator';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -36,6 +38,8 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
     const [bags, setBags] = useState(0);
     const [rate, setRate] = useState(0);
     const [hamali, setHamali] = useState(0);
+    const [initialRent, setInitialRent] = useState(0);
+    const [totalAmount, setTotalAmount] = useState(0);
 
     useEffect(() => {
         if (state.message) {
@@ -57,7 +61,13 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
     useEffect(() => {
         const bagsValue = bags || 0;
         const rateValue = rate || 0;
-        setHamali(bagsValue * rateValue);
+        
+        const calculatedHamali = bagsValue * rateValue;
+        const calculatedRent = bagsValue * RATE_6_MONTHS;
+        
+        setHamali(calculatedHamali);
+        setInitialRent(calculatedRent);
+        setTotalAmount(calculatedHamali + calculatedRent);
     }, [bags, rate]);
 
 
@@ -98,10 +108,22 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                             <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" required onChange={e => setRate(Number(e.target.value))}/>
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label>Total Hamali Amount</Label>
-                        <div className="p-2 bg-muted rounded-md text-muted-foreground font-mono text-sm">
-                            ₹{hamali.toFixed(2)}
+                     <Separator />
+                    <div className="space-y-4">
+                        <h4 className="font-medium">Billing Summary</h4>
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Total Hamali Charges</span>
+                                <span className="font-mono">₹{hamali.toFixed(2)}</span>
+                            </div>
+                             <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Initial Rent (6 Months)</span>
+                                <span className="font-mono">₹{initialRent.toFixed(2)}</span>
+                            </div>
+                             <div className="flex justify-between items-center font-semibold text-base">
+                                <span className="text-foreground">Total Amount Payable</span>
+                                <span className="font-mono">₹{totalAmount.toFixed(2)}</span>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
