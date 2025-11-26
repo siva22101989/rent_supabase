@@ -25,6 +25,7 @@ const NewStorageSchema = z.object({
   commodityDescription: z.string().min(3, 'Commodity must be at least 3 characters.'),
   bagsStored: z.coerce.number().int().gt(0, 'Quantity must be a positive number.'),
   storageStartDate: z.date({ required_error: 'Storage date is required.' }),
+  hamaliCharges: z.coerce.number().min(0, 'Hamali charges must be a positive number.')
 });
 
 type NewStorageFormValues = z.infer<typeof NewStorageSchema>;
@@ -49,6 +50,7 @@ export function NewStorageForm({ customers }: { customers: Customer[] }) {
       bagsStored: 0,
       commodityDescription: '',
       customerId: '',
+      hamaliCharges: 0,
     },
   });
 
@@ -101,7 +103,7 @@ export function NewStorageForm({ customers }: { customers: Customer[] }) {
               />
             </div>
           </div>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="bagsStored">Quantity (Bags)</Label>
               <Input
@@ -111,6 +113,18 @@ export function NewStorageForm({ customers }: { customers: Customer[] }) {
                 placeholder="0"
                 required
                 {...form.register('bagsStored')}
+              />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="hamaliCharges">Hamali Charges</Label>
+              <Input
+                id="hamaliCharges"
+                name="hamaliCharges"
+                type="number"
+                placeholder="0.00"
+                required
+                step="0.01"
+                {...form.register('hamaliCharges')}
               />
             </div>
             <div className="space-y-2">

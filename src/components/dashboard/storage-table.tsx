@@ -37,6 +37,7 @@ export function StorageTable() {
           <TableHead>Status</TableHead>
           <TableHead>Next Billing</TableHead>
           <TableHead className="text-right">Rate</TableHead>
+          <TableHead className="text-right">Hamali</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -57,6 +58,7 @@ export function StorageTable() {
                     {statusInfo.nextBillingDate ? format(statusInfo.nextBillingDate, 'dd MMM yyyy') : 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">{formatCurrency(statusInfo.currentRate)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(record.hamaliCharges)}</TableCell>
               </TableRow>
             )
         })}

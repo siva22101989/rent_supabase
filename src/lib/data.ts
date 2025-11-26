@@ -21,6 +21,7 @@ export const storageRecords: StorageRecord[] = [
     storageEndDate: null,
     billingCycle: '1-Year Rollover',
     totalBilled: 150 * 55,
+    hamaliCharges: 2.5 * 150,
   },
   {
     id: 'rec_2',
@@ -31,6 +32,7 @@ export const storageRecords: StorageRecord[] = [
     storageEndDate: null,
     billingCycle: '6-Month Initial',
     totalBilled: 500 * 36,
+    hamaliCharges: 2.5 * 500,
   },
     {
     id: 'rec_4',
@@ -41,6 +43,7 @@ export const storageRecords: StorageRecord[] = [
     storageEndDate: null,
     billingCycle: '6-Month Initial',
     totalBilled: 300 * 36,
+    hamaliCharges: 2.5 * 300,
   },
   {
     id: 'rec_3',
@@ -51,5 +54,6 @@ export const storageRecords: StorageRecord[] = [
     storageEndDate: new Date('2023-05-19'),
     billingCycle: 'Completed',
     totalBilled: 200 * 55,
+    hamaliCharges: 2.5 * 200,
   },
 ];

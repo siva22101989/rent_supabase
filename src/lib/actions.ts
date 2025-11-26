@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { storageRecords, customers, RATE_6_MONTHS } from '@/lib/data';
+import { storageRecords } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
@@ -11,6 +11,7 @@ const NewStorageSchema = z.object({
   commodityDescription: z.string().min(1, 'Commodity description is required.'),
   bagsStored: z.coerce.number().gt(0, 'Quantity must be greater than 0.'),
   storageStartDate: z.coerce.date(),
+  hamaliCharges: z.coerce.number().min(0, 'Hamali charges must be a positive number.'),
 });
 
 export type FormState = {
@@ -24,16 +25,24 @@ export async function addStorageRecord(prevState: FormState, formData: FormData)
     commodityDescription: formData.get('commodityDescription'),
     bagsStored: formData.get('bagsStored'),
     storageStartDate: formData.get('storageStartDate'),
+    hamaliCharges: formData.get('hamaliCharges'),
   });
 
   if (!validatedFields.success) {
+    let errorMessage = 'Invalid data.';
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
+    if (fieldErrors.bagsStored) {
+      errorMessage = fieldErrors.bagsStored[0];
+    } else if (fieldErrors.hamaliCharges) {
+        errorMessage = fieldErrors.hamaliCharges[0];
+    }
     return {
-      message: validatedFields.error.flatten().fieldErrors.bagsStored?.[0] || 'Invalid data.',
+      message: errorMessage,
       success: false,
     };
   }
 
-  const { customerId, commodityDescription, bagsStored, storageStartDate } = validatedFields.data;
+  const { customerId, commodityDescription, bagsStored, storageStartDate, hamaliCharges } = validatedFields.data;
   
   const newRecord = {
     id: `rec_${Date.now()}`,
@@ -43,7 +52,8 @@ export async function addStorageRecord(prevState: FormState, formData: FormData)
     storageStartDate,
     storageEndDate: null,
     billingCycle: '6-Month Initial' as const,
-    totalBilled: 0, // Set initial bill to 0
+    hamaliCharges,
+    totalBilled: hamaliCharges, // Hamali charges are part of the initial bill
   };
 
   storageRecords.unshift(newRecord);
