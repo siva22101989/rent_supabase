@@ -187,7 +187,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         <span className='font-mono'>{formatCurrency(pendingHamali)}</span>
                                     </div>
                                     <div className="flex justify-between items-center font-medium">
-                                        <span>Additional Rent Due:</span>
+                                        <span>Rent for Bags Withdrawn:</span>
                                         <span className='font-mono'>{formatCurrency(additionalRent)}</span>
                                     </div>
                                     <div className="flex justify-between items-center font-bold text-lg border-t border-green-300 pt-3 mt-3">
