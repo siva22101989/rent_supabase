@@ -1,5 +1,17 @@
 [
   {
+    "id": "rec_1764158361557",
+    "customerId": "cust_1764151917394",
+    "commodityDescription": "PADDY",
+    "location": "A3",
+    "bagsStored": 100,
+    "storageStartDate": "2025-04-26T00:00:00.000Z",
+    "storageEndDate": null,
+    "billingCycle": "6-Month Initial",
+    "amountPaid": 0,
+    "hamaliPayable": 1000
+  },
+  {
     "id": "rec_1764152114824",
     "customerId": "cust_1764151917394",
     "commodityDescription": "PADDY",
