@@ -152,6 +152,11 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
     };
 
     customers.unshift(newCustomer);
+    
     revalidatePath('/customers');
+    revalidatePath('/new-storage');
+    revalidatePath('/withdraw');
+
+    // Redirecting is a more reliable way to ensure the UI updates across pages.
     redirect('/customers');
 }
