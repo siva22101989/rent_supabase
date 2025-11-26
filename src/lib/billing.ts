@@ -76,4 +76,3 @@ export function calculateFinalRent(
       rentAlreadyPaidPerBag // Will be 0
   };
 }
-
