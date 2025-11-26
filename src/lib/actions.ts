@@ -4,9 +4,10 @@
 import { z } from 'zod';
 import { storageRecords, customers, saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, getStorageRecord } from '@/lib/data';
 import { redirect } from 'next/navigation';
-import { revalidateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
 import { Timestamp } from 'firebase-admin/firestore';
+import type { StorageRecord } from './definitions';
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -46,12 +47,13 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
 
     const newCustomer = {
         ...validatedFields.data,
+        id: `CUST-${Date.now()}`,
         email: validatedFields.data.email ?? '',
     };
     
     await saveCustomer(newCustomer);
     
-    revalidateTag('customers');
+    revalidatePath('/customers');
     redirect('/customers');
 }
 
@@ -92,13 +94,15 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     const hamaliPayable = bagsStored * hamaliRate;
     const payments = [];
     if (hamaliPaid && hamaliPaid > 0) {
-        payments.push({ amount: hamaliPaid, date: Timestamp.fromDate(new Date(storageStartDate)) });
+        payments.push({ amount: hamaliPaid, date: new Date(storageStartDate) });
     }
     
+    const newRecordId = `REC-${Date.now()}`;
     const newRecord = {
         ...rest,
+        id: newRecordId,
         bagsStored,
-        storageStartDate: Timestamp.fromDate(new Date(storageStartDate)),
+        storageStartDate: new Date(storageStartDate),
         storageEndDate: null,
         billingCycle: '6-Month Initial' as const,
         payments: payments,
@@ -106,9 +110,9 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         totalRentBilled: 0,
     };
 
-    const newRecordId = await saveStorageRecord(newRecord);
+    await saveStorageRecord(newRecord);
 
-    revalidateTag('storageRecords');
+    revalidatePath('/storage');
     redirect(`/inflow/receipt/${newRecordId}`);
 }
 
@@ -174,7 +178,8 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     
     await updateStorageRecord(recordId, recordUpdate);
 
-    revalidateTag('storageRecords');
+    revalidatePath('/storage');
+    revalidatePath('/reports');
     redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
 }
 
@@ -211,7 +216,7 @@ export async function updateStorageRecordAction(recordId: string, prevState: Inf
 
     await updateStorageRecord(recordId, dataToUpdate);
 
-    revalidateTag('storageRecords');
+    revalidatePath('/storage');
     return { message: 'Record updated successfully.', success: true };
 }
 
@@ -249,6 +254,6 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
     
     await addPaymentToRecord(recordId, payment);
     
-    revalidateTag('storageRecords');
+    revalidatePath('/payments/pending');
     return { message: 'Payment added successfully.', success: true };
 }

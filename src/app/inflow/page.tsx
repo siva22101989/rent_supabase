@@ -3,20 +3,22 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
-import { useCollection } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
-import { useMemo } from "react";
+import { customers as getCustomers } from "@/lib/data";
+import { useEffect, useState } from "react";
 import type { Customer } from "@/lib/definitions";
 
 export default function InflowPage() {
-  const firestore = useFirestore();
-  const customersQuery = useMemo(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'customers'), orderBy('name', 'asc'));
-  }, [firestore]);
-
-  const { data: customers, loading } = useCollection<Customer>(customersQuery);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    async function fetchCustomers() {
+      const data = await getCustomers();
+      setCustomers(data);
+      setLoading(false);
+    }
+    fetchCustomers();
+  }, []);
 
   if (loading) {
     return <AppLayout><div>Loading...</div></AppLayout>;

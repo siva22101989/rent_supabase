@@ -3,35 +3,38 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
 import { notFound, useParams, useSearchParams } from "next/navigation";
-import { useDoc } from "@/firebase";
-import { doc } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
+import { getStorageRecord, getCustomer } from "@/lib/data";
 
 export default function OutflowReceiptPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const recordId = params.recordId as string;
-  const firestore = useFirestore();
 
-  const recordRef = useMemo(() => {
-    if (!firestore || !recordId) return null;
-    return doc(firestore, 'storageRecords', recordId);
-  }, [firestore, recordId]);
-  const { data: record, loading: recordLoading } = useDoc<StorageRecord>(recordRef);
-
-  const customerRef = useMemo(() => {
-    if (!firestore || !record?.customerId) return null;
-    return doc(firestore, 'customers', record.customerId);
-  }, [firestore, record]);
-  const { data: customer, loading: customerLoading } = useDoc<Customer>(customerRef);
+  const [record, setRecord] = useState<StorageRecord | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const withdrawnBags = Number(searchParams.get('withdrawn')) || 0;
   const finalRent = Number(searchParams.get('rent')) || 0;
   const paidNow = Number(searchParams.get('paidNow')) || 0;
 
-  if (recordLoading || customerLoading) {
+  useEffect(() => {
+    if (!recordId) return;
+    async function fetchData() {
+        const rec = await getStorageRecord(recordId);
+        if (rec) {
+            const cust = await getCustomer(rec.customerId);
+            setRecord(rec);
+            setCustomer(cust);
+        }
+        setLoading(false);
+    }
+    fetchData();
+  }, [recordId]);
+
+  if (loading) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 

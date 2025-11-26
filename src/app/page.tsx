@@ -8,9 +8,6 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useUser } from "@/firebase/auth/use-user";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 type NavItem = {
   href: string;
@@ -51,23 +48,6 @@ function NavCard({ item }: { item: NavItem }) {
 
 
 export default function DashboardPage() {
-  const { user, loading } = useUser();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
   return (
     <AppLayout>
       <PageHeader

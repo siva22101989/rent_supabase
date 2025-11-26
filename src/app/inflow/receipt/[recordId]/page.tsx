@@ -4,32 +4,33 @@ import { PageHeader } from "@/components/shared/page-header";
 import { InflowReceipt } from "@/components/inflow/inflow-receipt";
 import { getStorageRecord, getCustomer } from "@/lib/data";
 import { notFound, useParams } from "next/navigation";
-import { useDoc } from "@/firebase";
-import { doc, getFirestore } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 
 export default function InflowReceiptPage() {
   const params = useParams();
   const recordId = params.recordId as string;
-  const firestore = useFirestore();
+  
+  const [record, setRecord] = useState<StorageRecord | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const recordRef = useMemo(() => {
-    if (!firestore || !recordId) return null;
-    return doc(firestore, 'storageRecords', recordId);
-  }, [firestore, recordId]);
+  useEffect(() => {
+    if (!recordId) return;
+    async function fetchData() {
+        const rec = await getStorageRecord(recordId);
+        if (rec) {
+            const cust = await getCustomer(rec.customerId);
+            setRecord(rec);
+            setCustomer(cust);
+        }
+        setLoading(false);
+    }
+    fetchData();
+  }, [recordId]);
 
-  const { data: record, loading: recordLoading } = useDoc<StorageRecord>(recordRef);
 
-  const customerRef = useMemo(() => {
-    if (!firestore || !record?.customerId) return null;
-    return doc(firestore, 'customers', record.customerId);
-  }, [firestore, record]);
-
-  const { data: customer, loading: customerLoading } = useDoc<Customer>(customerRef);
-
-  if (recordLoading || customerLoading) {
+  if (loading) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
