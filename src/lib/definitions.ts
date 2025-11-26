@@ -1,3 +1,4 @@
+
 export type Customer = {
   id: string;
   name: string;
@@ -16,6 +17,7 @@ export type Commodity = {
   description: string;
 };
 
+// Dates are stored as ISO strings in JSON, but will be converted to Date objects when read.
 export type StorageRecord = {
   id: string;
   customerId: string;

@@ -1,12 +1,14 @@
+
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { storageRecords, customers } from "@/lib/data";
+import { storageRecords as getStorageRecords, customers as getCustomers } from "@/lib/data";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
-function getCustomerName(customerId: string) {
+async function getCustomerName(customerId: string) {
+  const customers = await getCustomers();
   return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
 }
 
@@ -18,8 +20,9 @@ function formatCurrency(amount: number) {
     }).format(amount);
 }
 
-export default function BillingPage() {
-    const withdrawnRecords = storageRecords.filter(r => r.storageEndDate);
+export default async function BillingPage() {
+    const allRecords = await getStorageRecords();
+    const withdrawnRecords = allRecords.filter(r => r.storageEndDate);
 
   return (
     <AppLayout>
@@ -45,10 +48,12 @@ export default function BillingPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {withdrawnRecords.map((record) => (
+                        {await Promise.all(withdrawnRecords.map(async (record) => {
+                            const customerName = await getCustomerName(record.customerId);
+                            return (
                             <TableRow key={record.id}>
                                 <TableCell className="font-medium">{record.id}</TableCell>
-                                <TableCell>{getCustomerName(record.customerId)}</TableCell>
+                                <TableCell>{customerName}</TableCell>
                                 <TableCell>{record.commodityDescription}</TableCell>
                                 <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
                                 <TableCell>{format(record.storageStartDate, 'dd MMM yyyy')}</TableCell>
@@ -59,7 +64,7 @@ export default function BillingPage() {
                                     </Badge>
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        )}))}
                     </TableBody>
                  </Table>
             </CardContent>

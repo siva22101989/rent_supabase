@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { storageRecords, customers, products, RATE_6_MONTHS, RATE_1_YEAR } from '@/lib/data';
+import { storageRecords, customers, products, saveCustomers, saveStorageRecords, saveProducts, RATE_6_MONTHS } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
@@ -10,9 +10,9 @@ import { calculateFinalRent } from '@/lib/billing';
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
-  email: z.string().optional(),
   phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
   address: z.string().min(5, 'Address must be at least 5 characters.'),
+  email: z.string().optional(),
 });
 
 export type FormState = {
@@ -22,7 +22,8 @@ export type FormState = {
 
 export async function getAnomalyDetection() {
   try {
-    const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(storageRecords) });
+    const records = await storageRecords();
+    const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(records) });
     return { success: true, anomalies: result.anomalies };
   } catch (error) {
     return { success: false, anomalies: 'An error occurred while analyzing records.' };
@@ -49,11 +50,12 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
         email: validatedFields.data.email ?? '',
     };
 
-    customers.unshift(newCustomer);
+    const currentCustomers = await customers();
+    currentCustomers.unshift(newCustomer);
+    await saveCustomers(currentCustomers);
     
     revalidatePath('/customers');
     revalidatePath('/inflow');
-    revalidatePath('/outflow');
     redirect('/customers');
 }
 
@@ -92,14 +94,16 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         id: `rec_${Date.now()}`,
         ...rest,
         bagsStored,
-        storageStartDate: new Date(),
+        storageStartDate: new Date().toISOString(),
         storageEndDate: null,
         billingCycle: '6-Month Initial' as const,
         totalBilled: hamaliCharges + initialRent,
         hamaliCharges,
     };
 
-    storageRecords.unshift(newRecord);
+    const currentRecords = await storageRecords();
+    currentRecords.unshift(newRecord);
+    await saveStorageRecords(currentRecords);
 
     revalidatePath('/');
     revalidatePath('/billing');
@@ -124,27 +128,29 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     if (!validatedFields.success) {
         return { message: 'Invalid data submitted.', success: false };
     }
-
+    
+    const currentRecords = await storageRecords();
     const { recordId } = validatedFields.data;
-    const recordIndex = storageRecords.findIndex(r => r.id === recordId);
+    const recordIndex = currentRecords.findIndex(r => r.id === recordId);
 
     if (recordIndex === -1) {
         return { message: 'Record not found.', success: false };
     }
 
-    const record = storageRecords[recordIndex];
+    const record = currentRecords[recordIndex];
     const withdrawalDate = new Date();
 
     const { rent: additionalRent } = calculateFinalRent(record, withdrawalDate);
 
     const updatedRecord = {
         ...record,
-        storageEndDate: withdrawalDate,
+        storageEndDate: withdrawalDate.toISOString(),
         totalBilled: record.totalBilled + additionalRent,
         billingCycle: 'Completed' as const,
     };
     
-    storageRecords[recordIndex] = updatedRecord;
+    currentRecords[recordIndex] = updatedRecord;
+    await saveStorageRecords(currentRecords);
 
     revalidatePath('/');
     revalidatePath('/billing');
@@ -178,7 +184,9 @@ export async function addProduct(prevState: ProductFormState, formData: FormData
         ...validatedFields.data,
     };
 
-    products.unshift(newProduct);
+    const currentProducts = await products();
+    currentProducts.unshift(newProduct);
+    await saveProducts(currentProducts);
     
     revalidatePath('/products');
 

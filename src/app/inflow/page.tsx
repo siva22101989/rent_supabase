@@ -1,10 +1,12 @@
+
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
-import { customers } from "@/lib/data";
+import { customers as getCustomers } from "@/lib/data";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 
-export default function InflowPage() {
+export default async function InflowPage() {
+  const customers = await getCustomers();
   return (
     <AppLayout>
       <PageHeader

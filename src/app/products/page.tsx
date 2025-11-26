@@ -1,3 +1,4 @@
+
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -8,11 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { products } from "@/lib/data";
+import { products as getProducts } from "@/lib/data";
 import { Card, CardContent } from "@/components/ui/card";
 import { AddProductDialog } from "@/components/products/add-product-dialog";
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const products = await getProducts();
   return (
     <AppLayout>
       <PageHeader

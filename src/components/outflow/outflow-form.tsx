@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowUpFromDot } from 'lucide-react';
-import { getRecordStatus } from '@/lib/billing';
 import { format } from 'date-fns';
 import { Label } from '../ui/label';
 
@@ -49,10 +48,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     useEffect(() => {
         if (state.message) {
             if (state.success) {
-                toast({
-                    title: 'Success!',
-                    description: state.message,
-                });
+                // Redirect is handled by the server action, so a toast might not be seen.
             } else {
                 toast({
                     title: 'Error',

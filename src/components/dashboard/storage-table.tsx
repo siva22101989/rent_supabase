@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -7,12 +8,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { customers, storageRecords } from "@/lib/data";
-import type { StorageRecord } from "@/lib/definitions";
+import { customers as getCustomers, storageRecords as getStorageRecords } from "@/lib/data";
 import { getRecordStatus } from "@/lib/billing";
 import { format } from 'date-fns';
 
-function getCustomerName(customerId: string) {
+async function getCustomerName(customerId: string) {
+  const customers = await getCustomers();
   return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
 }
 
@@ -24,8 +25,10 @@ function formatCurrency(amount: number) {
     }).format(amount);
 }
 
-export function StorageTable() {
-    const activeRecords = storageRecords.filter(r => !r.storageEndDate);
+export async function StorageTable() {
+    const allRecords = await getStorageRecords();
+    const activeRecords = allRecords.filter(r => !r.storageEndDate);
+    
   return (
     <Table>
       <TableHeader>
@@ -41,11 +44,12 @@ export function StorageTable() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {activeRecords.map((record) => {
+        {await Promise.all(activeRecords.map(async (record) => {
             const statusInfo = getRecordStatus(record);
+            const customerName = await getCustomerName(record.customerId);
             return (
               <TableRow key={record.id}>
-                <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
+                <TableCell className="font-medium">{customerName}</TableCell>
                 <TableCell>{record.commodityDescription}</TableCell>
                 <TableCell className="text-right">{record.bagsStored}</TableCell>
                 <TableCell>{format(record.storageStartDate, 'dd MMM yyyy')}</TableCell>
@@ -61,7 +65,7 @@ export function StorageTable() {
                 <TableCell className="text-right">{formatCurrency(record.hamaliCharges)}</TableCell>
               </TableRow>
             )
-        })}
+        }))}
       </TableBody>
     </Table>
   );
