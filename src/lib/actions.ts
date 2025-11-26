@@ -62,6 +62,7 @@ const InflowSchema = z.object({
     customerId: z.string().min(1, 'Customer is required.'),
     commodityDescription: z.string().min(2, 'Commodity description is required.'),
     location: z.string().min(1, 'Location is required.'),
+    storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
     bagsStored: z.coerce.number().int().positive('Number of bags must be a positive number.'),
     hamaliRate: z.coerce.number().positive('Hamali rate must be a positive number.'),
     hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.'),
@@ -77,6 +78,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         customerId: formData.get('customerId'),
         commodityDescription: formData.get('commodityDescription'),
         location: formData.get('location'),
+        storageStartDate: formData.get('storageStartDate'),
         bagsStored: formData.get('bagsStored'),
         hamaliRate: formData.get('hamaliRate'),
         hamaliPaid: formData.get('hamaliPaid'),
@@ -88,7 +90,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         return { message: `Invalid data: ${message}`, success: false };
     }
 
-    const { bagsStored, hamaliRate, hamaliPaid, ...rest } = validatedFields.data;
+    const { bagsStored, hamaliRate, hamaliPaid, storageStartDate, ...rest } = validatedFields.data;
 
     const hamaliPayable = bagsStored * hamaliRate;
     
@@ -96,7 +98,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         id: `rec_${Date.now()}`,
         ...rest,
         bagsStored,
-        storageStartDate: new Date(),
+        storageStartDate: new Date(storageStartDate),
         storageEndDate: null,
         billingCycle: '6-Month Initial' as const,
         amountPaid: hamaliPaid,

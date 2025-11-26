@@ -99,6 +99,16 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                             <Input id="location" name="location" placeholder="e.g., Aisle 3, Rack 2" required />
                         </div>
                     </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="storageStartDate">Start Date</Label>
+                        <Input 
+                            id="storageStartDate" 
+                            name="storageStartDate" 
+                            type="date"
+                            defaultValue={new Date().toISOString().split('T')[0]}
+                            required 
+                        />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="bagsStored">Number of Bags</Label>
