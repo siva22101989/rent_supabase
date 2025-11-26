@@ -59,8 +59,8 @@ export async function StorageTable() {
                 <TableCell className="text-right">{record.bagsStored}</TableCell>
                 <TableCell>{format(record.storageStartDate, 'dd MMM yyyy')}</TableCell>
                 <TableCell>
-                  <Badge variant={statusInfo.alert ? "destructive" : "secondary"} className={statusInfo.alert ? "bg-accent/80 text-accent-foreground" : ""}>
-                    {statusInfo.status}
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    Active
                   </Badge>
                 </TableCell>
                 <TableCell>
