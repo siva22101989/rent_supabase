@@ -5,14 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { format } from "date-fns";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Badge } from "@/components/ui/badge";
-
-function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 2,
-    }).format(amount);
-}
+import { formatCurrency } from '@/lib/utils';
 
 type ReportTableProps = {
     records: StorageRecord[];

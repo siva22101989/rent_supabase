@@ -5,14 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, Warehouse, IndianRupee } from "lucide-react";
 import { storageRecords as getStorageRecords } from "@/lib/data";
 import { calculateFinalRent } from "@/lib/billing";
-
-function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 2,
-    }).format(amount);
-}
+import { formatCurrency } from "@/lib/utils";
 
 export default async function StoragePage() {
   const allRecords = await getStorageRecords();

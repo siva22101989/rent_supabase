@@ -6,14 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { getRecordStatus, type RecordStatusInfo } from '@/lib/billing';
-
-function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 2,
-    }).format(amount);
-}
+import { formatCurrency } from '@/lib/utils';
 
 type BillReceiptProps = {
   record: StorageRecord;

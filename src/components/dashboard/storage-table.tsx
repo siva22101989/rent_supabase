@@ -1,4 +1,5 @@
 
+
 import {
   Table,
   TableBody,
@@ -12,18 +13,11 @@ import { customers as getCustomers, storageRecords as getStorageRecords } from "
 import { getRecordStatus } from "@/lib/billing";
 import { format } from 'date-fns';
 import { ActionsMenu } from "./actions-menu";
+import { formatCurrency } from "@/lib/utils";
 
 async function getCustomerName(customerId: string) {
   const customers = await getCustomers();
   return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
-}
-
-function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 2,
-    }).format(amount);
 }
 
 export async function StorageTable() {

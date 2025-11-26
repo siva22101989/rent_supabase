@@ -1,18 +1,12 @@
 
+
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, IndianRupee, TrendingUp, TrendingDown, Scale } from "lucide-react";
 import { storageRecords as getStorageRecords } from "@/lib/data";
-
-function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 2,
-    }).format(amount);
-}
+import { formatCurrency } from "@/lib/utils";
 
 export default async function ExpensesPage() {
   const allRecords = await getStorageRecords();

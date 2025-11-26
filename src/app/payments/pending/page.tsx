@@ -1,4 +1,5 @@
 
+
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,17 +9,10 @@ import { format } from "date-fns";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Badge } from "@/components/ui/badge";
 import { AddPaymentDialog } from "@/components/payments/add-payment-dialog";
+import { formatCurrency } from "@/lib/utils";
 
 async function getCustomerName(customerId: string, customers: Customer[]) {
   return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
-}
-
-function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 2,
-    }).format(amount);
 }
 
 export default async function PendingPaymentsPage() {

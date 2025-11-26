@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -71,7 +72,7 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
           <DialogHeader>
             <DialogTitle>Add Payment to Record</DialogTitle>
             <DialogDescription>
-              Record ID: {record.id}. Balance Due: <span className="font-mono text-destructive">₹{record.balanceDue.toFixed(2)}</span>
+              Record ID: {record.id}. Balance Due: <span className="font-mono text-destructive">{formatCurrency(record.balanceDue)}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

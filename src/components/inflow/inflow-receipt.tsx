@@ -10,14 +10,7 @@ import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
-
-function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 2,
-    }).format(amount);
-}
+import { formatCurrency } from '@/lib/utils';
 
 export function InflowReceipt({ record, customer }: { record: StorageRecord, customer: Customer }) {
     const receiptRef = useRef<HTMLDivElement>(null);

@@ -11,14 +11,7 @@ import { format, differenceInDays, differenceInMonths } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { calculateFinalRent } from '@/lib/billing';
-
-function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 2,
-    }).format(amount);
-}
+import { formatCurrency } from '@/lib/utils';
 
 type OutflowReceiptProps = {
   record: StorageRecord;
