@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
+import { useFormStatus } from 'react-dom';
 import { addInflow, type InflowFormState } from '@/lib/actions';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Customer } from '@/lib/definitions';
-import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -32,7 +32,7 @@ function SubmitButton() {
 export function InflowForm({ customers }: { customers: Customer[] }) {
     const { toast } = useToast();
     const initialState: InflowFormState = { message: '', success: false };
-    const [state, formAction] = useFormState(addInflow, initialState);
+    const [state, formAction] = useActionState(addInflow, initialState);
 
     useEffect(() => {
         if (state.message) {
