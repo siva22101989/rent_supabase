@@ -62,6 +62,11 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         return isNaN(num) ? 0 : num;
     }, [bagsToWithdraw]);
 
+    const isWithdrawalInvalid = useMemo(() => {
+        if (!selectedRecord) return false;
+        return bagsToWithdrawNum > selectedRecord.bagsStored;
+    }, [bagsToWithdrawNum, selectedRecord]);
+
     const additionalRent = useMemo(() => {
         if (!selectedRecord || bagsToWithdrawNum <= 0) return 0;
         return calculateFinalRent(selectedRecord, new Date(), bagsToWithdrawNum).rent;
@@ -69,8 +74,8 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     
     const pendingHamali = useMemo(() => {
         if (!selectedRecord || !selectedRecord.bagsStored || bagsToWithdrawNum <= 0) return 0;
-        // Assuming hamali is charged on outflow. If it was charged on inflow, this would be 0.
-        // Let's assume the hamali stored is a per-bag rate.
+        // Hamali is charged on inflow, so this is just for display if needed.
+        // Assuming we want to show hamali associated with the bags being withdrawn.
         const hamaliPerBag = selectedRecord.hamaliCharges / selectedRecord.bagsStored;
         return hamaliPerBag * bagsToWithdrawNum;
     }, [selectedRecord, bagsToWithdrawNum]);
@@ -162,6 +167,9 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                     placeholder="Enter number of bags"
                                     required
                                 />
+                                {isWithdrawalInvalid && (
+                                    <p className="text-sm text-red-600">Cannot withdraw more than the available balance of {selectedRecord.bagsStored} bags.</p>
+                                )}
                             </div>
 
                             <Card className="bg-green-50 border-green-200">
@@ -181,6 +189,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         <span>Total Amount Due:</span>
                                         <span className='font-mono'>{formatCurrency(pendingHamali + additionalRent)}</span>
                                     </div>
+
                                 </CardContent>
                             </Card>
                         </>
@@ -188,7 +197,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
                 </CardContent>
                 <CardFooter>
-                    <SubmitButton disabled={!selectedRecord || bagsToWithdrawNum <= 0 || bagsToWithdrawNum > (selectedRecord?.bagsStored ?? 0)} />
+                    <SubmitButton disabled={!selectedRecord || bagsToWithdrawNum <= 0 || isWithdrawalInvalid} />
                 </CardFooter>
             </Card>
         </form>
