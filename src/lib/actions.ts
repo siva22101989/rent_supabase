@@ -154,7 +154,6 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
 
 const NewProductSchema = z.object({
   name: z.string().min(3, 'Product name must be at least 3 characters.'),
-  description: z.string().min(3, 'Description must be at least 3 characters.'),
 });
 
 export type ProductFormState = {
@@ -166,7 +165,6 @@ export type ProductFormState = {
 export async function addProduct(prevState: ProductFormState, formData: FormData) {
     const validatedFields = NewProductSchema.safeParse({
         name: formData.get('name'),
-        description: formData.get('description'),
     });
 
     if (!validatedFields.success) {

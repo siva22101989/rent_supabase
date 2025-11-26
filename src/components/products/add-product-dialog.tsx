@@ -19,7 +19,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '../ui/textarea';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -72,7 +71,7 @@ export function AddProductDialog() {
           <DialogHeader>
             <DialogTitle>Add New Product</DialogTitle>
             <DialogDescription>
-              Enter the details for the new product. Click save when you&apos;re done.
+              Enter the name for the new product. Click save when you're done.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -81,12 +80,6 @@ export function AddProductDialog() {
                 Name
               </Label>
               <Input id="name" name="name" className="col-span-3" required />
-            </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="description" className="text-right pt-2">
-                Description
-              </Label>
-              <Textarea id="description" name="description" className="col-span-3" required />
             </div>
           </div>
           <DialogFooter>
