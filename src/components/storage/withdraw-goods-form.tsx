@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Loader2 } from 'lucide-react';
@@ -36,7 +37,7 @@ export function WithdrawGoodsForm({ records }: { records: StorageRecord[] }) {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   
-  const [state, formAction] = useFormState<FormState, FormData>(withdrawGoods, {
+  const [state, formAction] = useActionState<FormState, FormData>(withdrawGoods, {
     message: '',
     success: false,
   });

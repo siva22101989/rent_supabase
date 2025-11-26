@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -51,7 +52,7 @@ export function NewStorageForm({ customers }: { customers: Customer[] }) {
     },
   });
 
-  const [state, formAction] = useFormState<FormState, FormData>(addStorageRecord, {
+  const [state, formAction] = useActionState<FormState, FormData>(addStorageRecord, {
     message: '',
     success: false,
   });
