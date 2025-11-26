@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,13 @@ function formatCurrency(amount: number) {
 
 export function InflowReceipt({ record, customer }: { record: StorageRecord, customer: Customer }) {
     const componentRef = useRef(null);
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        // Format the date only on the client-side to avoid hydration mismatch
+        setFormattedDate(format(new Date(record.storageStartDate), 'dd MMM yyyy, hh:mm a'));
+    }, [record.storageStartDate]);
+    
     const handlePrint = useReactToPrint({
         content: () => componentRef.current,
         documentTitle: `inflow-receipt-${record.id}`,
@@ -57,7 +64,7 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                             </div>
                              <div>
                                 <h3 className="font-semibold mb-2">Storage Details</h3>
-                                <p><span className="font-medium">Date:</span> {format(new Date(record.storageStartDate), 'dd MMM yyyy, hh:mm a')}</p>
+                                <p><span className="font-medium">Date:</span> {formattedDate}</p>
                                 <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
                                 <p><span className="font-medium">Number of Bags:</span> {record.bagsStored}</p>
                             </div>
