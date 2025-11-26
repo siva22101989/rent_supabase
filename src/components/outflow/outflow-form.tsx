@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useState, useMemo } from 'react';
 import { useFormStatus } from 'react-dom';
 import { addOutflow, type OutflowFormState } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,11 +12,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowUpFromDot } from 'lucide-react';
 import { format } from 'date-fns';
 import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { calculateFinalRent } from '@/lib/billing';
 
-function SubmitButton() {
+function SubmitButton({ disabled }: { disabled?: boolean }) {
     const { pending } = useFormStatus();
     return (
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button type="submit" disabled={pending || disabled} className="w-full">
         {pending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -36,14 +38,35 @@ function getCustomerName(customerId: string, customers: Customer[]) {
     return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
 }
 
+function formatCurrency(amount: number) {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 2,
+    }).format(amount);
+}
+
 
 export function OutflowForm({ records, customers }: { records: StorageRecord[], customers: Customer[] }) {
     const { toast } = useToast();
     const initialState: OutflowFormState = { message: '', success: false };
     const [state, formAction] = useActionState(addOutflow, initialState);
+    
     const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+    const [bagsToWithdraw, setBagsToWithdraw] = useState(0);
 
-    const selectedRecord = records.find(r => r.id === selectedRecordId);
+    const selectedRecord = useMemo(() => records.find(r => r.id === selectedRecordId), [records, selectedRecordId]);
+
+    const additionalRent = useMemo(() => {
+        if (!selectedRecord || bagsToWithdraw <= 0) return 0;
+        return calculateFinalRent(selectedRecord, new Date(), bagsToWithdraw).rent;
+    }, [selectedRecord, bagsToWithdraw]);
+    
+    const hamaliPerBag = useMemo(() => {
+        if (!selectedRecord || !selectedRecord.bagsStored) return 0;
+        return selectedRecord.hamaliCharges / selectedRecord.bagsStored;
+    }, [selectedRecord]);
+
 
     useEffect(() => {
         if (state.message) {
@@ -58,6 +81,14 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             }
         }
     }, [state, toast]);
+
+    useEffect(() => {
+        if (selectedRecord) {
+            setBagsToWithdraw(selectedRecord.bagsStored);
+        } else {
+            setBagsToWithdraw(0);
+        }
+    }, [selectedRecord]);
 
   return (
     <div className="flex justify-center">
@@ -85,34 +116,70 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     </div>
 
                     {selectedRecord && (
-                        <Card className="bg-muted/50">
-                            <CardHeader>
-                                <CardTitle className='text-lg'>Record Details</CardTitle>
-                            </CardHeader>
-                            <CardContent className="grid sm:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <p className="font-medium">Customer</p>
-                                    <p className="text-muted-foreground">{getCustomerName(selectedRecord.customerId, customers)}</p>
-                                </div>
-                                <div>
-                                    <p className="font-medium">Commodity</p>
-                                    <p className="text-muted-foreground">{selectedRecord.commodityDescription}</p>
-                                </div>
-                                <div>
-                                    <p className="font-medium">Bags Stored</p>
-                                    <p className="text-muted-foreground">{selectedRecord.bagsStored}</p>
-                                </div>
-                                 <div>
-                                    <p className="font-medium">Storage Start Date</p>
-                                    <p className="text-muted-foreground">{format(selectedRecord.storageStartDate, 'dd MMM yyyy')}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <>
+                            <Card className="bg-muted/50">
+                                <CardHeader>
+                                    <CardTitle className='text-lg'>Record Details</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid sm:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <p className="font-medium">Customer</p>
+                                        <p className="text-muted-foreground">{getCustomerName(selectedRecord.customerId, customers)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">Commodity</p>
+                                        <p className="text-muted-foreground">{selectedRecord.commodityDescription}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">Total Bags Stored</p>
+                                        <p className="text-muted-foreground">{selectedRecord.bagsStored}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">Storage Start Date</p>
+                                        <p className="text-muted-foreground">{format(selectedRecord.storageStartDate, 'dd MMM yyyy')}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="bagsToWithdraw">Bags to Withdraw</Label>
+                                <Input 
+                                    id="bagsToWithdraw" 
+                                    name="bagsToWithdraw" 
+                                    type="number" 
+                                    value={bagsToWithdraw}
+                                    onChange={(e) => setBagsToWithdraw(Number(e.target.value))}
+                                    max={selectedRecord.bagsStored}
+                                    min={1}
+                                    required
+                                />
+                            </div>
+
+                            <Card className="bg-green-50 border-green-200">
+                                <CardHeader>
+                                    <CardTitle className='text-lg text-green-900'>Billing Summary</CardTitle>
+                                </CardHeader>
+                                <CardContent className='space-y-3 text-green-800'>
+                                     <div className="flex justify-between items-center font-medium">
+                                        <span>Pending Hamali Charges:</span>
+                                        <span className='font-mono'>{formatCurrency(hamaliPerBag * bagsToWithdraw)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center font-medium">
+                                        <span>Additional Rent Due:</span>
+                                        <span className='font-mono'>{formatCurrency(additionalRent)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center font-bold text-lg border-t border-green-300 pt-3 mt-3">
+                                        <span>Total Amount Due:</span>
+                                        <span className='font-mono'>{formatCurrency((hamaliPerBag * bagsToWithdraw) + additionalRent)}</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </>
                     )}
 
                 </CardContent>
                 <CardFooter>
-                    <SubmitButton />
+                    <SubmitButton disabled={!selectedRecord || bagsToWithdraw <= 0 || bagsToWithdraw > (selectedRecord?.bagsStored ?? 0)} />
                 </CardFooter>
             </Card>
         </form>

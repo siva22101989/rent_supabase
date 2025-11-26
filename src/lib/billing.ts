@@ -1,3 +1,4 @@
+
 import { differenceInCalendarMonths, addMonths, isAfter, startOfDay, differenceInDays } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
 import { RATE_6_MONTHS, RATE_1_YEAR } from '@/lib/data';
@@ -59,7 +60,7 @@ export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
 }
 
 
-export function calculateFinalRent(record: StorageRecord, withdrawalDate: Date): { rent: number } {
+export function calculateFinalRent(record: StorageRecord, withdrawalDate: Date, bagsToWithdraw: number): { rent: number } {
   const statusInfo = getRecordStatus(record);
 
   // If a renewal or rollover alert is active, it means payment is due
@@ -67,12 +68,12 @@ export function calculateFinalRent(record: StorageRecord, withdrawalDate: Date):
   if (statusInfo.alert) {
     if (statusInfo.alert.includes('Rollover')) {
       // Top-up from 6-month rate to 1-year rate
-      const rentDue = (RATE_1_YEAR - RATE_6_MONTHS) * record.bagsStored;
+      const rentDue = (RATE_1_YEAR - RATE_6_MONTHS) * bagsToWithdraw;
       return { rent: rentDue > 0 ? rentDue : 0 };
     }
     if (statusInfo.alert.includes('Renewal')) {
       // New 1-year term rent
-      const rentDue = RATE_1_YEAR * record.bagsStored;
+      const rentDue = RATE_1_YEAR * bagsToWithdraw;
       return { rent: rentDue > 0 ? rentDue : 0 };
     }
   }

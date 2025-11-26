@@ -113,6 +113,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
 
 const OutflowSchema = z.object({
   recordId: z.string().min(1, 'Please select a record to withdraw.'),
+  bagsToWithdraw: z.coerce.number().int().positive('Bags to withdraw must be a positive number.'),
 });
 
 export type OutflowFormState = {
@@ -123,6 +124,7 @@ export type OutflowFormState = {
 export async function addOutflow(prevState: OutflowFormState, formData: FormData) {
     const validatedFields = OutflowSchema.safeParse({
         recordId: formData.get('recordId'),
+        bagsToWithdraw: formData.get('bagsToWithdraw'),
     });
 
     if (!validatedFields.success) {
@@ -130,7 +132,7 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     }
     
     const currentRecords = await storageRecords();
-    const { recordId } = validatedFields.data;
+    const { recordId, bagsToWithdraw } = validatedFields.data;
     const recordIndex = currentRecords.findIndex(r => r.id === recordId);
 
     if (recordIndex === -1) {
@@ -138,18 +140,53 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     }
 
     const record = currentRecords[recordIndex];
-    const withdrawalDate = new Date();
-
-    const { rent: additionalRent } = calculateFinalRent(record, withdrawalDate);
-
-    const updatedRecord = {
-        ...record,
-        storageEndDate: withdrawalDate.toISOString(),
-        totalBilled: record.totalBilled + additionalRent,
-        billingCycle: 'Completed' as const,
-    };
     
-    currentRecords[recordIndex] = updatedRecord;
+    if(bagsToWithdraw > record.bagsStored) {
+        return { message: 'Cannot withdraw more bags than are stored.', success: false };
+    }
+    
+    const withdrawalDate = new Date();
+    const { rent: additionalRent } = calculateFinalRent(record, withdrawalDate, bagsToWithdraw);
+
+    const isPartialWithdrawal = bagsToWithdraw < record.bagsStored;
+
+    if (isPartialWithdrawal) {
+        // Create a new record for the remaining bags
+        const remainingBags = record.bagsStored - bagsToWithdraw;
+        const hamaliPerBag = record.hamaliCharges / record.bagsStored;
+        const rentPerBag = (record.totalBilled - record.hamaliCharges) / record.bagsStored;
+
+        const newRecordForRemaining = {
+            ...record,
+            id: `rec_${Date.now()}`,
+            bagsStored: remainingBags,
+            hamaliCharges: remainingBags * hamaliPerBag,
+            totalBilled: (remainingBags * rentPerBag) + (remainingBags * hamaliPerBag),
+        };
+        
+        currentRecords.push(newRecordForRemaining);
+
+        // Update the original record to reflect the partial withdrawal
+        const updatedRecord = {
+            ...record,
+            bagsStored: bagsToWithdraw,
+            storageEndDate: withdrawalDate.toISOString(),
+            totalBilled: (record.totalBilled / record.bagsStored) * bagsToWithdraw + additionalRent,
+            billingCycle: 'Completed' as const,
+        };
+        currentRecords[recordIndex] = updatedRecord;
+
+    } else {
+        // Full withdrawal
+        const updatedRecord = {
+            ...record,
+            storageEndDate: withdrawalDate.toISOString(),
+            totalBilled: record.totalBilled + additionalRent,
+            billingCycle: 'Completed' as const,
+        };
+        currentRecords[recordIndex] = updatedRecord;
+    }
+
     await saveStorageRecords(currentRecords);
 
     revalidatePath('/');
