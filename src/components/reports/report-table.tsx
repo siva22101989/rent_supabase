@@ -42,6 +42,9 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
         return dateB - dateA;
     });
 
+    const totalBags = recordsWithBalance.reduce((acc, record) => acc + record.bagsStored, 0);
+    const totalBilledSum = recordsWithBalance.reduce((acc, record) => acc + record.totalBilled, 0);
+    const totalAmountPaid = recordsWithBalance.reduce((acc, record) => acc + record.amountPaid, 0);
     const totalBalanceDue = recordsWithBalance.reduce((acc, record) => acc + record.balanceDue, 0);
 
     return (
@@ -99,7 +102,10 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={7} className="text-right font-bold text-lg">Total Balance Due</TableCell>
+                        <TableCell colSpan={4} className="text-right font-bold text-lg">Totals</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg">{totalBags}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg">{formatCurrency(totalBilledSum)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg">{formatCurrency(totalAmountPaid)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-lg text-destructive">
                             {formatCurrency(totalBalanceDue)}
                         </TableCell>
