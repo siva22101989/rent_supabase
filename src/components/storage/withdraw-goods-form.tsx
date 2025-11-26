@@ -10,6 +10,7 @@ import type { Customer, StorageRecord } from '@/lib/definitions';
 import { customers } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -47,6 +48,7 @@ export function WithdrawGoodsForm({ records, customers }: { records: StorageReco
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [selectedRecordId, setSelectedRecordId] = useState<string>('');
+  const [bagsToWithdraw, setBagsToWithdraw] = useState(0);
 
   const [bill, setBill] = useState<{rent: number, total: number} | null>(null);
   
@@ -63,6 +65,15 @@ export function WithdrawGoodsForm({ records, customers }: { records: StorageReco
   const selectedRecord = useMemo(() => {
     return records.find(r => r.id === selectedRecordId);
   }, [selectedRecordId, records]);
+
+  useEffect(() => {
+    if (selectedRecord) {
+        setBagsToWithdraw(selectedRecord.bagsStored);
+    } else {
+        setBagsToWithdraw(0);
+    }
+  }, [selectedRecord]);
+
 
   useEffect(() => {
     if (state.message && !state.success) {
@@ -91,7 +102,7 @@ export function WithdrawGoodsForm({ records, customers }: { records: StorageReco
           <CardDescription>Select a customer and record to calculate the final bill and mark as withdrawn.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
                  <div className="space-y-2">
                     <Label htmlFor="customerId">Customer</Label>
                     <Select onValueChange={setSelectedCustomerId} required>
@@ -121,6 +132,19 @@ export function WithdrawGoodsForm({ records, customers }: { records: StorageReco
                             ))}
                         </SelectContent>
                     </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="bagsToWithdraw">Bags to Withdraw</Label>
+                    <Input 
+                        id="bagsToWithdraw"
+                        name="bagsToWithdraw"
+                        type="number"
+                        value={bagsToWithdraw}
+                        onChange={(e) => setBagsToWithdraw(Number(e.target.value))}
+                        max={selectedRecord?.bagsStored}
+                        min="0"
+                        disabled={!selectedRecordId}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="storageEndDate">Date Out</Label>
@@ -167,8 +191,12 @@ export function WithdrawGoodsForm({ records, customers }: { records: StorageReco
                                     <TableCell>{selectedRecord.commodityDescription}</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell className="font-medium">Quantity</TableCell>
+                                    <TableCell className="font-medium">Stored Quantity</TableCell>
                                     <TableCell>{selectedRecord.bagsStored} bags</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell className="font-medium">Withdrawing</TableCell>
+                                    <TableCell>{bagsToWithdraw} bags</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className="font-medium">Storage Period</TableCell>

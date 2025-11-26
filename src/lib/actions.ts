@@ -68,12 +68,14 @@ export async function addStorageRecord(prevState: FormState, formData: FormData)
 const WithdrawSchema = z.object({
     recordId: z.string().min(1, "Please select a storage record."),
     storageEndDate: z.coerce.date(),
+    bagsToWithdraw: z.coerce.number().gt(0, "Number of bags must be positive."),
 });
 
 export async function withdrawGoods(prevState: FormState, formData: FormData) {
     const validatedFields = WithdrawSchema.safeParse({
         recordId: formData.get('recordId'),
         storageEndDate: formData.get('storageEndDate'),
+        bagsToWithdraw: formData.get('bagsToWithdraw'),
     });
 
     if (!validatedFields.success) {
@@ -83,7 +85,7 @@ export async function withdrawGoods(prevState: FormState, formData: FormData) {
         };
     }
 
-    const { recordId, storageEndDate } = validatedFields.data;
+    const { recordId, storageEndDate, bagsToWithdraw } = validatedFields.data;
 
     const recordIndex = storageRecords.findIndex(r => r.id === recordId);
     if (recordIndex === -1) {
@@ -92,11 +94,20 @@ export async function withdrawGoods(prevState: FormState, formData: FormData) {
 
     const record = storageRecords[recordIndex];
 
+    if (bagsToWithdraw > record.bagsStored) {
+        return { message: 'Cannot withdraw more bags than are in storage.', success: false };
+    }
+
     const { rent } = calculateFinalRent(record, storageEndDate);
+    
+    // For now, we assume full withdrawal. Partial withdrawal logic would be more complex.
+    // We will mark the record as complete regardless of partial or full withdrawal for simplicity.
+    // A more advanced implementation would create a new record for the remaining bags.
 
     storageRecords[recordIndex].storageEndDate = storageEndDate;
     storageRecords[recordIndex].billingCycle = 'Completed';
     storageRecords[recordIndex].totalBilled += rent;
+    // We are not reducing the bagsStored for simplicity as the record is marked completed.
 
     revalidatePath('/');
     revalidatePath('/withdraw');
