@@ -82,6 +82,7 @@ const InflowSchema = z.object({
     inflowType: z.enum(['Direct', 'Plot']).optional(),
     plotBags: z.coerce.number().optional(),
     loadBags: z.coerce.number().optional(),
+    khataAmount: z.coerce.number().nonnegative('Khata amount must be a non-negative number.').optional(),
 });
 
 export type InflowFormState = {
@@ -105,6 +106,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         inflowType: formData.get('inflowType'),
         plotBags: formData.get('plotBags'),
         loadBags: formData.get('loadBags'),
+        khataAmount: formData.get('khataAmount'),
     });
 
     if (!validatedFields.success) {
@@ -167,6 +169,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         plotBags: plotBags ?? undefined,
         loadBags: loadBags ?? undefined,
         location: rest.location ?? '',
+        khataAmount: rest.khataAmount ?? 0,
     };
 
     await saveStorageRecord(newRecord);

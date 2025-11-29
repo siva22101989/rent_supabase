@@ -200,6 +200,10 @@ export function InflowForm({ customers, nextSerialNumber }: { customers: Custome
                             <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" onChange={e => setHamaliPaid(Number(e.target.value))}/>
                         </div>
                     </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="khataAmount">Khata Amount (Weighbridge)</Label>
+                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" />
+                    </div>
                      <Separator />
                     <div className="space-y-4">
                         <h4 className="font-medium">Billing Summary</h4>

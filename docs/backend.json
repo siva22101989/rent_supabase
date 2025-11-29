@@ -104,6 +104,10 @@
         "loadBags": {
             "type": "number",
             "description": "Number of bags loaded from the plot, if inflow type is 'Plot'."
+        },
+        "khataAmount": {
+            "type": "number",
+            "description": "The amount for vehicle weightbridge (Khata)."
         }
       },
       "required": [

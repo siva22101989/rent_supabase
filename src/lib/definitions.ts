@@ -39,6 +39,7 @@ export type StorageRecord = {
   inflowType?: 'Direct' | 'Plot';
   plotBags?: number;
   loadBags?: number;
+  khataAmount?: number;
 };
 
 export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "Other"] as const;
