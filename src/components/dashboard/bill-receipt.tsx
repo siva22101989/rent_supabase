@@ -19,7 +19,6 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
   ({ record, customer }, ref) => {
     const [statusInfo, setStatusInfo] = useState<RecordStatusInfo | null>(null);
     const [formattedBillDate, setFormattedBillDate] = useState('');
-    const [simplifiedRecordId, setSimplifiedRecordId] = useState('');
     const [paymentInfo, setPaymentInfo] = useState({ paid: 0, balance: 0 });
 
     useEffect(() => {
@@ -32,14 +31,6 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
         setStatusInfo(getRecordStatus(safeRecord));
         setFormattedBillDate(format(new Date(), 'dd MMM yyyy'));
         
-        const idParts = record.id.split('-');
-        const numericId = idParts.length > 1 ? parseInt(idParts[1], 10) : NaN;
-        if (!isNaN(numericId)) {
-            setSimplifiedRecordId((numericId % 10000).toString());
-        } else {
-            setSimplifiedRecordId(record.id);
-        }
-
         const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
         const totalBilled = record.hamaliPayable + (record.totalRentBilled || 0);
         setPaymentInfo({
@@ -71,7 +62,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                          <div>
                             <h3 className="font-semibold mb-2">Billing Details</h3>
                             <p><span className="font-medium">Bill Date:</span> {formattedBillDate}</p>
-                            <p><span className="font-medium">Record ID:</span> {simplifiedRecordId}</p>
+                            <p><span className="font-medium">Serial No:</span> {record.id.slice(-4)}</p>
                             <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
                         </div>
                     </div>
