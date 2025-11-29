@@ -84,10 +84,12 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                         <span className="w-1/3 font-bold">NAME OF THE FARMER</span>
                         <span>: {customer.name}</span>
                     </div>
-                    <div className="flex">
-                        <span className="w-1/3 font-bold">FATHER'S NAME</span>
-                        <span>: {customer.fatherName || 'N/A'}</span>
-                    </div>
+                    {customer.fatherName && (
+                        <div className="flex">
+                            <span className="w-1/3 font-bold">FATHER'S NAME</span>
+                            <span>: {customer.fatherName}</span>
+                        </div>
+                    )}
                     <div className="flex">
                         <span className="w-1/3 font-bold">VILLAGE</span>
                         <span>: {customer.village || 'N/A'}</span>

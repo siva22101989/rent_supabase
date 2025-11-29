@@ -55,7 +55,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                         <div>
                             <h3 className="font-semibold mb-2">Customer Details</h3>
                             <p>{customer.name}</p>
-                             <p>S/o {customer.fatherName || 'N/A'}</p>
+                            {customer.fatherName && <p>S/o {customer.fatherName}</p>}
                             <p>{customer.village || customer.address}</p>
                             <p>Phone: {customer.phone}</p>
                         </div>
