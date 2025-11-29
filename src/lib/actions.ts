@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { storageRecords, customers, saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, getStorageRecord, deleteStorageRecord } from '@/lib/data';
+import { storageRecords, customers, saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, getStorageRecord, deleteStorageRecord, getCustomer } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
@@ -71,7 +71,7 @@ const InflowSchema = z.object({
     location: z.string().min(1, 'Location (Lot No.) is required.'),
     storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
     bagsStored: z.coerce.number().int().positive('Number of bags must be a positive number.'),
-    hamaliRate: z.coerce.number().positive('Hamali rate must be a positive number.'),
+    hamaliRate: z.coerce.number().nonnegative('Hamali rate must be a non-negative number.').optional(),
     hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.').optional(),
     lorryTractorNo: z.string().optional(),
     weight: z.coerce.number().nonnegative('Weight must be a non-negative number.').optional(),
@@ -123,7 +123,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     }
 
 
-    const hamaliPayable = bagsStored * hamaliRate;
+    const hamaliPayable = (bagsStored || 0) * (hamaliRate || 0);
     const payments = [];
     if (hamaliPaid && hamaliPaid > 0) {
         payments.push({ amount: hamaliPaid, date: new Date(storageStartDate) });

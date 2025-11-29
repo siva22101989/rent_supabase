@@ -101,7 +101,7 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="village">Village</Label>
-                                <Input id="village" name="village" defaultValue={selectedCustomer.village} required />
+                                <Input id="village" name="village" defaultValue={selectedCustomer.village} />
                             </div>
                         </div>
                     )}
@@ -145,7 +145,7 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliRate">Hamali Rate (per bag)</Label>
-                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" required onChange={e => setRate(Number(e.target.value))}/>
+                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" onChange={e => setRate(Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
