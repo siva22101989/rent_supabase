@@ -70,7 +70,7 @@ const InflowSchema = z.object({
     commodityDescription: z.string().min(2, 'Commodity description is required.'),
     location: z.string().min(1, 'Location (Lot No.) is required.'),
     storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-    bagsStored: z.coerce.number().int().positive('Number of bags must be a positive number.'),
+    bagsStored: z.coerce.number().int().positive('Number of bags must be a positive number.').optional(),
     hamaliRate: z.coerce.number().nonnegative('Hamali rate must be a non-negative number.').optional(),
     hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.').optional(),
     lorryTractorNo: z.string().optional(),
@@ -112,7 +112,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         return { message: `Invalid data: ${message}`, success: false };
     }
 
-    const { bagsStored, hamaliRate, hamaliPaid, storageStartDate, fatherName, village, ...rest } = validatedFields.data;
+    let { bagsStored, hamaliRate, hamaliPaid, storageStartDate, fatherName, village, plotBags, ...rest } = validatedFields.data;
 
     // Update customer if father's name or village was changed
     if (fatherName || village) {
@@ -126,6 +126,14 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
                 // await updateCustomer(rest.customerId, customerUpdate);
             }
         }
+    }
+
+    if (rest.inflowType === 'Plot') {
+        bagsStored = plotBags || 0;
+    }
+
+    if (!bagsStored || bagsStored <= 0) {
+        return { message: "Number of bags must be a positive number.", success: false };
     }
 
 
@@ -146,6 +154,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         ...rest,
         id: newRecordId,
         bagsStored,
+        plotBags,
         storageStartDate: new Date(storageStartDate),
         storageEndDate: null,
         billingCycle: '6-Month Initial',
@@ -154,9 +163,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         totalRentBilled: 0,
         lorryTractorNo: rest.lorryTractorNo ?? '',
         weight: rest.weight ?? 0,
-        inflowType: rest.inflowType,
-        plotBags: rest.plotBags,
-        loadBags: rest.loadBags,
     };
 
     await saveStorageRecord(newRecord);
@@ -337,3 +343,5 @@ export async function deleteStorageRecordAction(recordId: string): Promise<FormS
     return { message: 'Failed to delete record.', success: false };
   }
 }
+
+    
