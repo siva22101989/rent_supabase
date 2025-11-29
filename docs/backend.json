@@ -21,9 +21,17 @@
         "address": {
           "type": "string",
           "description": "The physical address of the customer."
+        },
+        "fatherName": {
+            "type": "string",
+            "description": "The father's name of the customer."
+        },
+        "village": {
+            "type": "string",
+            "description": "The village of the customer."
         }
       },
-      "required": ["name", "phone", "address"]
+      "required": ["name", "phone", "address", "fatherName", "village"]
     },
     "storageRecord": {
       "title": "Storage Record",
@@ -40,7 +48,7 @@
         },
         "location": {
           "type": "string",
-          "description": "The location within the warehouse where the items are stored."
+          "description": "The location within the warehouse where the items are stored (Lot No.)."
         },
         "bagsStored": {
           "type": "number",
@@ -74,6 +82,14 @@
         "totalRentBilled": {
             "type": "number",
             "description": "The total rent amount that has been billed for this record."
+        },
+        "lorryTractorNo": {
+            "type": "string",
+            "description": "The Lorry or Tractor number for the delivery."
+        },
+        "weight": {
+            "type": "number",
+            "description": "The weight of the stored items."
         }
       },
       "required": [
@@ -84,7 +100,9 @@
         "storageStartDate",
         "billingCycle",
         "hamaliPayable",
-        "totalRentBilled"
+        "totalRentBilled",
+        "lorryTractorNo",
+        "weight"
       ]
     },
     "payment": {

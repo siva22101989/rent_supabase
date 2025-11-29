@@ -6,6 +6,8 @@ export type Customer = {
   email: string;
   phone: string;
   address: string;
+  fatherName: string;
+  village: string;
 };
 
 export type Commodity = {
@@ -30,4 +32,6 @@ export type StorageRecord = {
   payments: Payment[];
   hamaliPayable: number;
   totalRentBilled: number;
+  lorryTractorNo: string;
+  weight: number;
 };

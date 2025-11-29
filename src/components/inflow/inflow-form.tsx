@@ -39,6 +39,9 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
     const [rate, setRate] = useState(0);
     const [hamali, setHamali] = useState(0);
     const [hamaliPaid, setHamaliPaid] = useState(0);
+    const [selectedCustomerId, setSelectedCustomerId] = useState('');
+
+    const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
     useEffect(() => {
         if (state.message) {
@@ -76,7 +79,7 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="customerId">Customer</Label>
-                        <Select name="customerId" required>
+                        <Select name="customerId" required onValueChange={setSelectedCustomerId}>
                             <SelectTrigger id="customerId">
                                 <SelectValue placeholder="Select a customer" />
                             </SelectTrigger>
@@ -89,34 +92,64 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {selectedCustomer && (
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="fatherName">Father's Name</Label>
+                                <Input id="fatherName" name="fatherName" defaultValue={selectedCustomer.fatherName} required />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="village">Village</Label>
+                                <Input id="village" name="village" defaultValue={selectedCustomer.village} required />
+                            </div>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="commodityDescription">Commodity</Label>
-                            <Input id="commodityDescription" name="commodityDescription" placeholder="e.g., Wheat, Rice" required />
+                            <Label htmlFor="commodityDescription">Product</Label>
+                            <Input id="commodityDescription" name="commodityDescription" placeholder="e.g., Paddy (NDL)" required />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="location">Location</Label>
-                            <Input id="location" name="location" placeholder="e.g., Aisle 3, Rack 2" required />
+                            <Label htmlFor="location">Lot No.</Label>
+                            <Input id="location" name="location" placeholder="e.g., E2/middle" required />
                         </div>
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="storageStartDate">Start Date</Label>
-                        <Input 
-                            id="storageStartDate" 
-                            name="storageStartDate" 
-                            type="date"
-                            defaultValue={new Date().toISOString().split('T')[0]}
-                            required 
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="bagsStored">Number of Bags</Label>
+                            <Label htmlFor="lorryTractorNo">Lorry / Tractor No.</Label>
+                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="storageStartDate">Date</Label>
+                            <Input 
+                                id="storageStartDate" 
+                                name="storageStartDate" 
+                                type="date"
+                                defaultValue={new Date().toISOString().split('T')[0]}
+                                required 
+                            />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="bagsStored">No. of Bags</Label>
                             <Input id="bagsStored" name="bagsStored" type="number" placeholder="0" required onChange={e => setBags(Number(e.target.value))}/>
                         </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="weight">Weight</Label>
+                            <Input id="weight" name="weight" type="number" step="0.01" placeholder="0.00" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliRate">Hamali Rate (per bag)</Label>
                             <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" required onChange={e => setRate(Number(e.target.value))}/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
+                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" onChange={e => setHamaliPaid(Number(e.target.value))}/>
                         </div>
                     </div>
                      <Separator />
@@ -126,10 +159,6 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                              <div className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">Total Hamali Payable</span>
                                 <span className="font-mono">₹{hamali.toFixed(2)}</span>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
-                                <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" onChange={e => setHamaliPaid(Number(e.target.value))}/>
                             </div>
                             <div className="flex justify-between items-center font-semibold text-base">
                                 <span className="text-destructive">Hamali Pending</span>

@@ -4,26 +4,21 @@
 import { useRef, useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
-import { formatCurrency, toDate } from '@/lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { toDate } from '@/lib/utils';
 
 export function InflowReceipt({ record, customer }: { record: StorageRecord, customer: Customer }) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-    
-    const amountPaid = record.payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
-    const hamaliPending = record.hamaliPayable - amountPaid;
 
     useEffect(() => {
         const startDate = toDate(record.storageStartDate);
-        setFormattedDate(format(startDate, 'dd MMM yyyy, hh:mm a'));
+        setFormattedDate(format(startDate, 'dd/MM/yy'));
     }, [record.storageStartDate]);
 
     const handleDownloadPdf = async () => {
@@ -62,84 +57,70 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
     };
 
     return (
-        <div className="max-w-3xl mx-auto bg-background p-4 sm:p-6 rounded-lg">
-            <div ref={receiptRef} className="printable-area bg-white p-6 sm:p-8">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold text-primary">Srilakshmi Warehouse</h1>
-                        <p className="text-sm text-muted-foreground">Your Company Address, City, State, ZIP</p>
-                        <p className="text-sm text-muted-foreground">contact@yourwarehouse.com | (123) 456-7890</p>
-                    </div>
-                    <div className="text-right">
-                        <h2 className="text-xl font-semibold uppercase text-muted-foreground">Inflow Receipt</h2>
-                        <p className="text-sm"><span className="font-medium">Receipt #</span>: {record.id}</p>
-                        <p className="text-sm"><span className="font-medium">Date:</span> {formattedDate}</p>
-                    </div>
+        <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
+            <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                <div className="text-center mb-4">
+                    <div className="text-xs">Cell: 9703503423, 9160606633</div>
+                    <h1 className="text-2xl font-bold text-blue-900">SRI LAKSHMI WAREHOUSE</h1>
+                    <p className="text-xs">Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,</p>
+                    <p className="text-xs">Owk (M), Kurnool (Dt.), A.P.</p>
+                </div>
+                
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="font-bold underline">GODOWN RECEIPT</h2>
                 </div>
 
-                {/* Customer Info */}
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div>
-                        <h3 className="text-sm font-semibold mb-2 text-muted-foreground">BILL TO</h3>
-                        <p className="font-medium text-lg">{customer.name}</p>
-                        <p>{customer.address}</p>
-                        <p>Phone: {customer.phone}</p>
-                    </div>
-                     <div>
-                        <h3 className="text-sm font-semibold mb-2 text-muted-foreground">STORAGE DETAILS</h3>
-                        <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
-                        <p><span className="font-medium">Location:</span> {record.location}</p>
-                        <p><span className="font-medium">Bags Stored:</span> {record.bagsStored}</p>
-                    </div>
+                <div className="flex justify-between items-baseline mb-4">
+                    <div><span className="font-bold">S.No.</span> {record.id.slice(-4)}</div>
+                    <div><span className="font-bold">Date:</span> {formattedDate}</div>
                 </div>
 
-                {/* Items Table */}
-                <div className="mb-8">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[70%]">Description</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell>Hamali (Loading/Unloading Charges)</TableCell>
-                                <TableCell className="text-right">{formatCurrency(record.hamaliPayable)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
-
-                {/* Totals Section */}
-                <div className="flex justify-end mb-8">
-                    <div className="w-full max-w-sm space-y-2 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Subtotal</span>
-                            <span>{formatCurrency(record.hamaliPayable)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Amount Paid</span>
-                            <span>{formatCurrency(amountPaid)}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between font-bold text-lg text-destructive">
-                            <span>Balance Due (Hamali)</span>
-                            <span>{formatCurrency(hamaliPending)}</span>
+                <div className="space-y-2">
+                    <div className="flex">
+                        <span className="w-1/3 font-bold">LORRY / TRACTOR No.</span>
+                        <span>: {record.lorryTractorNo || 'N/A'}</span>
+                    </div>
+                    <div className="flex">
+                        <span className="w-1/3 font-bold">NAME OF THE FARMER</span>
+                        <span>: {customer.name}</span>
+                    </div>
+                    <div className="flex">
+                        <span className="w-1/3 font-bold">FATHER'S NAME</span>
+                        <span>: {customer.fatherName || 'N/A'}</span>
+                    </div>
+                    <div className="flex">
+                        <span className="w-1/3 font-bold">VILLAGE</span>
+                        <span>: {customer.village || 'N/A'}</span>
+                    </div>
+                    <div className="flex">
+                        <span className="w-1/3 font-bold">PRODUCT</span>
+                        <span>: {record.commodityDescription}</span>
+                    </div>
+                    <div className="flex">
+                        <span className="w-1/3 font-bold">No. OF BAGS</span>
+                        <div className="flex-1 flex justify-between">
+                           <span>: {record.bagsStored}</span>
+                           <div><span className="font-bold">WEIGHT :</span> {record.weight ? `${record.weight} kgs` : '____'}</div>
                         </div>
                     </div>
+                    <div className="flex">
+                        <span className="w-1/3 font-bold">LOT No.</span>
+                        <span>: {record.location}</span>
+                    </div>
+                     <div className="flex">
+                        <span className="w-1/3 font-bold">WAREHOUSE RECEIPT No.</span>
+                        <span>: {record.id}</span>
+                    </div>
                 </div>
 
-                <Separator className="my-8"/>
-
-                {/* Footer */}
-                <div className="text-xs text-muted-foreground">
-                    <h4 className="font-semibold mb-2">Notes & Terms</h4>
-                    <p>
-                        This receipt confirms the storage of goods as detailed above. Rent charges will be calculated at the time of withdrawal (outflow).
-                    </p>
-                    <p className="mt-4 text-center font-semibold">Thank you for your business!</p>
+                <div className="mt-20 flex justify-between text-center">
+                    <div className="w-1/2">
+                        <div className="font-bold">STOCK RECEIVED</div>
+                         <div className="mt-12 border-t border-gray-400 mx-4">GODOWN INCHARGE SIGNATURE</div>
+                    </div>
+                    <div className="w-1/2">
+                         <div className="mt-16 border-t border-gray-400 mx-4">FARMER / AGENT SIGNATURE</div>
+                    </div>
                 </div>
             </div>
             <div className="mt-6 flex justify-center print-hide">

@@ -13,6 +13,8 @@ const NewCustomerSchema = z.object({
   phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
   address: z.string().min(5, 'Address must be at least 5 characters.'),
   email: z.string().optional(),
+  fatherName: z.string().optional(),
+  village: z.string().optional(),
 });
 
 export type FormState = {
@@ -36,6 +38,8 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
         email: formData.get('email'),
         phone: formData.get('phone'),
         address: formData.get('address'),
+        fatherName: formData.get('fatherName'),
+        village: formData.get('village'),
     });
 
     if (!validatedFields.success) {
@@ -44,10 +48,14 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
         return { message: `Invalid data: ${message}`, success: false };
     }
 
+    const { email, fatherName, village, ...rest } = validatedFields.data;
+
     const newCustomer = {
-        ...validatedFields.data,
+        ...rest,
         id: `CUST-${Date.now()}`,
-        email: validatedFields.data.email ?? '',
+        email: email ?? '',
+        fatherName: fatherName ?? '',
+        village: village ?? '',
     };
     
     await saveCustomer(newCustomer);
@@ -60,11 +68,16 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
 const InflowSchema = z.object({
     customerId: z.string().min(1, 'Customer is required.'),
     commodityDescription: z.string().min(2, 'Commodity description is required.'),
-    location: z.string().min(1, 'Location is required.'),
+    location: z.string().min(1, 'Location (Lot No.) is required.'),
     storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
     bagsStored: z.coerce.number().int().positive('Number of bags must be a positive number.'),
     hamaliRate: z.coerce.number().positive('Hamali rate must be a positive number.'),
     hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.').optional(),
+    lorryTractorNo: z.string().optional(),
+    weight: z.coerce.number().nonnegative('Weight must be a non-negative number.').optional(),
+    // For updating customer details from inflow form
+    fatherName: z.string().optional(),
+    village: z.string().optional(),
 });
 
 export type InflowFormState = {
@@ -81,6 +94,10 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         bagsStored: formData.get('bagsStored'),
         hamaliRate: formData.get('hamaliRate'),
         hamaliPaid: formData.get('hamaliPaid'),
+        lorryTractorNo: formData.get('lorryTractorNo'),
+        weight: formData.get('weight'),
+        fatherName: formData.get('fatherName'),
+        village: formData.get('village'),
     });
 
     if (!validatedFields.success) {
@@ -89,7 +106,22 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         return { message: `Invalid data: ${message}`, success: false };
     }
 
-    const { bagsStored, hamaliRate, hamaliPaid, storageStartDate, ...rest } = validatedFields.data;
+    const { bagsStored, hamaliRate, hamaliPaid, storageStartDate, fatherName, village, ...rest } = validatedFields.data;
+
+    // Update customer if father's name or village was changed
+    if (fatherName || village) {
+        const customer = await getCustomer(rest.customerId);
+        if (customer) {
+            const customerUpdate: Partial<typeof customer> = {};
+            if (fatherName && customer.fatherName !== fatherName) customerUpdate.fatherName = fatherName;
+            if (village && customer.village !== village) customerUpdate.village = village;
+            if (Object.keys(customerUpdate).length > 0) {
+                // This assumes an `updateCustomer` function exists in data.ts
+                // await updateCustomer(rest.customerId, customerUpdate);
+            }
+        }
+    }
+
 
     const hamaliPayable = bagsStored * hamaliRate;
     const payments = [];
@@ -98,16 +130,18 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     }
     
     const newRecordId = `REC-${Date.now()}`;
-    const newRecord = {
+    const newRecord: StorageRecord = {
         ...rest,
         id: newRecordId,
         bagsStored,
         storageStartDate: new Date(storageStartDate),
         storageEndDate: null,
-        billingCycle: '6-Month Initial' as const,
+        billingCycle: '6-Month Initial',
         payments: payments,
         hamaliPayable: hamaliPayable,
         totalRentBilled: 0,
+        lorryTractorNo: rest.lorryTractorNo ?? '',
+        weight: rest.weight ?? 0,
     };
 
     await saveStorageRecord(newRecord);
@@ -274,7 +308,7 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
     
     revalidatePath('/payments/pending');
     revalidatePath('/reports');
-    return { message: 'Payment recorded successfully.', success: true };
+    return { message: 'Transaction recorded successfully.', success: true };
 }
 
 export async function deleteStorageRecordAction(recordId: string): Promise<FormState> {

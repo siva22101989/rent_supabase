@@ -82,11 +82,23 @@ export function AddCustomerDialog() {
               </Label>
               <Input id="name" name="name" className="col-span-3" required />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="fatherName" className="text-right">
+                Father's Name
               </Label>
-              <Input id="email" name="email" type="text" className="col-span-3" />
+              <Input id="fatherName" name="fatherName" className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="village" className="text-right">
+                Village
+              </Label>
+              <Input id="village" name="village" className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="address" className="text-right">
+                Address
+              </Label>
+              <Input id="address" name="address" className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="phone" className="text-right">
@@ -94,11 +106,11 @@ export function AddCustomerDialog() {
               </Label>
               <Input id="phone" name="phone" className="col-span-3" required />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right">
-                Address
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
               </Label>
-              <Input id="address" name="address" className="col-span-3" required />
+              <Input id="email" name="email" type="text" className="col-span-3" />
             </div>
           </div>
           <DialogFooter>
