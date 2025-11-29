@@ -19,6 +19,7 @@ export type Commodity = {
 export type Payment = {
   amount: number;
   date: Date | Timestamp;
+  type?: 'rent' | 'hamali' | 'other';
 };
 
 export type StorageRecord = {

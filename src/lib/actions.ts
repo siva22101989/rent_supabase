@@ -6,7 +6,7 @@ import { storageRecords, customers, saveCustomer, saveStorageRecord, updateStora
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
-import type { StorageRecord } from './definitions';
+import type { StorageRecord, Payment } from './definitions';
 import { expenseCategories } from './definitions';
 
 const NewCustomerSchema = z.object({
@@ -69,7 +69,7 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
 const InflowSchema = z.object({
     customerId: z.string().min(1, 'Customer is required.'),
     commodityDescription: z.string().min(2, 'Commodity description is required.'),
-    location: z.string().min(1, 'Location (Lot No.) is required.'),
+    location: z.string(),
     storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
     bagsStored: z.coerce.number().int().positive('Number of bags must be a positive number.').optional(),
     hamaliRate: z.coerce.number().nonnegative('Hamali rate must be a non-negative number.').optional(),
@@ -139,9 +139,9 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
 
 
     const hamaliPayable = (inflowType === 'Plot' ? plotBags || 0 : bagsStored || 0) * (hamaliRate || 0);
-    const payments = [];
+    const payments: Payment[] = [];
     if (hamaliPaid && hamaliPaid > 0) {
-        payments.push({ amount: hamaliPaid, date: new Date(storageStartDate) });
+        payments.push({ amount: hamaliPaid, date: new Date(storageStartDate), type: 'hamali' });
     }
     
     const allRecords = await storageRecords();
@@ -166,6 +166,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         inflowType: inflowType ?? 'Direct',
         plotBags: plotBags ?? undefined,
         loadBags: loadBags ?? undefined,
+        location: rest.location ?? '',
     };
 
     await saveStorageRecord(newRecord);
@@ -222,7 +223,10 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     };
 
     if (paymentMade > 0) {
-        recordUpdate.payments!.push({ amount: paymentMade, date: new Date(withdrawalDate) });
+        // This payment covers the final rent and any outstanding hamali.
+        // We will split it for accounting purposes if possible, but for simplicity,
+        // let's just add one payment. If we need to distinguish, we can add a `type`.
+        recordUpdate.payments!.push({ amount: paymentMade, date: new Date(withdrawalDate), type: 'rent' });
     }
 
     if (isFullWithdrawal) {
@@ -323,9 +327,10 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
         await updateStorageRecord(recordId, { hamaliPayable: updatedRecord.hamaliPayable });
     } else {
         // This is a payment against the outstanding balance.
-        const payment = {
+        const payment: Payment = {
             amount: paymentAmount,
             date: new Date(paymentDate),
+            type: 'other' // This could be for rent or for hamali, we don't know from this dialog
         };
         await addPaymentToRecord(recordId, payment);
     }

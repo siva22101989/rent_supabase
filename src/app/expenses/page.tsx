@@ -79,8 +79,10 @@ export default function ExpensesPage() {
 
   const { totalIncome, totalExpenses, totalBalance } = useMemo(() => {
     const income = allRecords.reduce((total, record) => {
-      const recordPayments = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
-      return total + recordPayments;
+      const rentPayments = (record.payments || [])
+        .filter(p => p.type === 'rent')
+        .reduce((acc, p) => acc + p.amount, 0);
+      return total + rentPayments;
     }, 0);
 
     const expenses = allExpenses.reduce((total, expense) => total + expense.amount, 0);
