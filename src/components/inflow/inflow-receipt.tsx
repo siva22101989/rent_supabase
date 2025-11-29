@@ -71,7 +71,7 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                 </div>
 
                 <div className="flex justify-between items-baseline mb-4">
-                    <div><span className="font-bold">Serial No.</span> {record.id.slice(-4)}</div>
+                    <div><span className="font-bold">Serial No.</span> {record.id}</div>
                     <div><span className="font-bold">Date:</span> {formattedDate}</div>
                 </div>
 

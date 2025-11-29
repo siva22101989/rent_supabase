@@ -62,7 +62,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                          <div>
                             <h3 className="font-semibold mb-2">Billing Details</h3>
                             <p><span className="font-medium">Bill Date:</span> {formattedBillDate}</p>
-                            <p><span className="font-medium">Serial No:</span> {record.id.slice(-4)}</p>
+                            <p><span className="font-medium">Serial No:</span> {record.id}</p>
                             <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
                         </div>
                     </div>

@@ -129,7 +129,13 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         payments.push({ amount: hamaliPaid, date: new Date(storageStartDate) });
     }
     
-    const newRecordId = `REC-${Date.now()}`;
+    const allRecords = await storageRecords();
+    const maxId = allRecords.reduce((max, record) => {
+        const idNum = parseInt(record.id.replace('SLWH-', ''), 10);
+        return isNaN(idNum) ? max : Math.max(max, idNum);
+    }, 0);
+    const newRecordId = `SLWH-${maxId + 1}`;
+
     const newRecord: StorageRecord = {
         ...rest,
         id: newRecordId,
