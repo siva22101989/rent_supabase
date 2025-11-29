@@ -97,7 +97,7 @@ export function InflowForm({ customers }: { customers: Customer[] }) {
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="fatherName">Father's Name</Label>
-                                <Input id="fatherName" name="fatherName" defaultValue={selectedCustomer.fatherName} required />
+                                <Input id="fatherName" name="fatherName" defaultValue={selectedCustomer.fatherName} />
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="village">Village</Label>

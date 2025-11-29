@@ -31,7 +31,7 @@
             "description": "The village of the customer."
         }
       },
-      "required": ["name", "phone", "address", "fatherName", "village"]
+      "required": ["name", "phone", "address", "village"]
     },
     "storageRecord": {
       "title": "Storage Record",
