@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord } from "@/lib/definitions";
 import { format } from "date-fns";
+import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) {
@@ -35,6 +36,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
               <TableHead>Category</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -44,6 +46,9 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
                 <TableCell>{expense.category}</TableCell>
                 <TableCell className="font-medium">{expense.description}</TableCell>
                 <TableCell className="text-right font-mono">{formatCurrency(expense.amount)}</TableCell>
+                <TableCell>
+                  <ExpenseActionsMenu expense={expense} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

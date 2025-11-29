@@ -115,6 +115,25 @@ export async function saveExpense(expense: Expense): Promise<void> {
   await writeJsonFile(expensesPath, allExpenses);
 }
 
+export const updateExpense = async (id: string, data: Partial<Expense>): Promise<void> => {
+    const allExpenses = await expenses();
+    const expenseIndex = allExpenses.findIndex(e => e.id === id);
+    if (expenseIndex === -1) {
+        throw new Error("Expense not found");
+    }
+    allExpenses[expenseIndex] = { ...allExpenses[expenseIndex], ...data };
+    await writeJsonFile(expensesPath, allExpenses);
+};
+
+export const deleteExpense = async (id: string): Promise<void> => {
+    const allExpenses = await expenses();
+    const updatedExpenses = allExpenses.filter(e => e.id !== id);
+    if (allExpenses.length === updatedExpenses.length) {
+        throw new Error("Expense not found to delete");
+    }
+    await writeJsonFile(expensesPath, updatedExpenses);
+};
+
 
 // These functions were for Firebase and are now replaced by local JSON file logic
 export const saveCustomers = async (data: Customer[]): Promise<void> => {

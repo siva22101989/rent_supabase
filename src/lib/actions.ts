@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { storageRecords, customers, saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, getStorageRecord, deleteStorageRecord, getCustomer, saveExpense } from '@/lib/data';
+import { storageRecords, customers, saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, getStorageRecord, deleteStorageRecord, getCustomer, saveExpense, updateExpense, deleteExpense } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
@@ -378,5 +378,43 @@ export async function addExpense(prevState: FormState, formData: FormData) {
 
     revalidatePath('/expenses');
     return { message: 'Expense added successfully.', success: true };
+}
+
+export async function updateExpenseAction(expenseId: string, prevState: FormState, formData: FormData): Promise<FormState> {
+  const validatedFields = ExpenseSchema.safeParse({
+    description: formData.get('description'),
+    amount: formData.get('amount'),
+    date: formData.get('date'),
+    category: formData.get('category'),
+  });
+
+  if (!validatedFields.success) {
+    const error = validatedFields.error.flatten().fieldErrors;
+    const message = Object.values(error).flat().join(', ');
+    return { message: `Invalid data: ${message}`, success: false };
+  }
+  
+  const dataToUpdate = {
+    ...validatedFields.data,
+    date: new Date(validatedFields.data.date),
+  };
+
+  try {
+    await updateExpense(expenseId, dataToUpdate);
+    revalidatePath('/expenses');
+    return { message: 'Expense updated successfully.', success: true };
+  } catch (error) {
+    return { message: 'Failed to update expense.', success: false };
+  }
+}
+
+export async function deleteExpenseAction(expenseId: string): Promise<FormState> {
+  try {
+    await deleteExpense(expenseId);
+    revalidatePath('/expenses');
+    return { message: 'Expense deleted successfully.', success: true };
+  } catch (error) {
+    return { message: 'Failed to delete expense.', success: false };
+  }
 }
     
