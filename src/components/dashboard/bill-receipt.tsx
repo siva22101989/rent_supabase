@@ -90,7 +90,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                         <TableBody>
                             <TableRow>
                                 <TableCell>1</TableCell>
-                                <TableCell>{record.commodityDescription} Bags</TableCell>
+                                <TableCell>{record.commodityDescription}</TableCell>
                                 <TableCell className="text-right">{record.bagsStored}</TableCell>
                                 <TableCell className="text-right">-</TableCell>
                             </TableRow>
