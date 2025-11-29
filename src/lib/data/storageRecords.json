@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "customerId": "CUST-1764398275149",
+    "commodityDescription": "PADDY",
+    "location": "B4",
+    "id": "REC-1764398323977",
+    "bagsStored": 200,
+    "storageStartDate": "2025-11-29T00:00:00.000Z",
+    "storageEndDate": null,
+    "billingCycle": "6-Month Initial",
+    "payments": [
+      {
+        "amount": 1000,
+        "date": "2025-11-29T00:00:00.000Z"
+      }
+    ],
+    "hamaliPayable": 2000,
+    "totalRentBilled": 0
+  }
+]

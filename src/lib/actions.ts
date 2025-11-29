@@ -6,7 +6,6 @@ import { storageRecords, customers, saveCustomer, saveStorageRecord, updateStora
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
-import { Timestamp } from 'firebase-admin/firestore';
 import type { StorageRecord } from './definitions';
 
 const NewCustomerSchema = z.object({
@@ -54,7 +53,8 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
     await saveCustomer(newCustomer);
     
     revalidatePath('/customers');
-    redirect('/customers');
+    revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
+    return { message: 'Customer added successfully.', success: true };
 }
 
 const InflowSchema = z.object({
@@ -217,6 +217,8 @@ export async function updateStorageRecordAction(recordId: string, prevState: Inf
     await updateStorageRecord(recordId, dataToUpdate);
 
     revalidatePath('/storage');
+    revalidatePath('/payments/pending');
+    revalidatePath('/reports');
     return { message: 'Record updated successfully.', success: true };
 }
 
@@ -225,6 +227,7 @@ const PaymentSchema = z.object({
   recordId: z.string(),
   paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
   paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  paymentType: z.enum(['Rent/Other', 'Hamali']),
 });
 
 export type PaymentFormState = {
@@ -237,6 +240,7 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
         recordId: formData.get('recordId'),
         paymentAmount: formData.get('paymentAmount'),
         paymentDate: formData.get('paymentDate'),
+        paymentType: formData.get('paymentType'),
     });
 
     if (!validatedFields.success) {
@@ -245,15 +249,30 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
         return { message: `Invalid data: ${message}`, success: false };
     }
     
-    const { recordId, paymentAmount, paymentDate } = validatedFields.data;
+    const { recordId, paymentAmount, paymentDate, paymentType } = validatedFields.data;
     
-    const payment = {
-        amount: paymentAmount,
-        date: new Date(paymentDate),
-    };
-    
-    await addPaymentToRecord(recordId, payment);
+    const record = await getStorageRecord(recordId);
+    if (!record) {
+        return { message: 'Record not found.', success: false };
+    }
+
+    if (paymentType === 'Hamali') {
+        // This is an additional Hamali charge, not a payment against balance.
+        const updatedRecord = {
+            ...record,
+            hamaliPayable: (record.hamaliPayable || 0) + paymentAmount,
+        };
+        await updateStorageRecord(recordId, { hamaliPayable: updatedRecord.hamaliPayable });
+    } else {
+        // This is a payment against the outstanding balance.
+        const payment = {
+            amount: paymentAmount,
+            date: new Date(paymentDate),
+        };
+        await addPaymentToRecord(recordId, payment);
+    }
     
     revalidatePath('/payments/pending');
-    return { message: 'Payment added successfully.', success: true };
+    revalidatePath('/reports');
+    return { message: 'Payment recorded successfully.', success: true };
 }
