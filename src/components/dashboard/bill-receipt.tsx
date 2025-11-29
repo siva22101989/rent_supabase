@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -19,6 +20,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
     const [statusInfo, setStatusInfo] = useState<RecordStatusInfo | null>(null);
     const [formattedBillDate, setFormattedBillDate] = useState('');
     const [simplifiedRecordId, setSimplifiedRecordId] = useState('');
+    const [paymentInfo, setPaymentInfo] = useState({ paid: 0, balance: 0 });
 
     useEffect(() => {
         const safeRecord = {
@@ -30,18 +32,20 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
         setStatusInfo(getRecordStatus(safeRecord));
         setFormattedBillDate(format(new Date(), 'dd MMM yyyy'));
         
-        // Simplify record ID
         const idParts = record.id.split('-');
         const numericId = idParts.length > 1 ? parseInt(idParts[1], 10) : NaN;
         if (!isNaN(numericId)) {
-            // A bit of a simplification, but should work for display
-            // This is not guaranteed to be sequential if records are deleted
-            // A real implementation would need a counter in a database.
             setSimplifiedRecordId((numericId % 10000).toString());
         } else {
             setSimplifiedRecordId(record.id);
         }
 
+        const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        const totalBilled = record.hamaliPayable + (record.totalRentBilled || 0);
+        setPaymentInfo({
+            paid: totalPaid,
+            balance: totalBilled - totalPaid,
+        });
 
     }, [record]);
 
@@ -80,6 +84,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                                 <TableHead className="w-[50px]">No.</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead className="text-right">Quantity</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -87,18 +92,46 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                                 <TableCell>1</TableCell>
                                 <TableCell>{record.commodityDescription} Bags</TableCell>
                                 <TableCell className="text-right">{record.bagsStored}</TableCell>
+                                <TableCell className="text-right">-</TableCell>
                             </TableRow>
+                            <TableRow>
+                                <TableCell>2</TableCell>
+                                <TableCell>Hamali Charges</TableCell>
+                                <TableCell className="text-right">-</TableCell>
+                                <TableCell className="text-right">{formatCurrency(record.hamaliPayable)}</TableCell>
+                            </TableRow>
+                             {record.totalRentBilled > 0 && (
+                                <TableRow>
+                                    <TableCell>3</TableCell>
+                                    <TableCell>Rent Charges</TableCell>
+                                    <TableCell className="text-right">-</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(record.totalRentBilled)}</TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                         <TableFooter>
                             <TableRow>
-                                <TableCell colSpan={2} className="text-right font-bold">Total Bags</TableCell>
-                                <TableCell className="text-right font-bold">{record.bagsStored}</TableCell>
+                                <TableCell colSpan={3} className="text-right font-bold">Total Billed</TableCell>
+                                <TableCell className="text-right font-bold">{formatCurrency(record.hamaliPayable + (record.totalRentBilled || 0))}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
-
-
+                    
                     <Separator />
+                    
+                    <div className="flex justify-end">
+                        <div className="w-full max-w-xs space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Amount Paid</span>
+                                <span>{formatCurrency(paymentInfo.paid)}</span>
+                            </div>
+                            <div className="flex justify-between font-bold text-base">
+                                <span>Balance Due</span>
+                                <span className={paymentInfo.balance > 0 ? 'text-destructive' : ''}>{formatCurrency(paymentInfo.balance)}</span>
+                            </div>
+                        </div>
+                    </div>
+
 
                     <div className="mt-20 pt-10 flex justify-between text-center text-sm">
                         <div className="w-1/2">
