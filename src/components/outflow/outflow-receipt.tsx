@@ -127,6 +127,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                     <div className="text-right">
                         <h2 className="text-xl font-semibold uppercase text-muted-foreground">Outflow Bill</h2>
                         <p className="text-sm"><span className="font-medium">Bill #</span>: {record.id}</p>
+                        <p className="text-sm"><span className="font-medium">Serial #</span>: {record.id.slice(-4)}</p>
                         <p className="text-sm"><span className="font-medium">Date:</span> {formattedEndDate}</p>
                     </div>
                 </div>
@@ -223,4 +224,3 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
         </div>
     );
 }
-
