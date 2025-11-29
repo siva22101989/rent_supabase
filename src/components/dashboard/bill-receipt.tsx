@@ -7,6 +7,7 @@ import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { getRecordStatus, type RecordStatusInfo } from '@/lib/billing';
 import { formatCurrency, toDate } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
 
 type BillReceiptProps = {
   record: StorageRecord;
@@ -17,6 +18,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
   ({ record, customer }, ref) => {
     const [statusInfo, setStatusInfo] = useState<RecordStatusInfo | null>(null);
     const [formattedBillDate, setFormattedBillDate] = useState('');
+    const [simplifiedRecordId, setSimplifiedRecordId] = useState('');
 
     useEffect(() => {
         const safeRecord = {
@@ -27,6 +29,20 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
         // Hydration safety
         setStatusInfo(getRecordStatus(safeRecord));
         setFormattedBillDate(format(new Date(), 'dd MMM yyyy'));
+        
+        // Simplify record ID
+        const idParts = record.id.split('-');
+        const numericId = idParts.length > 1 ? parseInt(idParts[1], 10) : NaN;
+        if (!isNaN(numericId)) {
+            // A bit of a simplification, but should work for display
+            // This is not guaranteed to be sequential if records are deleted
+            // A real implementation would need a counter in a database.
+            setSimplifiedRecordId((numericId % 10000).toString());
+        } else {
+            setSimplifiedRecordId(record.id);
+        }
+
+
     }, [record]);
 
     if (!statusInfo) return null;
@@ -51,17 +67,36 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                          <div>
                             <h3 className="font-semibold mb-2">Billing Details</h3>
                             <p><span className="font-medium">Bill Date:</span> {formattedBillDate}</p>
-                            <p><span className="font-medium">Record ID:</span> {record.id}</p>
+                            <p><span className="font-medium">Record ID:</span> {simplifiedRecordId}</p>
                             <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
                         </div>
                     </div>
 
                     <Separator />
 
-                     <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Number of Bags</p>
-                        <p className="text-3xl font-bold">{record.bagsStored}</p>
-                    </div>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[50px]">No.</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead className="text-right">Quantity</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell>1</TableCell>
+                                <TableCell>{record.commodityDescription} Bags</TableCell>
+                                <TableCell className="text-right">{record.bagsStored}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell colSpan={2} className="text-right font-bold">Total Bags</TableCell>
+                                <TableCell className="text-right font-bold">{record.bagsStored}</TableCell>
+                            </TableRow>
+                        </TableFooter>
+                    </Table>
+
 
                     <Separator />
 
