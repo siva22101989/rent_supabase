@@ -47,7 +47,7 @@ export function calculateFinalRent(
 ): { 
     rent: number;
     monthsStored: number;
-    totalRentOwedPerBag: number;
+    rentPerBag: number;
     rentAlreadyPaidPerBag: number; // This will now always be 0
 } {
   const startDate = startOfDay(toDate(record.storageStartDate));
@@ -55,39 +55,39 @@ export function calculateFinalRent(
   
   const rentAlreadyPaidPerBag = 0; // Rent is never paid in advance.
 
-  let totalRentOwedPerBag = 0;
+  let rentPerBag = 0;
   const monthsStored = differenceInMonths(endDate, startDate);
 
   if (monthsStored < 0) {
     // Should not happen, but as a safeguard
-    totalRentOwedPerBag = 0;
+    rentPerBag = 0;
   } else if (monthsStored <= 6) {
-    totalRentOwedPerBag = RATE_6_MONTHS;
+    rentPerBag = RATE_6_MONTHS;
   } else if (monthsStored <= 12) {
-    totalRentOwedPerBag = RATE_1_YEAR;
+    rentPerBag = RATE_1_YEAR;
   } else {
     // After 1 year
     const fullYearsPastFirst = Math.floor((monthsStored - 1) / 12);
     
-    totalRentOwedPerBag = fullYearsPastFirst * RATE_1_YEAR;
+    rentPerBag = fullYearsPastFirst * RATE_1_YEAR;
 
     const remainingMonths = monthsStored - (fullYearsPastFirst * 12);
 
     if (remainingMonths > 0) {
         if (remainingMonths <= 6) {
-            totalRentOwedPerBag += RATE_6_MONTHS;
+            rentPerBag += RATE_6_MONTHS;
         } else {
-            totalRentOwedPerBag += RATE_1_YEAR;
+            rentPerBag += RATE_1_YEAR;
         }
     }
   }
   
-  const finalRentForWithdrawnBags = totalRentOwedPerBag * bagsToWithdraw;
+  const finalRentForWithdrawnBags = rentPerBag * bagsToWithdraw;
 
   return { 
       rent: Math.max(0, finalRentForWithdrawnBags),
       monthsStored,
-      totalRentOwedPerBag,
+      rentPerBag,
       rentAlreadyPaidPerBag // Will be 0
   };
 }

@@ -6,7 +6,7 @@
     "lorryTractorNo": "TRACTOR",
     "weight": 0,
     "id": "SLWH-1",
-    "bagsStored": 200,
+    "bagsStored": 150,
     "storageStartDate": "2025-11-28T00:00:00.000Z",
     "storageEndDate": null,
     "billingCycle": "6-Month Initial",
@@ -17,7 +17,7 @@
       }
     ],
     "hamaliPayable": 2000,
-    "totalRentBilled": 0
+    "totalRentBilled": 1800
   },
   {
     "customerId": "CUST-1764399621194",

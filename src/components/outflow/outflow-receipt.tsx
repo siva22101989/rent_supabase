@@ -29,7 +29,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
     const [isGenerating, setIsGenerating] = useState(false);
     
     const [duration, setDuration] = useState({ days: 0, months: 0 });
-    const [rentBreakdown, setRentBreakdown] = useState({ totalOwedPerBag: 0 });
+    const [rentBreakdown, setRentBreakdown] = useState({ rentPerBag: 0 });
     const [hamaliPending, setHamaliPending] = useState(0);
 
     useEffect(() => {
@@ -50,8 +50,8 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
             storageStartDate: startDate,
         }
 
-        const { totalRentOwedPerBag } = calculateFinalRent(safeRecord, endDate, withdrawnBags);
-        setRentBreakdown({ totalOwedPerBag });
+        const { rentPerBag } = calculateFinalRent(safeRecord, endDate, withdrawnBags);
+        setRentBreakdown({ rentPerBag });
 
         // Calculate hamali pending at the time of outflow
         // Total Hamali - all payments made before outflow
@@ -163,7 +163,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                             <TableRow>
                                 <TableCell>Rent</TableCell>
                                 <TableCell>{withdrawnBags} bags</TableCell>
-                                <TableCell>{formatCurrency(rentBreakdown.totalOwedPerBag)} / bag</TableCell>
+                                <TableCell>{formatCurrency(rentBreakdown.rentPerBag)} / bag</TableCell>
                                 <TableCell className="text-right">{formatCurrency(finalRent)}</TableCell>
                             </TableRow>
                              <TableRow>

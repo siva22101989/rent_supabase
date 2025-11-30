@@ -45,7 +45,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     
     const [finalRent, setFinalRent] = useState(0);
     const [storageMonths, setStorageMonths] = useState(0);
-    const [rentPerBag, setRentPerBag] = useState({ totalOwed: 0 });
+    const [rentPerBag, setRentPerBag] = useState({ rentPerBag: 0 });
     const [hamaliPending, setHamaliPending] = useState(0);
 
     const filteredRecords = selectedCustomerId ? records.filter(r => r.customerId === selectedCustomerId) : [];
@@ -78,19 +78,19 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             };
 
             if (bagsToWithdraw > 0) {
-                const { rent, monthsStored, totalRentOwedPerBag } = calculateFinalRent(safeRecord, withdrawalDate, bagsToWithdraw);
+                const { rent, monthsStored, rentPerBag: rentPerBagCalc } = calculateFinalRent(safeRecord, withdrawalDate, bagsToWithdraw);
                 setFinalRent(rent);
                 setStorageMonths(monthsStored);
-                setRentPerBag({ totalOwed: totalRentOwedPerBag });
+                setRentPerBag({ rentPerBag: rentPerBagCalc });
             } else {
                 setFinalRent(0);
                 setStorageMonths(0);
-                setRentPerBag({ totalOwed: 0 });
+                setRentPerBag({ rentPerBag: 0 });
             }
         } else {
             setFinalRent(0);
             setStorageMonths(0);
-            setRentPerBag({ totalOwed: 0 });
+            setRentPerBag({ rentPerBag: 0 });
             setHamaliPending(0);
         }
     }, [selectedRecord, bagsToWithdraw, withdrawalDate]);
@@ -101,7 +101,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         setBagsToWithdraw(0);
         setFinalRent(0);
         setStorageMonths(0);
-        setRentPerBag({ totalOwed: 0 });
+        setRentPerBag({ rentPerBag: 0 });
         setHamaliPending(0);
     }
 
