@@ -131,19 +131,21 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         }
     }
 
+    let inflowBags = 0;
     if (inflowType === 'Plot') {
         if (!plotBags || plotBags <= 0) {
             return { message: "Plot Bags must be a positive number for 'Plot' inflow.", success: false };
         }
-        bagsStored = plotBags;
+        inflowBags = plotBags;
     } else { // 'Direct'
         if (!bagsStored || bagsStored <= 0) {
             return { message: "Number of Bags must be a positive number for 'Direct' inflow.", success: false };
         }
+        inflowBags = bagsStored;
     }
 
 
-    const hamaliPayable = bagsStored * (hamaliRate || 0);
+    const hamaliPayable = inflowBags * (hamaliRate || 0);
     const payments: Payment[] = [];
     if (hamaliPaid && hamaliPaid > 0) {
         payments.push({ amount: hamaliPaid, date: new Date(storageStartDate), type: 'hamali' });
@@ -159,7 +161,9 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     const newRecord: StorageRecord = {
         ...rest,
         id: newRecordId,
-        bagsStored,
+        bagsIn: inflowBags,
+        bagsOut: 0,
+        bagsStored: inflowBags,
         storageStartDate: new Date(storageStartDate),
         storageEndDate: null,
         billingCycle: '6-Month Initial',
@@ -226,23 +230,20 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     
     const recordUpdate: Partial<StorageRecord> = {
         payments: originalRecord.payments || [],
+        bagsStored: originalRecord.bagsStored - bagsToWithdraw,
+        bagsOut: (originalRecord.bagsOut || 0) + bagsToWithdraw,
     };
 
     if (paymentMade > 0) {
-        // This payment covers the final rent and any outstanding hamali.
-        // We will split it for accounting purposes if possible, but for simplicity,
-        // let's just add one payment. If we need to distinguish, we can add a `type`.
         recordUpdate.payments!.push({ amount: paymentMade, date: new Date(withdrawalDate), type: 'rent' });
     }
 
     if (isFullWithdrawal) {
         recordUpdate.storageEndDate = new Date(withdrawalDate);
         recordUpdate.billingCycle = 'Completed';
-        recordUpdate.totalRentBilled = (originalRecord.totalRentBilled || 0) + finalRent;
-    } else {
-        recordUpdate.bagsStored = originalRecord.bagsStored - bagsToWithdraw;
-        recordUpdate.totalRentBilled = (originalRecord.totalRentBilled || 0) + finalRent;
     }
+
+    recordUpdate.totalRentBilled = (originalRecord.totalRentBilled || 0) + finalRent;
     
     await updateStorageRecord(recordId, recordUpdate);
 
@@ -266,7 +267,7 @@ export async function updateStorageRecordAction(recordId: string, prevState: Inf
         customerId: formData.get('customerId'),
         commodityDescription: formData.get('commodityDescription'),
         location: formData.get('location'),
-        bagsStored: formData.get('bagsStored'),
+        bagsStored: formData.get('bagsStored'), // This now refers to bagsIn
         hamaliPayable: formData.get('hamaliPayable'),
         storageStartDate: formData.get('storageStartDate'),
     });
@@ -277,8 +278,17 @@ export async function updateStorageRecordAction(recordId: string, prevState: Inf
         return { message: `Invalid data: ${message}`, success: false };
     }
     
-    const dataToUpdate = {
-        ...validatedFields.data,
+    const originalRecord = await getStorageRecord(recordId);
+    if (!originalRecord) {
+        return { message: 'Record not found.', success: false };
+    }
+
+    const { bagsStored, ...rest } = validatedFields.data;
+
+    const dataToUpdate: Partial<StorageRecord> = {
+        ...rest,
+        bagsIn: bagsStored,
+        bagsStored: bagsStored - (originalRecord.bagsOut || 0), // Recalculate balance
         storageStartDate: new Date(validatedFields.data.storageStartDate)
     };
 

@@ -119,13 +119,13 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bagsStored" className="text-right">
-                Bags Stored
+                Bags In
               </Label>
               <Input 
                 id="bagsStored" 
                 name="bagsStored" 
                 type="number"
-                defaultValue={record.bagsStored} 
+                defaultValue={record.bagsIn} 
                 className="col-span-3" 
                 required 
               />
@@ -135,7 +135,7 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                 Hamali Payable
               </Label>
               <Input 
-                id="hamaliPayable" 
+                id="hamaliPayable" _
                 name="hamaliPayable" 
                 type="number"
                 step="0.01"

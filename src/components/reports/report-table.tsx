@@ -40,7 +40,9 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
         return dateB.getTime() - dateA.getTime();
     });
 
-    const totalBags = recordsWithBalance.reduce((acc, record) => acc + record.bagsStored, 0);
+    const totalBagsIn = recordsWithBalance.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
+    const totalBagsOut = recordsWithBalance.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
+    const totalBagsStored = recordsWithBalance.reduce((acc, record) => acc + record.bagsStored, 0);
     const totalBilledSum = recordsWithBalance.reduce((acc, record) => acc + record.totalBilled, 0);
     const totalAmountPaid = recordsWithBalance.reduce((acc, record) => acc + record.amountPaid, 0);
     const totalBalanceDue = recordsWithBalance.reduce((acc, record) => acc + record.balanceDue, 0);
@@ -61,7 +63,9 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                         <TableHead>Start Date</TableHead>
                         <TableHead>End Date</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Bags</TableHead>
+                        <TableHead className="text-right">Bags In</TableHead>
+                        <TableHead className="text-right">Bags Out</TableHead>
+                        <TableHead className="text-right">Balance</TableHead>
                         <TableHead className="text-right">Total Billed</TableHead>
                         <TableHead className="text-right">Amount Paid</TableHead>
                         <TableHead className="text-right">Balance Due</TableHead>
@@ -85,7 +89,9 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                                     {record.storageEndDate ? 'Completed' : 'Active'}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-right">{record.bagsStored}</TableCell>
+                            <TableCell className="text-right">{record.bagsIn || 0}</TableCell>
+                            <TableCell className="text-right">{record.bagsOut || 0}</TableCell>
+                            <TableCell className="text-right font-bold">{record.bagsStored}</TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled || 0)}</TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(record.amountPaid || 0)}</TableCell>
                             <TableCell className={`text-right font-mono ${record.balanceDue > 0 ? 'text-destructive' : ''}`}>
@@ -98,7 +104,7 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                     )})}
                     {recordsWithBalance.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={9} className="text-center text-muted-foreground">
+                            <TableCell colSpan={11} className="text-center text-muted-foreground">
                                 No records found for the selected customer.
                             </TableCell>
                         </TableRow>
@@ -107,7 +113,9 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                 <TableFooter>
                     <TableRow>
                         <TableCell colSpan={4} className="text-right font-bold text-lg">Totals</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-lg">{totalBags}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg">{totalBagsOut}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg">{totalBagsStored}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-lg">{formatCurrency(totalBilledSum)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-lg">{formatCurrency(totalAmountPaid)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-lg text-destructive">
