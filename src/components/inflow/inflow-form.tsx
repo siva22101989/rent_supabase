@@ -182,7 +182,7 @@ export function InflowForm({ customers, nextSerialNumber }: { customers: Custome
                                 required 
                                 onChange={e => setBags(Number(e.target.value))}
                                 disabled={inflowType === 'Plot'}
-                                value={inflowType === 'Plot' ? '' : bags || ''}
+                                value={inflowType === 'Plot' ? 0 : bags || ''}
                             />
                         </div>
                          <div className="space-y-2">
