@@ -95,16 +95,10 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                         <span>: {customer.village || 'N/A'}</span>
                     </div>
                     {record.inflowType === 'Plot' && (
-                        <>
-                            <div className="flex">
-                                <span className="w-1/3 font-bold">PLOT BAGS</span>
-                                <span>: {record.plotBags}</span>
-                            </div>
-                            <div className="flex">
-                                <span className="w-1/3 font-bold">LOAD BAGS</span>
-                                <span>: {record.loadBags}</span>
-                            </div>
-                        </>
+                        <div className="flex">
+                            <span className="w-1/3 font-bold">PLOT BAGS</span>
+                            <span>: {record.plotBags}</span>
+                        </div>
                     )}
                     <div className="flex">
                         <span className="w-1/3 font-bold">PRODUCT</span>
