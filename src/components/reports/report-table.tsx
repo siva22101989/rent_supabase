@@ -69,7 +69,7 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                         <TableHead className="text-right">Total Billed</TableHead>
                         <TableHead className="text-right">Amount Paid</TableHead>
                         <TableHead className="text-right">Balance Due</TableHead>
-                        <TableHead className="w-[50px] text-right">Actions</TableHead>
+                        <TableHead className="w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -97,7 +97,7 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                             <TableCell className={`text-right font-mono ${record.balanceDue > 0 ? 'text-destructive' : ''}`}>
                                 {formatCurrency(record.balanceDue || 0)}
                             </TableCell>
-                             <TableCell className="text-right">
+                             <TableCell className="text-right print-hide">
                                 <ActionsMenu record={record} customers={customers} />
                             </TableCell>
                         </TableRow>
