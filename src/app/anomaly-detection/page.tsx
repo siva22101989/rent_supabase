@@ -1,3 +1,4 @@
+
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { AnomalyDetectionClient } from "@/components/anomaly/anomaly-detection-client";
