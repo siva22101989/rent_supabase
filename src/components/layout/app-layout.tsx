@@ -1,11 +1,12 @@
+
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
@@ -15,19 +16,38 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useUser } from '@/firebase/auth/use-user';
+import { useFirebase } from '@/firebase';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isDashboard = pathname === '/';
+  
+  const { user, loading } = useUser();
+  const { auth } = useFirebase();
+  const router = useRouter();
 
-  const handleLogout = () => {
-    // In a real app, you'd call your authentication service here
-    // For now, we'll just log to the console and redirect to a simulated login page
-    console.log('User logged out');
-    // Since there's no login page, we'll redirect to the dashboard for now.
-    // In a real scenario, this would likely be '/login'.
-    window.location.href = '/'; 
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+
+  const handleLogout = async () => {
+    if (auth) {
+        await auth.signOut();
+        router.push('/login');
+    }
   };
+
+  if (loading || !user) {
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center">
+            <div>Loading...</div>
+        </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -47,16 +67,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenuTrigger asChild>
                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback>WM</AvatarFallback>
+                     {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || user.email || 'User'} />}
+                    <AvatarFallback>{user.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">Warehouse Manager</p>
+                    <p className="text-sm font-medium leading-none">{user.displayName || 'Warehouse Manager'}</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      manager@example.com
+                      {user.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
