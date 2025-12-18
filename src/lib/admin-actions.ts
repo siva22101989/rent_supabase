@@ -50,14 +50,12 @@ export async function addCrop(formData: FormData) {
   }
 
   const name = formData.get('name') as string;
-  const standard_bag_weight_kg = parseFloat(formData.get('weight') as string);
   const rent_price_6m = parseFloat(formData.get('price6m') as string);
   const rent_price_1y = parseFloat(formData.get('price1y') as string);
 
   const { error } = await supabase.from('crops').insert({
     warehouse_id: warehouseId,
     name,
-    standard_bag_weight_kg,
     rent_price_6m,
     rent_price_1y
   });
@@ -134,10 +132,10 @@ export async function seedDatabase() {
 
   // 4. CREATE CROPS
   const cropsData = [
-    { warehouse_id: warehouseId, name: 'Paddy (Sona)', standard_bag_weight_kg: 75, rent_price_6m: 30, rent_price_1y: 50 },
-    { warehouse_id: warehouseId, name: 'Paddy (MTU)', standard_bag_weight_kg: 75, rent_price_6m: 28, rent_price_1y: 48 },
-    { warehouse_id: warehouseId, name: 'Red Gram', standard_bag_weight_kg: 100, rent_price_6m: 45, rent_price_1y: 80 },
-    { warehouse_id: warehouseId, name: 'Maize', standard_bag_weight_kg: 60, rent_price_6m: 25, rent_price_1y: 45 },
+    { warehouse_id: warehouseId, name: 'Paddy (Sona)', rent_price_6m: 30, rent_price_1y: 50 },
+    { warehouse_id: warehouseId, name: 'Paddy (MTU)', rent_price_6m: 28, rent_price_1y: 48 },
+    { warehouse_id: warehouseId, name: 'Red Gram', rent_price_6m: 45, rent_price_1y: 80 },
+    { warehouse_id: warehouseId, name: 'Maize', rent_price_6m: 25, rent_price_1y: 45 },
   ];
   const { data: crops } = await supabase.from('crops').insert(cropsData).select();
   if(!crops) throw new Error("Failed to seed crops");
@@ -186,7 +184,7 @@ export async function seedDatabase() {
         lot_id: lot.id,
         bags_in: bags,
         bags_stored: bags, // Assuming no outflow yet
-        bag_weight: crop.standard_bag_weight_kg || 75,
+        bag_weight: 75, // Default as standard weight removed from crop
         in_date: date.toISOString().split('T')[0],
         estimated_rent: bags * (crop.rent_price_6m || 30),
         status: 'Active'

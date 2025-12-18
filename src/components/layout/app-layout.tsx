@@ -11,6 +11,7 @@ import { ArrowLeft, LogOut } from 'lucide-react';
 // import { NotificationBell } from './notification-bell';
 import { CommandSearch } from './command-search';
 import { ModeToggle } from '@/components/mode-toggle';
+import { WarehouseSwitcher } from '@/components/warehouses/warehouse-switcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,6 +113,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             <div className="flex items-center gap-2">
               {/* <NotificationBell /> */} {/* Disabled for now */}
+              <div className="hidden md:block">
+                  <WarehouseSwitcher />
+              </div>
               <ModeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

@@ -105,7 +105,6 @@ export default async function SettingsPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Crop Name</TableHead>
-                            <TableHead>Bag Weight (kg)</TableHead>
                             <TableHead>Rent (6M)</TableHead>
                             <TableHead>Rent (1Y)</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
@@ -115,7 +114,6 @@ export default async function SettingsPage() {
                         {crops?.map((crop) => (
                             <TableRow key={crop.id}>
                                 <TableCell className="font-medium">{crop.name}</TableCell>
-                                <TableCell>{crop.standard_bag_weight_kg} kg</TableCell>
                                 <TableCell>₹{crop.rent_price_6m}</TableCell>
                                 <TableCell>₹{crop.rent_price_1y}</TableCell>
                                 <TableCell>
@@ -153,10 +151,6 @@ export default async function SettingsPage() {
                 <div className="grid gap-2 md:col-span-2">
                     <Label htmlFor="crop-name">Name</Label>
                     <Input id="crop-name" name="name" placeholder="e.g. Paddy" required />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="weight">Weight (kg)</Label>
-                    <Input id="weight" name="weight" type="number" step="0.01" placeholder="75" required />
                 </div>
                  <div className="grid gap-2">
                     <Label htmlFor="price6m">Rent (6M)</Label>
