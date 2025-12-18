@@ -45,10 +45,18 @@ export function NotificationBell() {
     }, []);
 
     const markRead = async (id: string) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-        setHasUnread(notifications.some(n => n.id !== id && !n.is_read));
-        await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-        fetchNotes(); // Refresh to ensure sync
+        // Optimistic update with correct state closure
+        setNotifications(prev => {
+            const updated = prev.map(n => n.id === id ? { ...n, is_read: true } : n);
+            setHasUnread(updated.some(n => !n.is_read));
+            return updated;
+        });
+
+        const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+        if (error) {
+            console.error("Failed to mark notification as read:", error);
+            // Optionally revert state here if critical, but for read status it's okay to retry later
+        }
     };
 
     const markAllRead = async (e: React.MouseEvent) => {
@@ -56,18 +64,22 @@ export function NotificationBell() {
         e.stopPropagation();
         setLoading(true);
         
-        // Optimistic
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-        setHasUnread(false);
+        // Optimistic update
+        setNotifications(prev => {
+            const updated = prev.map(n => ({ ...n, is_read: true }));
+            setHasUnread(false);
+            return updated;
+        });
 
-        // We can't easily "update all" without a WHERE clause that matches the user's view safely in Client logic
-        // But since we have the IDs loaded:
         const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+        
         if (unreadIds.length > 0) {
-            await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+            const { error } = await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+             if (error) {
+                console.error("Failed to mark all as read:", error);
+            }
         }
         setLoading(false);
-        fetchNotes();
     };
 
     return (

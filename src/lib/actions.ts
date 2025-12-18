@@ -215,13 +215,34 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         commodity: rest.commodityDescription 
     });
     
-    // Check if lot capacity is low (optional, but good for demo)
+    // Check for Low Capacity Warning (>90%)
     if (rest.lotId) {
-        // We could fetch lot again, but let's just notify success for now
+        // Re-init supabase if needed or reuse if available in wider scope (it wasn't)
+        const supabase = await createClient();
+        // Fetch fresh lot data to be accurate
+        const { data: currentLot } = await supabase.from('warehouse_lots').select('id, name, capacity, current_stock').eq('id', rest.lotId).single();
+        
+        if (currentLot && currentLot.capacity && currentLot.capacity > 0) {
+             const stock = currentLot.current_stock || 0;
+             const percentage = (stock / currentLot.capacity) * 100;
+             
+             if (percentage >= 90) {
+                 await createNotification(
+                    'High Utilization Alert',
+                    `Lot ${currentLot.name || currentLot.id} is ${percentage.toFixed(1)}% full (${stock}/${currentLot.capacity} bags). Consider using a new lot soon.`,
+                    'warning',
+                    undefined,
+                    '/settings/lots'
+                 );
+             }
+        }
     }
+    const customerForNotif = await getCustomer(rest.customerId);
+    const customerName = customerForNotif?.name || "Unknown Customer";
+
     await createNotification(
         'Inflow Recorded', 
-        `Received ${inflowBags} bags (ID: ${savedRecord.id})`, 
+        `Received ${inflowBags} bags of ${rest.commodityDescription} from ${customerName}`, 
         'success',
         undefined, // Warehouse-wide
         `/inflow/receipt/${savedRecord.id}`
@@ -294,9 +315,14 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     await updateStorageRecord(recordId, recordUpdate);
 
     const { createNotification } = await import('@/lib/logger');
+    
+    // Fetch customer for notification readability
+    const customer = await getCustomer(originalRecord.customerId);
+    const customerName = customer?.name || 'Unknown';
+
     await createNotification(
         'Outflow Recorded', 
-        `Withdrawn ${bagsToWithdraw} bags from Record ${originalRecord.id}`, 
+        `Withdrawn ${bagsToWithdraw} bags (${originalRecord.commodityDescription}) for ${customerName}`, 
         'info',
         undefined, 
         `/outflow/receipt/${recordId}`
@@ -409,9 +435,14 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
     }
     
     const { createNotification } = await import('@/lib/logger');
+    
+    // Fetch customer Name
+    const customer = await getCustomer(record?.customerId || '');
+    const customerName = customer?.name || 'Customer';
+
     await createNotification(
         'Payment Recorded', 
-        `Received ₹${paymentAmount} for Record ${record?.id || recordId} (${paymentType})`, 
+        `Received ₹${paymentAmount} from ${customerName} (${paymentType})`, 
         'success',
         undefined, 
         `/inflow/receipt/${recordId}`
