@@ -3,10 +3,9 @@ import { createClient } from '@/utils/supabase/server';
 import type { Customer, StorageRecord, Payment, Expense } from '@/lib/definitions';
 import { revalidatePath } from 'next/cache';
 
-import { cache } from 'react';
 
-// Helper to get current user's warehouse
-export const getUserWarehouse = cache(async () => {
+
+export const getUserWarehouse = async () => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -18,28 +17,27 @@ export const getUserWarehouse = cache(async () => {
     .single();
 
   return profile?.warehouse_id;
-});
+};
 
-// Helper to fetch crops
-export const getAvailableCrops = cache(async () => {
+export const getAvailableCrops = async () => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return [];
 
     const { data } = await supabase.from('crops').select('*').eq('warehouse_id', warehouseId).order('name');
     return data || [];
-});
+};
 
-export const getAvailableLots = cache(async () => {
+export const getAvailableLots = async () => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return [];
 
     const { data } = await supabase.from('warehouse_lots').select('*').eq('warehouse_id', warehouseId).order('name');
     return data || [];
-});
+};
 
-export const getDashboardMetrics = cache(async () => {
+export const getDashboardMetrics = async () => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return null;
@@ -69,7 +67,7 @@ export const getDashboardMetrics = cache(async () => {
         occupancyRate: totalCapacity > 0 ? (totalStock / totalCapacity) * 100 : 0,
         activeRecordsCount: activeRecordsCount || 0
     };
-});
+};
 
 // Customer Functions
 export async function customers(): Promise<Customer[]> {

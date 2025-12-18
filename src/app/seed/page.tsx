@@ -81,6 +81,21 @@ export default function SeedPage() {
                         )}
                     </Button>
 
+                    <Button 
+                        variant="outline" 
+                        size="lg" 
+                        className="w-full" 
+                        onClick={() => {
+                            if (confirm('Clear local storage and reload?')) {
+                                localStorage.clear();
+                                sessionStorage.clear();
+                                window.location.reload();
+                            }
+                        }}
+                    >
+                        Clean Local Cache & Reload
+                    </Button>
+
                     {result && (
                         <div className="mt-4 p-4 border rounded bg-muted text-sm whitespace-pre-wrap font-mono">
                             {result}

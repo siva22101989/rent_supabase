@@ -10,7 +10,7 @@ export type PortfolioItem = {
     records: any[];
 };
 
-export const getCustomerPortfolio = cache(async () => {
+export const getCustomerPortfolio = async () => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -71,4 +71,4 @@ export const getCustomerPortfolio = cache(async () => {
     });
 
     return Object.values(portfolio);
-});
+};
