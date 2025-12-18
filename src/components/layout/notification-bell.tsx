@@ -24,17 +24,23 @@ export function NotificationBell() {
     const supabase = createClient();
 
     const fetchNotes = async () => {
-         // Note: In a real app we'd filter by warehouse_id properly here
-         // For now relying on RLS or specific query if needed.
-         // Let's assume RLS handles it or we fetch global for user.
-         const { data } = await supabase.from('notifications')
-            .select('*')
+         const { data: { user } } = await supabase.auth.getUser();
+         if (!user) return;
+
+         // Fetch all notifications for warehouse (RLS handles warehouse filter)
+         // Join with notification_reads to see what this user has read
+         const { data, error } = await supabase.from('notifications')
+            .select(`
+                *,
+                notification_reads!left(user_id)
+            `)
+            .is('notification_reads.user_id', null) // Only fetch what THIS user hasn't read
             .order('created_at', { ascending: false })
-            .limit(20); // Fetch more history
+            .limit(20);
          
          if (data) {
              setNotifications(data);
-             setHasUnread(data.some((n: any) => !n.is_read));
+             setHasUnread(data.length > 0);
          }
     };
 
@@ -45,17 +51,30 @@ export function NotificationBell() {
     }, []);
 
     const markRead = async (id: string) => {
-        // Optimistic update with correct state closure
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const noteToRead = notifications.find(n => n.id === id);
+        
+        // Optimistic removal
         setNotifications(prev => {
-            const updated = prev.map(n => n.id === id ? { ...n, is_read: true } : n);
-            setHasUnread(updated.some(n => !n.is_read));
+            const updated = prev.filter(n => n.id !== id);
+            setHasUnread(updated.length > 0);
             return updated;
         });
 
-        const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+        // Record that THIS user has read it
+        const { error } = await supabase.from('notification_reads').upsert({
+            notification_id: id,
+            user_id: user.id
+        }, { onConflict: 'notification_id,user_id' });
+        
         if (error) {
-            console.error("Failed to mark notification as read:", error);
-            // Optionally revert state here if critical, but for read status it's okay to retry later
+            console.error("Failed to record notification read status:", error.message || error);
+            if (noteToRead) {
+                setNotifications(prev => [noteToRead, ...prev].sort((a,b) => b.created_at.localeCompare(a.created_at)));
+                setHasUnread(true);
+            }
         }
     };
 
@@ -63,20 +82,33 @@ export function NotificationBell() {
         e.preventDefault();
         e.stopPropagation();
         setLoading(true);
-        
-        // Optimistic update
-        setNotifications(prev => {
-            const updated = prev.map(n => ({ ...n, is_read: true }));
-            setHasUnread(false);
-            return updated;
-        });
 
-        const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            setLoading(false);
+            return;
+        }
         
+        const unreadIds = notifications.map(n => n.id);
+        const oldNotes = [...notifications];
+
+        // Optimistic clear
+        setNotifications([]);
+        setHasUnread(false);
+
         if (unreadIds.length > 0) {
-            const { error } = await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+            const upsertData = unreadIds.map(id => ({
+                notification_id: id,
+                user_id: user.id
+            }));
+            
+            const { error } = await supabase.from('notification_reads')
+                .upsert(upsertData, { onConflict: 'notification_id,user_id' });
+            
              if (error) {
-                console.error("Failed to mark all as read:", error);
+                console.error("Failed to mark all as read:", error.message || error);
+                setNotifications(oldNotes);
+                setHasUnread(true);
             }
         }
         setLoading(false);
@@ -97,7 +129,7 @@ export function NotificationBell() {
                     <div>
                         <h4 className="font-semibold leading-none">Notifications</h4>
                         <p className="text-xs text-muted-foreground mt-1">
-                            You have {notifications.filter(n => !n.is_read).length} unread messages
+                            You have {notifications.length} unread messages
                         </p>
                     </div>
                     {hasUnread && (
@@ -118,24 +150,21 @@ export function NotificationBell() {
                     {notifications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-[200px] text-center p-4">
                             <Bell className="h-10 w-10 text-muted-foreground/20 mb-3" />
-                            <p className="text-sm text-muted-foreground">No notifications yet</p>
+                            <p className="text-sm text-muted-foreground">Inbox zero! No new alerts</p>
                         </div>
                     ) : (
                         <div className="flex flex-col">
                             {notifications.map((note) => (
                                 <DropdownMenuItem 
                                     key={note.id} 
-                                    className={cn(
-                                        "flex flex-col items-start gap-1 p-4 cursor-pointer focus:bg-accent/50 border-b last:border-0 rounded-none",
-                                        !note.is_read ? "bg-accent/10" : "opacity-80"
-                                    )}
+                                    className="flex flex-col items-start gap-1 p-4 cursor-pointer focus:bg-accent/50 border-b last:border-0 rounded-none bg-accent/5"
                                     asChild
                                     onClick={() => markRead(note.id)}
                                 >
                                     <Link href={note.link || '#'} className="w-full">
                                         <div className="flex w-full justify-between items-start gap-2">
                                              <div className="flex-1 space-y-1">
-                                                <p className={cn("text-sm font-medium leading-none", !note.is_read && "text-primary font-bold")}>
+                                                <p className="text-sm font-bold text-primary">
                                                     {note.title}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground w-full line-clamp-2">
@@ -152,7 +181,6 @@ export function NotificationBell() {
                         </div>
                     )}
                 </ScrollArea>
-                {/* Footer or 'View All' can go here */}
             </DropdownMenuContent>
         </DropdownMenu>
     );

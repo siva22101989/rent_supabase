@@ -16,12 +16,20 @@ export async function updateWarehouseDetails(formData: FormData) {
 
   const name = formData.get('name') as string;
   const location = formData.get('location') as string;
+  const phone = formData.get('phone') as string;
+  const email = formData.get('email') as string;
   const capacityStr = formData.get('capacity') as string;
   const capacity = capacityStr ? parseInt(capacityStr) : 0;
 
   const { error } = await supabase
     .from('warehouses')
-    .update({ name, location, capacity_bags: capacity })
+    .update({ 
+      name, 
+      location, 
+      phone,
+      email,
+      capacity_bags: capacity 
+    })
     .eq('id', warehouseId);
 
   if (error) {

@@ -1,18 +1,12 @@
-
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { Separator } from '@/components/ui/separator';
+import { useState, useEffect } from 'react';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format, differenceInDays, differenceInMonths } from 'date-fns';
 import { Button } from '../ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { calculateFinalRent } from '@/lib/billing';
 import { formatCurrency, toDate } from '@/lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-
 
 type OutflowReceiptProps = {
   record: StorageRecord;
@@ -20,13 +14,12 @@ type OutflowReceiptProps = {
   withdrawnBags: number;
   finalRent: number;
   paidNow: number;
+  warehouse: any;
 };
 
-export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, paidNow }: OutflowReceiptProps) {
-    const receiptRef = useRef<HTMLDivElement>(null);
+export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, paidNow, warehouse }: OutflowReceiptProps) {
     const [formattedStartDate, setFormattedStartDate] = useState('');
     const [formattedEndDate, setFormattedEndDate] = useState('');
-    const [isGenerating, setIsGenerating] = useState(false);
     
     const [duration, setDuration] = useState({ days: 0, months: 0 });
     const [rentBreakdown, setRentBreakdown] = useState({ rentPerBag: 0 });
@@ -53,16 +46,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
         const { rentPerBag } = calculateFinalRent(safeRecord, endDate, withdrawnBags);
         setRentBreakdown({ rentPerBag });
 
-        // Calculate hamali pending at the time of outflow
-        // Total Hamali - all payments made before outflow
         const originalHamaliPayable = record.hamaliPayable;
-        
-        const totalPaidForHamaliAndRent = (record.payments || [])
-            .filter(p => toDate(p.date) <= endDate) // only payments made before or on outflow
-            .reduce((acc, p) => acc + p.amount, 0);
-        
-        // This logic is tricky. Let's assume outflow `addPayment` action creates a new payment for the final settlement.
-        // The hamali pending is what was originally due minus what was paid *before* this final settlement.
         const priorPayments = (record.payments || [])
             .filter(p => toDate(p.date) < endDate)
             .reduce((acc, p) => acc + p.amount, 0);
@@ -75,38 +59,232 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
     const totalPayable = finalRent + hamaliPending;
     const balanceDue = totalPayable - paidNow;
 
-    const handleDownloadPdf = async () => {
-        const element = receiptRef.current;
-        if (!element) return;
-
-        setIsGenerating(true);
-
-        try {
-            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const ratio = imgWidth / imgHeight;
-            let widthInPdf = pdfWidth - 20;
-            let heightInPdf = widthInPdf / ratio;
-
-            if (heightInPdf > pdfHeight - 20) {
-                heightInPdf = pdfHeight - 20;
-                widthInPdf = heightInPdf * ratio;
-            }
-
-            const x = (pdfWidth - widthInPdf) / 2;
-            const y = 10;
-
-            pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
-            pdf.save(`outflow-bill-${record.id}.pdf`);
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-        } finally {
-            setIsGenerating(false);
+    const handlePrint = () => {
+        const warehouseName = warehouse?.name || 'Srilakshmi Warehouse';
+        const warehouseAddress = warehouse?.location || 'Your Company Address, City, State, ZIP';
+        const warehousePhone = warehouse?.phone || '(123) 456-7890';
+        const warehouseEmail = warehouse?.email || 'contact@yourwarehouse.com';
+        
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Outflow Bill - ${record.id}</title>
+                <style>
+                    @media print {
+                        @page { margin: 1cm; }
+                        body { margin: 0; }
+                        .no-print { display: none; }
+                    }
+                    
+                    body {
+                        font-family: Arial, sans-serif;
+                        padding: 20px;
+                        max-width: 210mm;
+                        margin: 0 auto;
+                    }
+                    
+                    .header {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 30px;
+                    }
+                    
+                    .header h1 {
+                        margin: 0;
+                        font-size: 24px;
+                        color: #3b82f6;
+                    }
+                    
+                    .header .company-info {
+                        font-size: 12px;
+                        color: #6b7280;
+                    }
+                    
+                    .header .bill-info {
+                        text-align: right;
+                    }
+                    
+                    .header .bill-info h2 {
+                        margin: 0;
+                        font-size: 18px;
+                        text-transform: uppercase;
+                        color: #6b7280;
+                    }
+                    
+                    .customer-section {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 20px;
+                        margin-bottom: 30px;
+                    }
+                    
+                    .section-title {
+                        font-size: 12px;
+                        font-weight: bold;
+                        color: #6b7280;
+                        margin-bottom: 10px;
+                    }
+                    
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 20px;
+                    }
+                    
+                    th {
+                        background: #f3f4f6;
+                        padding: 10px;
+                        text-align: left;
+                        font-weight: bold;
+                        border: 1px solid #e5e7eb;
+                    }
+                    
+                    td {
+                        padding: 10px;
+                        border: 1px solid #e5e7eb;
+                    }
+                    
+                    .totals {
+                        display: flex;
+                        justify-content: flex-end;
+                        margin-bottom: 30px;
+                    }
+                    
+                    .totals-box {
+                        width: 300px;
+                    }
+                    
+                    .total-row {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 8px 0;
+                        font-size: 14px;
+                    }
+                    
+                    .total-row.final {
+                        font-weight: bold;
+                        font-size: 16px;
+                        color: #ef4444;
+                        border-top: 2px solid #e5e7eb;
+                        padding-top: 12px;
+                        margin-top: 8px;
+                    }
+                    
+                    .footer {
+                        border-top: 1px solid #e5e7eb;
+                        padding-top: 20px;
+                        font-size: 11px;
+                        color: #6b7280;
+                        text-align: center;
+                    }
+                    
+                    .no-print {
+                        text-align: center;
+                        margin: 20px 0;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <h1>${warehouseName}</h1>
+                        <div class="company-info">${warehouseAddress}</div>
+                        <div class="company-info">${warehouseEmail} | ${warehousePhone}</div>
+                    </div>
+                    <div class="bill-info">
+                        <h2>Outflow Bill</h2>
+                        <div style="font-size: 12px; margin-top: 10px;">
+                            <div><strong>Bill #:</strong> ${record.id}</div>
+                            <div><strong>Serial No:</strong> ${record.id}</div>
+                            <div><strong>Date:</strong> ${formattedEndDate}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="customer-section">
+                    <div>
+                        <div class="section-title">BILL TO</div>
+                        <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">${customer.name}</div>
+                        <div>${customer.address || ''}</div>
+                        <div>Phone: ${customer.phone}</div>
+                    </div>
+                    <div>
+                        <div class="section-title">WITHDRAWAL DETAILS</div>
+                        <div><strong>Commodity:</strong> ${record.commodityDescription}</div>
+                        <div><strong>Date In:</strong> ${formattedStartDate}</div>
+                        <div><strong>Storage Duration:</strong> ${duration.months} months (${duration.days} days)</div>
+                    </div>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50%;">Description</th>
+                            <th>Quantity</th>
+                            <th>Rate</th>
+                            <th style="text-align: right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Rent</td>
+                            <td>${withdrawnBags} bags</td>
+                            <td>${formatCurrency(rentBreakdown.rentPerBag)} / bag</td>
+                            <td style="text-align: right;">${formatCurrency(finalRent)}</td>
+                        </tr>
+                        <tr>
+                            <td>Pending Hamali Charges</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td style="text-align: right;">${formatCurrency(hamaliPending)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="totals">
+                    <div class="totals-box">
+                        <div class="total-row">
+                            <span style="color: #6b7280;">Total Due</span>
+                            <span>${formatCurrency(totalPayable)}</span>
+                        </div>
+                        <div class="total-row">
+                            <span style="color: #6b7280;">Amount Paid Now</span>
+                            <span>${formatCurrency(paidNow)}</span>
+                        </div>
+                        <div class="total-row final">
+                            <span>Balance Due</span>
+                            <span>${formatCurrency(balanceDue)}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <h4 style="margin: 0 0 10px 0;">Notes & Terms</h4>
+                    <p style="margin: 5px 0;">This bill reflects the final settlement for the withdrawal of goods.</p>
+                    <p style="margin-top: 20px; font-weight: bold;">Thank you for your business!</p>
+                </div>
+                
+                <div class="no-print">
+                    <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 4px;">
+                        Print / Save as PDF
+                    </button>
+                    <button onclick="window.close()" style="padding: 10px 20px; font-size: 14px; cursor: pointer; background: #95a5a6; color: white; border: none; border-radius: 4px; margin-left: 10px;">
+                        Close
+                    </button>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
         }
     };
 
@@ -116,13 +294,13 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
 
     return (
         <div className="max-w-3xl mx-auto bg-background p-4 sm:p-6 rounded-lg">
-            <div ref={receiptRef} className="printable-area bg-white p-6 sm:p-8">
+            <div className="bg-white p-6 sm:p-8 border rounded-lg">
                 {/* Header */}
                 <div className="flex justify-between items-start mb-8">
                     <div>
-                        <h1 className="text-2xl font-bold text-primary">Srilakshmi Warehouse</h1>
-                        <p className="text-sm text-muted-foreground">Your Company Address, City, State, ZIP</p>
-                        <p className="text-sm text-muted-foreground">contact@yourwarehouse.com | (123) 456-7890</p>
+                        <h1 className="text-2xl font-bold text-primary">{warehouse?.name || 'Srilakshmi Warehouse'}</h1>
+                        <p className="text-sm text-muted-foreground">{warehouse?.location || 'Your Company Address, City, State, ZIP'}</p>
+                        <p className="text-sm text-muted-foreground">{warehouse?.email || 'contact@yourwarehouse.com'} | {warehouse?.phone || '(123) 456-7890'}</p>
                     </div>
                     <div className="text-right">
                         <h2 className="text-xl font-semibold uppercase text-muted-foreground">Outflow Bill</h2>
@@ -148,77 +326,51 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                     </div>
                 </div>
 
-                {/* Items Table */}
-                <div className="mb-8">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[50%]">Description</TableHead>
-                                <TableHead>Quantity</TableHead>
-                                <TableHead>Rate</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell>Rent</TableCell>
-                                <TableCell>{withdrawnBags} bags</TableCell>
-                                <TableCell>{formatCurrency(rentBreakdown.rentPerBag)} / bag</TableCell>
-                                <TableCell className="text-right">{formatCurrency(finalRent)}</TableCell>
-                            </TableRow>
-                             <TableRow>
-                                <TableCell>Pending Hamali Charges</TableCell>
-                                <TableCell> - </TableCell>
-                                <TableCell> - </TableCell>
-                                <TableCell className="text-right">{formatCurrency(hamaliPending)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
-
-                 {/* Totals Section */}
-                <div className="flex justify-end mb-8">
-                    <div className="w-full max-w-sm space-y-2 text-sm">
-                        <div className="flex justify-between">
+                {/* Summary */}
+                <div className="border rounded p-4 mb-6">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <div className="text-muted-foreground">Rent</div>
+                            <div className="font-medium">{withdrawnBags} bags × {formatCurrency(rentBreakdown.rentPerBag)}</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="font-medium">{formatCurrency(finalRent)}</div>
+                        </div>
+                        <div>
+                            <div className="text-muted-foreground">Pending Hamali</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="font-medium">{formatCurrency(hamaliPending)}</div>
+                        </div>
+                    </div>
+                    <div className="border-t mt-4 pt-4">
+                        <div className="flex justify-between text-sm mb-2">
                             <span className="text-muted-foreground">Total Due</span>
                             <span>{formatCurrency(totalPayable)}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between text-sm mb-2">
                             <span className="text-muted-foreground">Amount Paid Now</span>
                             <span>{formatCurrency(paidNow)}</span>
                         </div>
-                        <Separator />
-                        <div className="flex justify-between font-bold text-lg text-destructive">
+                        <div className="flex justify-between font-bold text-lg text-destructive border-t pt-2">
                             <span>Balance Due</span>
                             <span>{formatCurrency(balanceDue)}</span>
                         </div>
                     </div>
                 </div>
 
-                <Separator className="my-8"/>
-
                 {/* Footer */}
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground border-t pt-4">
                     <h4 className="font-semibold mb-2">Notes & Terms</h4>
-                    <p>
-                        This bill reflects the final settlement for the withdrawal of goods.
-                    </p>
+                    <p>This bill reflects the final settlement for the withdrawal of goods.</p>
                     <p className="mt-4 text-center font-semibold">Thank you for your business!</p>
                 </div>
             </div>
-            <div className="mt-6 flex justify-center print-hide">
-                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                    {isGenerating ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Downloading...
-                        </>
-                    ) : (
-                        <>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download PDF
-                        </>
-                    )}
+            
+            <div className="mt-6 flex justify-center">
+                <Button onClick={handlePrint}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Print / Download PDF
                 </Button>
             </div>
         </div>

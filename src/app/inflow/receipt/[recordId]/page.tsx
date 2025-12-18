@@ -1,7 +1,7 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { InflowReceipt } from "@/components/inflow/inflow-receipt";
-import { getStorageRecord, getCustomer } from "@/lib/queries";
+import { getStorageRecord, getCustomer, getWarehouseDetails } from "@/lib/queries";
 import { notFound } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,11 @@ export const dynamic = 'force-dynamic';
 export default async function InflowReceiptPage({ params }: { params: Promise<{ recordId: string }> }) {
   const { recordId } = await params;
   
-  const record = await getStorageRecord(recordId);
+  const [record, warehouse] = await Promise.all([
+    getStorageRecord(recordId),
+    getWarehouseDetails()
+  ]);
+  
   const customer = record ? await getCustomer(record.customerId) : null;
 
   if (!record || !customer) {
@@ -23,7 +27,7 @@ export default async function InflowReceiptPage({ params }: { params: Promise<{ 
         description={`Details for storage record ${record.id}`}
       />
       <div className="flex justify-center">
-        <InflowReceipt record={record} customer={customer} />
+        <InflowReceipt record={record} customer={customer} warehouse={warehouse} />
       </div>
     </AppLayout>
   );

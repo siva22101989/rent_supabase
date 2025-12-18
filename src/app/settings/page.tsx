@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { updateWarehouseDetails, addCrop, deleteCrop } from '@/lib/admin-actions';
+import { EditCropDialog } from '@/components/lots/edit-crop-dialog';
+import { DeleteCropButton } from '@/components/lots/delete-crop-button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Trash2 } from 'lucide-react';
 
@@ -69,6 +71,14 @@ export default async function SettingsPage() {
                 <Input id="location" name="location" defaultValue={warehouse?.location || ''} />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" name="phone" type="tel" defaultValue={warehouse?.phone || ''} placeholder="e.g., 9703503423" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" name="email" type="email" defaultValue={warehouse?.email || ''} placeholder="e.g., contact@warehouse.com" />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="capacity">Capacity (Bags)</Label>
                 <Input id="capacity" name="capacity" type="number" defaultValue={warehouse?.capacity_bags || ''} />
               </div>
@@ -109,12 +119,19 @@ export default async function SettingsPage() {
                                 <TableCell>₹{crop.rent_price_6m}</TableCell>
                                 <TableCell>₹{crop.rent_price_1y}</TableCell>
                                 <TableCell>
-                                    <form action={deleteCrop.bind(null, crop.id)}>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                            <Trash2 className="h-4 w-4" />
-                                            <span className="sr-only">Delete</span>
-                                        </Button>
-                                    </form>
+                                    <div className="flex items-center gap-1">
+                                        <EditCropDialog 
+                                            crop={{
+                                                id: crop.id,
+                                                name: crop.name,
+                                                rate: crop.rate || 0
+                                            }}
+                                        />
+                                        <DeleteCropButton 
+                                            cropId={crop.id}
+                                            cropName={crop.name}
+                                        />
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}

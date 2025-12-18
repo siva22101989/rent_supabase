@@ -1,9 +1,11 @@
 
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useState, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useSearchParams } from 'next/navigation';
 import { addInflow, type InflowFormState } from '@/lib/actions';
+// ... (rest of imports unchanged)
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,8 +33,11 @@ function SubmitButton() {
     );
 }
 
-export function InflowForm({ customers, nextSerialNumber, lots, crops }: { customers: Customer[], nextSerialNumber: string, lots: any[], crops: any[] }) {
+function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { customers: Customer[], nextSerialNumber: string, lots: any[], crops: any[] }) {
     const { toast } = useToast();
+    const searchParams = useSearchParams();
+    const queryCustomerId = searchParams.get('customerId');
+    
     const initialState: InflowFormState = { message: '', success: false };
     const [state, formAction] = useActionState(addInflow, initialState);
 
@@ -40,7 +45,7 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
     const [rate, setRate] = useState(0);
     const [hamali, setHamali] = useState(0);
     const [hamaliPaid, setHamaliPaid] = useState(0);
-    const [selectedCustomerId, setSelectedCustomerId] = useState('');
+    const [selectedCustomerId, setSelectedCustomerId] = useState(queryCustomerId || '');
     const [inflowType, setInflowType] = useState<'Direct' | 'Plot'>('Direct');
     const [plotBags, setPlotBags] = useState(0);
     const [selectedLotId, setSelectedLotId] = useState('');
@@ -92,9 +97,49 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
     }, [bags, plotBags, rate, inflowType]);
 
 
+    const [error, setError] = useState<string | null>(null);
+
+    const handleValidation = (e: React.FormEvent<HTMLFormElement>) => {
+        const formData = new FormData(e.currentTarget);
+        const tParams = {
+            customerId: formData.get('customerId'),
+            lot: formData.get('lotId'),
+            crop: formData.get('cropId'),
+            bags: Number(formData.get('bagsStored')),
+            plotBags: Number(formData.get('plotBags')),
+            type: formData.get('inflowType'),
+            weight: Number(formData.get('weight')),
+        };
+
+        let errMsg = null;
+
+        if (!tParams.customerId) errMsg = 'Please select a Customer.';
+        else if (!tParams.lot) errMsg = 'Please select a Lot.';
+        else if (!tParams.crop) errMsg = 'Please select a Crop.';
+        
+        else if (tParams.type === 'Direct') {
+             if (tParams.bags <= 0) errMsg = 'Number of bags must be greater than 0.';
+        } else if (tParams.type === 'Plot') {
+             if (tParams.plotBags <= 0) errMsg = 'Plot bags must be greater than 0.';
+        }
+        
+        if (!errMsg && tParams.weight <= 0) {
+             errMsg = 'Weight must be greater than 0.';
+        }
+
+        if (errMsg) {
+            e.preventDefault(); // Stop form submission
+            setError(errMsg);
+            // Scroll to top to see error
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            setError(null);
+        }
+    };
+
   return (
     <div className="flex justify-center">
-        <form action={formAction} className="w-full max-w-lg">
+        <form action={formAction} onSubmit={handleValidation} className="w-full max-w-lg">
             <Card>
                 <CardHeader>
                     <CardTitle>New Storage Record Details</CardTitle>
@@ -103,9 +148,16 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {/* Error Alert */}
+                    {error && (
+                         <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-4 border border-destructive/20">
+                            {error}
+                         </div>
+                    )}
+
                     <div className="space-y-2">
-                        <Label htmlFor="customerId">Customer</Label>
-                        <Select name="customerId" required onValueChange={setSelectedCustomerId}>
+                        <Label htmlFor="customerId">Customer <span className="text-destructive">*</span></Label>
+                        <Select name="customerId" required onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
                             <SelectTrigger id="customerId">
                                 <SelectValue placeholder="Select a customer" />
                             </SelectTrigger>
@@ -154,12 +206,27 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
                     {inflowType === 'Plot' && (
                         <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-2">
-                                <Label htmlFor="plotBags">Plot Bags</Label>
-                                <Input id="plotBags" name="plotBags" type="number" placeholder="0" onChange={e => setPlotBags(Number(e.target.value))} />
+                                <Label htmlFor="plotBags">Plot Bags <span className="text-destructive">*</span></Label>
+                                <Input 
+                                    id="plotBags" 
+                                    name="plotBags" 
+                                    type="number" 
+                                    min="1"
+                                    placeholder="0" 
+                                    required
+                                    onChange={e => setPlotBags(Number(e.target.value))} 
+                                />
                             </div>
                              <div className="space-y-2">
-                                <Label htmlFor="loadBags">Load Bags</Label>
-                                <Input id="loadBags" name="loadBags" type="number" placeholder="0" />
+                                <Label htmlFor="loadBags">Load Bags <span className="text-destructive">*</span></Label>
+                                <Input 
+                                    id="loadBags" 
+                                    name="loadBags" 
+                                    type="number" 
+                                    min="1"
+                                    placeholder="0" 
+                                    required
+                                />
                             </div>
                         </div>
                     )}
@@ -167,20 +234,9 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="cropId">Product / Crop</Label>
-                            <Select name="cropId" onValueChange={val => {
+                            <Label htmlFor="cropId">Product / Crop <span className="text-destructive">*</span></Label>
+                            <Select name="cropId" required onValueChange={val => {
                                 setSelectedCropId(val);
-                                const crop = crops?.find(c => c.id === val);
-                                if (crop) {
-                                    // Auto-fill logic
-                                    // Assuming crop has standard_bag_weight_kg
-                                    // We need to set the value of the weight input
-                                    // We can use the 'key' prop trick or just rely on state if we make input controlled.
-                                    // Let's use hidden inputs for calculation and allow override?
-                                    // Actually, just set the state for weight if we make it controlled.
-                                    // But I didn't make weight controlled yet.
-                                    // Simplified: Just pass name as commodityDescription for now.
-                                }
                             }}>
                                 <SelectTrigger id="cropId">
                                     <SelectValue placeholder="Select Crop" />
@@ -196,8 +252,8 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
                             <input type="hidden" name="commodityDescription" value={selectedCrop ? selectedCrop.name : ''} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="lotId">Lot No.</Label>
-                            <Select name="lotId" onValueChange={setSelectedLotId}>
+                            <Label htmlFor="lotId">Lot No. <span className="text-destructive">*</span></Label>
+                            <Select name="lotId" required onValueChange={setSelectedLotId}>
                                 <SelectTrigger id="lotId">
                                     <SelectValue placeholder="Select Lot" />
                                 </SelectTrigger>
@@ -214,7 +270,6 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
                                     })}
                                 </SelectContent>
                             </Select>
-                            {/* Fallback Location Name if Lot is selected */}
                             <input type="hidden" name="location" value={selectedLot ? selectedLot.name : ''} />
                         </div>
                     </div>
@@ -224,7 +279,7 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
                             <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="storageStartDate">Date</Label>
+                            <Label htmlFor="storageStartDate">Date <span className="text-destructive">*</span></Label>
                             <Input 
                                 id="storageStartDate" 
                                 name="storageStartDate" 
@@ -237,29 +292,30 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
                      <div className="grid grid-cols-2 gap-4">
                         {inflowType === 'Direct' && (
                             <div className="space-y-2">
-                                <Label htmlFor="bagsStored">No. of Bags</Label>
+                                <Label htmlFor="bagsStored">No. of Bags <span className="text-destructive">*</span></Label>
                                 <Input 
                                     id="bagsStored" 
                                     name="bagsStored" 
                                     type="number" 
                                     placeholder="0" 
                                     required 
+                                    min="1"
                                     onChange={e => setBags(Number(e.target.value))}
                                     value={bags || ''}
                                 />
                             </div>
                         )}
                          <div className="space-y-2">
-                            <Label htmlFor="weight">Weight (kg)</Label>
+                            <Label htmlFor="weight">Weight (kg) <span className="text-destructive">*</span></Label>
                             <Input 
                                 id="weight" 
                                 name="weight" 
                                 type="number" 
                                 step="0.01" 
                                 placeholder="0.00" 
-                                // Controlled or defaultValue?
-                                // If I use key, it resets.
-                                key={selectedCropId} // Reset when crop changes to take new default
+                                required
+                                min="0.01"
+                                key={selectedCropId} 
                                 defaultValue={selectedCrop ? selectedCrop.standard_bag_weight_kg : ''}
                             />
                         </div>
@@ -309,4 +365,12 @@ export function InflowForm({ customers, nextSerialNumber, lots, crops }: { custo
         </form>
     </div>
   );
+}
+
+export function InflowForm(props: { customers: Customer[], nextSerialNumber: string, lots: any[], crops: any[] }) {
+    return (
+        <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>}>
+            <InflowFormInner {...props} />
+        </Suspense>
+    );
 }

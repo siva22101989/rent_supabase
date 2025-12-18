@@ -59,6 +59,7 @@ export async function bulkAddLots(formData: FormData) {
     }
   
     revalidatePath('/settings/lots');
+  return { message: 'Lots added successfully!', success: true };
 }
 
 export async function deleteLot(id: string) {
@@ -105,4 +106,98 @@ export async function addLotsFromList(formData: FormData) {
     }
   
     revalidatePath('/settings/lots');
+}
+
+/**
+ * Update Lot
+ */
+export async function updateLot(lotId: string, formData: FormData) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+
+  if (!warehouseId) throw new Error('Unauthorized');
+
+  const name = formData.get('name') as string;
+  const capacity = parseInt(formData.get('capacity') as string);
+
+  if (!name || !capacity || capacity <= 0) {
+    throw new Error('Invalid lot data');
+  }
+
+  const { error } = await supabase
+    .from('warehouse_lots')
+    .update({ name, capacity })
+    .eq('id', lotId)
+    .eq('warehouse_id', warehouseId);
+
+  if (error) {
+    console.error('Error updating lot:', error);
+    throw new Error('Failed to update lot');
+  }
+
+  revalidatePath('/settings/lots');
+}
+
+/**
+ * Update Crop
+ */
+export async function updateCrop(cropId: string, formData: FormData) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+
+  if (!warehouseId) throw new Error('Unauthorized');
+
+  const name = formData.get('name') as string;
+  const rate = parseFloat(formData.get('rate') as string);
+
+  if (!name || !rate || rate <= 0) {
+    throw new Error('Invalid crop data');
+  }
+
+  const { error } = await supabase
+    .from('crops')
+    .update({ name, rate })
+    .eq('id', cropId)
+    .eq('warehouse_id', warehouseId);
+
+  if (error) {
+    console.error('Error updating crop:', error);
+    throw new Error('Failed to update crop');
+  }
+
+  revalidatePath('/settings/lots');
+}
+
+/**
+ * Delete Crop
+ */
+export async function deleteCrop(cropId: string) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+
+  if (!warehouseId) throw new Error('Unauthorized');
+
+  // Check if crop is being used in any storage records
+  const { data: records } = await supabase
+    .from('storage_records')
+    .select('id')
+    .eq('crop_id', cropId)
+    .limit(1);
+
+  if (records && records.length > 0) {
+    throw new Error('Cannot delete crop that is being used in storage records');
+  }
+
+  const { error } = await supabase
+    .from('crops')
+    .delete()
+    .eq('id', cropId)
+    .eq('warehouse_id', warehouseId);
+
+  if (error) {
+    console.error('Error deleting crop:', error);
+    throw new Error('Failed to delete crop');
+  }
+
+  revalidatePath('/settings/lots');
 }

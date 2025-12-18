@@ -17,6 +17,21 @@ export const getUserWarehouse = cache(async () => {
   return profile?.warehouse_id;
 });
 
+// Helper to get warehouse details
+export const getWarehouseDetails = cache(async () => {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+  if (!warehouseId) return null;
+
+  const { data } = await supabase
+    .from('warehouses')
+    .select('*')
+    .eq('id', warehouseId)
+    .single();
+
+  return data;
+});
+
 // Helper to fetch crops
 export const getAvailableCrops = cache(async () => {
     const supabase = await createClient();
@@ -262,6 +277,7 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
 
     if (!warehouseId) return [];
 
+    // Optimized: Single query with join instead of nested queries
     const { data: records, error } = await supabase
         .from('storage_records')
         .select(`
@@ -270,14 +286,13 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
         `)
         .eq('warehouse_id', warehouseId)
         .eq('customer_id', customerId)
-        .order('created_at', { ascending: false });
+        .order('storage_start_date', { ascending: false });
 
     if (error) {
         console.error('Error fetching customer records:', error);
         return [];
     }
 
-    // Reuse mapping logic or simplify
     return records.map((r: any) => ({
         id: r.id,
         recordNumber: r.record_number,
@@ -285,8 +300,8 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
         cropId: r.crop_id,
         commodityDescription: r.commodity_description,
         location: r.location,
-        bagsIn: r.bags_stored, // Simplification
-        bagsOut: 0,
+        bagsIn: r.bags_in || r.bags_stored, // Ensure we use original bags_in
+        bagsOut: r.bags_out || 0,
         bagsStored: r.bags_stored,
         storageStartDate: new Date(r.storage_start_date),
         storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
@@ -294,7 +309,7 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
         payments: (r.payments || []).map((p: any) => ({
             amount: p.amount,
             date: new Date(p.payment_date),
-            type: 'other',
+            type: p.payment_type || 'other',
             notes: p.notes,
             paymentNumber: p.payment_number
         })),

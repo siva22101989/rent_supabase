@@ -8,7 +8,7 @@ import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, LogOut } from 'lucide-react';
-import { NotificationBell } from './notification-bell';
+// import { NotificationBell } from './notification-bell';
 import { CommandSearch } from './command-search';
 import { ModeToggle } from '@/components/mode-toggle';
 import {
@@ -111,8 +111,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* <NotificationBell /> */} {/* Disabled for now */}
               <ModeToggle />
-              <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">

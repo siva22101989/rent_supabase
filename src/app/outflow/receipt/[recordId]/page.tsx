@@ -1,7 +1,7 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
-import { getStorageRecord, getCustomer } from "@/lib/queries";
+import { getStorageRecord, getCustomer, getWarehouseDetails } from "@/lib/queries";
 import { notFound } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
@@ -10,16 +10,21 @@ export default async function OutflowReceiptPage({
     params, 
     searchParams 
 }: { 
-    params: { recordId: string },
-    searchParams: { [key: string]: string | string[] | undefined }
+    params: Promise<{ recordId: string }>,
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const { recordId } = params;
+  const { recordId } = await params;
+  const resolvedSearchParams = await searchParams;
   
-  const withdrawnBags = Number(searchParams?.withdrawn) || 0;
-  const finalRent = Number(searchParams?.rent) || 0;
-  const paidNow = Number(searchParams?.paidNow) || 0;
+  const withdrawnBags = Number(resolvedSearchParams?.withdrawn) || 0;
+  const finalRent = Number(resolvedSearchParams?.rent) || 0;
+  const paidNow = Number(resolvedSearchParams?.paidNow) || 0;
 
-  const record = await getStorageRecord(recordId);
+  const [record, warehouse] = await Promise.all([
+    getStorageRecord(recordId),
+    getWarehouseDetails()
+  ]);
+  
   const customer = record ? await getCustomer(record.customerId) : null;
 
   if (!record || !customer) {
@@ -39,6 +44,7 @@ export default async function OutflowReceiptPage({
             withdrawnBags={withdrawnBags}
             finalRent={finalRent}
             paidNow={paidNow}
+            warehouse={warehouse}
         />
       </div>
     </AppLayout>

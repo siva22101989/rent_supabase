@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
-import { getStorageRecords, getCustomers, getStorageRecord, getCustomer } from '@/lib/queries';
+import { getStorageRecords, getCustomers, getStorageRecord, getCustomer, getUserWarehouse } from '@/lib/queries';
 import { saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, deleteStorageRecord, saveExpense, updateExpense, deleteExpense } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -68,16 +68,128 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
     return { message: 'Customer added successfully.', success: true };
 }
 
+const CustomerSchema = z.object({
+    name: z.string().min(3, 'Name must be at least 3 characters.'),
+    phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
+    address: z.string().min(5, 'Address must be at least 5 characters.'),
+    email: z.string().optional(),
+    fatherName: z.string().optional(),
+    village: z.string().optional(),
+});
+
+/**
+ * Update Customer
+ */
+export async function updateCustomer(customerId: string, formData: FormData) {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+
+    if (!warehouseId) {
+        return { message: 'No warehouse found for user', success: false };
+    }
+
+    const validatedFields = CustomerSchema.safeParse({
+        name: formData.get('name'),
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        address: formData.get('address'),
+        fatherName: formData.get('fatherName'),
+        village: formData.get('village'),
+    });
+
+    if (!validatedFields.success) {
+        const error = validatedFields.error.flatten().fieldErrors;
+        const message = Object.values(error).flat().join(', ');
+        return { message: `Invalid data: ${message}`, success: false };
+    }
+
+    // Transform to database column names (snake_case)
+    const updateData = {
+        name: validatedFields.data.name,
+        phone: validatedFields.data.phone,
+        email: validatedFields.data.email || '',
+        address: validatedFields.data.address,
+        father_name: validatedFields.data.fatherName || '',
+        village: validatedFields.data.village || ''
+    };
+
+    const { data, error } = await supabase
+        .from('customers')
+        .update(updateData)
+        .eq('id', customerId)
+        .eq('warehouse_id', warehouseId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating customer:', error);
+        console.error('Customer ID:', customerId);
+        console.error('Warehouse ID:', warehouseId);
+        console.error('Update data:', updateData);
+        return { message: `Failed to update customer: ${error.message}`, success: false };
+    }
+
+    revalidatePath('/customers');
+    revalidatePath(`/customers/${customerId}`);
+    return { message: 'Customer updated successfully!', success: true };
+}
+
+/**
+ * Delete Customer (only if no storage records exist)
+ */
+export async function deleteCustomer(customerId: string) {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+
+    if (!warehouseId) {
+        return { message: 'No warehouse found for user', success: false };
+    }
+
+    // Check if customer has any storage records
+    const { data: records, error: checkError } = await supabase
+        .from('storage_records')
+        .select('id')
+        .eq('customer_id', customerId)
+        .limit(1);
+
+    if (checkError) {
+        console.error('Error checking customer records:', checkError);
+        return { message: 'Failed to check customer records', success: false };
+    }
+
+    if (records && records.length > 0) {
+        return { 
+            message: 'Cannot delete customer with existing storage records. This preserves your audit trail.', 
+            success: false 
+        };
+    }
+
+    // Delete customer
+    const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerId)
+        .eq('warehouse_id', warehouseId);
+
+    if (error) {
+        console.error('Error deleting customer:', error);
+        return { message: 'Failed to delete customer', success: false };
+    }
+
+    revalidatePath('/customers');
+    redirect('/customers');
+}
+
 const InflowSchema = z.object({
     customerId: z.string().min(1, 'Customer is required.'),
     commodityDescription: z.string().min(2, 'Commodity description is required.'),
-    location: z.string(),
+    location: z.string().optional(), // Now optional as we prefer lotId
     storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
     bagsStored: z.coerce.number().int().nonnegative('Number of bags must be a non-negative number.').optional(),
     hamaliRate: z.coerce.number().nonnegative('Hamali rate must be a non-negative number.').optional(),
     hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.').optional(),
     lorryTractorNo: z.string().optional(),
-    weight: z.coerce.number().nonnegative('Weight must be a non-negative number.').optional(),
+    weight: z.coerce.number().positive('Weight must be greater than 0.').optional(), // Weight should generally be positive if provided
     // For updating customer details from inflow form
     fatherName: z.string().optional(),
     village: z.string().optional(),
@@ -85,8 +197,8 @@ const InflowSchema = z.object({
     plotBags: z.coerce.number().nonnegative('Plot bags must be a non-negative number.').optional(),
     loadBags: z.coerce.number().optional(),
     khataAmount: z.coerce.number().nonnegative('Khata amount must be a non-negative number.').optional(),
-    lotId: z.string().optional(),
-    cropId: z.string().optional(),
+    lotId: z.string().min(1, 'Lot selection is required.'),
+    cropId: z.string().min(1, 'Crop selection is required.'),
 });
 
 export type InflowFormState = {
@@ -383,6 +495,60 @@ export async function updateStorageRecordAction(recordId: string, prevState: Inf
     return { message: 'Record updated successfully.', success: true };
 }
 
+/**
+ * Simple Storage Record Update (for UI)
+ */
+export async function updateStorageRecordSimple(recordId: string, formData: {
+    commodityDescription: string;
+    location: string;
+    bagsStored: number;
+    hamaliPayable: number;
+    storageStartDate: string;
+}) {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+
+    if (!warehouseId) {
+        return { message: 'No warehouse found for user', success: false };
+    }
+
+    // Check if record is completed
+    const { data: record } = await supabase
+        .from('storage_records')
+        .select('storage_end_date')
+        .eq('id', recordId)
+        .single();
+
+    if (record?.storage_end_date) {
+        return { message: 'Cannot edit completed records', success: false };
+    }
+
+    // Transform to database column names
+    const updateData = {
+        commodity_description: formData.commodityDescription,
+        location: formData.location,
+        bags_stored: formData.bagsStored,
+        hamali_payable: formData.hamaliPayable,
+        storage_start_date: new Date(formData.storageStartDate)
+    };
+
+    const { error } = await supabase
+        .from('storage_records')
+        .update(updateData)
+        .eq('id', recordId)
+        .eq('warehouse_id', warehouseId);
+
+    if (error) {
+        console.error('Error updating storage record:', error);
+        return { message: `Failed to update record: ${error.message}`, success: false };
+    }
+
+    revalidatePath('/storage');
+    revalidatePath('/payments/pending');
+    revalidatePath('/reports');
+    return { message: 'Record updated successfully!', success: true };
+}
+
 
 const PaymentSchema = z.object({
   recordId: z.string(),
@@ -436,21 +602,96 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
     
     const { createNotification } = await import('@/lib/logger');
     
-    // Fetch customer Name
-    const customer = await getCustomer(record?.customerId || '');
-    const customerName = customer?.name || 'Customer';
-
-    await createNotification(
-        'Payment Recorded', 
-        `Received ₹${paymentAmount} from ${customerName} (${paymentType})`, 
-        'success',
-        undefined, 
-        `/inflow/receipt/${recordId}`
-    );
+    // Fetch customer    
+    const customer = await getCustomer(record.customerId);
+    if (customer) {
+        const paymentTypeLabel = paymentType === 'Hamali' ? 'Hamali' : 'Rent/Storage';
+        await createNotification({
+            warehouseId: record.warehouseId,
+            title: 'Payment Received',
+            message: `Payment of ₹${paymentAmount} received from ${customer.name} for ${paymentTypeLabel}`,
+            type: 'info'
+        });
+    }
     
+    revalidatePath('/customers');
     revalidatePath('/payments/pending');
-    revalidatePath('/reports');
-    return { message: 'Transaction recorded successfully.', success: true };
+    revalidatePath(`/customers/${record.customerId}`);
+    return { message: 'Payment recorded successfully!', success: true };
+}
+
+/**
+ * Update Payment
+ */
+export async function updatePayment(paymentId: string, formData: FormData) {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+
+    if (!warehouseId) {
+        return { message: 'No warehouse found for user', success: false };
+    }
+
+    const amount = parseFloat(formData.get('amount') as string);
+    const date = formData.get('date') as string;
+    const type = formData.get('type') as string;
+    const notes = formData.get('notes') as string;
+    const customerId = formData.get('customerId') as string;
+
+    if (!amount || amount <= 0) {
+        return { message: 'Invalid payment amount', success: false };
+    }
+
+    // Transform to database column names
+    const updateData = {
+        amount,
+        payment_date: new Date(date),
+        type,
+        notes: notes || ''
+    };
+
+    const { data, error } = await supabase
+        .from('payments')
+        .update(updateData)
+        .eq('id', paymentId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating payment:', error);
+        return { message: `Failed to update payment: ${error.message}`, success: false };
+    }
+
+    revalidatePath('/customers');
+    revalidatePath('/payments/pending');
+    revalidatePath(`/customers/${customerId}`);
+    return { message: 'Payment updated successfully!', success: true };
+}
+
+/**
+ * Delete Payment
+ */
+export async function deletePayment(paymentId: string, customerId: string) {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+
+    if (!warehouseId) {
+        return { message: 'No warehouse found for user', success: false };
+    }
+
+    const { error } = await supabase
+        .from('payments')
+        .delete()
+        .eq('id', paymentId);
+
+    if (error) {
+        console.error('Error deleting payment:', error);
+        return { message: 'Failed to delete payment', success: false };
+    }
+
+    revalidatePath('/customers');
+    revalidatePath('/payments/pending');
+    revalidatePath(`/customers/${customerId}`);
+    return { message: 'Payment deleted successfully!', success: true };
 }
 
 export async function deleteStorageRecordAction(recordId: string): Promise<FormState> {
@@ -525,6 +766,82 @@ export async function updateExpenseAction(expenseId: string, prevState: FormStat
     return { message: 'Failed to update expense.', success: false };
   }
 }
+
+/**
+ * Simple Expense Update (for UI)
+ */
+export async function updateExpenseSimple(expenseId: string, formData: FormData) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+
+  if (!warehouseId) {
+    return { message: 'No warehouse found for user', success: false };
+  }
+
+  const validatedFields = ExpenseSchema.safeParse({
+    description: formData.get('description'),
+    amount: formData.get('amount'),
+    date: formData.get('date'),
+    category: formData.get('category'),
+  });
+
+  if (!validatedFields.success) {
+    const error = validatedFields.error.flatten().fieldErrors;
+    const message = Object.values(error).flat().join(', ');
+    return { message: `Invalid data: ${message}`, success: false };
+  }
+
+  // Transform to database column names
+  const updateData = {
+    description: validatedFields.data.description,
+    amount: validatedFields.data.amount,
+    category: validatedFields.data.category,
+    expense_date: new Date(validatedFields.data.date)
+  };
+
+  const { error } = await supabase
+    .from('expenses')
+    .update(updateData)
+    .eq('id', expenseId)
+    .eq('warehouse_id', warehouseId);
+
+  if (error) {
+    console.error('Error updating expense:', error);
+    return { message: `Failed to update expense: ${error.message}`, success: false };
+  }
+
+  revalidatePath('/expenses');
+  revalidatePath('/reports');
+  return { message: 'Expense updated successfully!', success: true };
+}
+
+/**
+ * Delete Expense
+ */
+export async function deleteExpenseSimple(expenseId: string) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+
+  if (!warehouseId) {
+    return { message: 'No warehouse found for user', success: false };
+  }
+
+  const { error } = await supabase
+    .from('expenses')
+    .delete()
+    .eq('id', expenseId)
+    .eq('warehouse_id', warehouseId);
+
+  if (error) {
+    console.error('Error deleting expense:', error);
+    return { message: 'Failed to delete expense', success: false };
+  }
+
+  revalidatePath('/expenses');
+  revalidatePath('/reports');
+  return { message: 'Expense deleted successfully!', success: true };
+}
+    
 
 export async function deleteExpenseAction(expenseId: string): Promise<FormState> {
   try {

@@ -1,0 +1,151 @@
+
+'use client';
+
+import { useState, useMemo } from 'react';
+import { AppLayout } from "@/components/layout/app-layout";
+import { PageHeader } from "@/components/shared/page-header";
+import Link from "next/link";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
+import { formatCurrency } from "@/lib/utils";
+import { Pagination } from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+
+import type { Customer, StorageRecord } from "@/lib/definitions";
+
+const ITEMS_PER_PAGE = 20;
+
+export function CustomersPageClient({ 
+  customers, 
+  records 
+}: { 
+  customers: Customer[], 
+  records: StorageRecord[] 
+}) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter customers based on search
+  const filteredCustomers = useMemo(() => {
+    if (!searchQuery) return customers;
+    const query = searchQuery.toLowerCase();
+    return customers.filter(c => 
+      c.name.toLowerCase().includes(query) ||
+      c.phone?.toLowerCase().includes(query) ||
+      c.email?.toLowerCase().includes(query) ||
+      c.village?.toLowerCase().includes(query)
+    );
+  }, [customers, searchQuery]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  return (
+    <AppLayout>
+      <PageHeader
+        title="Customers"
+        description={`Manage your customers and view their activity. (${filteredCustomers.length} total)`}
+      >
+        <AddCustomerDialog />
+      </PageHeader>
+
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, phone, email, or village..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Village</TableHead>
+                <TableHead className="text-right">Active Bags</TableHead>
+                <TableHead className="text-right">Total Due</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedCustomers.map((customer) => {
+                // Calculate insights
+                const customerRecords = records.filter(r => r.customerId === customer.id);
+                const activeBags = customerRecords
+                  .filter(r => !r.storageEndDate) // Only active
+                  .reduce((sum, r) => sum + r.bagsStored, 0);
+                
+                const totalDue = customerRecords.reduce((sum, r) => {
+                   const totalBilled = (r.hamaliPayable || 0) + (r.totalRentBilled || 0);
+                   const amountPaid = (r.payments || []).reduce((acc: any, p: any) => acc + p.amount, 0);
+                   const balance = totalBilled - amountPaid;
+                   // Only count positive balance (debt)
+                   return sum + (balance > 0 ? balance : 0);
+                }, 0);
+
+                return (
+                  <TableRow key={customer.id}>
+                    <TableCell className="font-medium">
+                      <Link href={`/customers/${customer.id}`} className="hover:underline">
+                        <div className="text-base font-semibold text-primary">{customer.name}</div>
+                      </Link>
+                      <div className="text-xs text-muted-foreground">{customer.email || '-'}</div>
+                    </TableCell>
+                    <TableCell>{customer.phone}</TableCell>
+                    <TableCell>{customer.village || customer.address}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {activeBags > 0 ? (
+                        <span className="font-medium text-green-600">{activeBags}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {totalDue > 0 ? (
+                        <span className="font-bold text-destructive">{formatCurrency(totalDue)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      )}
+    </AppLayout>
+  );
+}

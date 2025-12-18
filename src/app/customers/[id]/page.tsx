@@ -20,6 +20,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { CustomerStatementButton } from '@/components/customers/customer-statement-button';
+import { EditCustomerDialog } from '@/components/customers/edit-customer-dialog';
+import { DeleteCustomerButton } from '@/components/customers/delete-customer-button';
+import { EditPaymentDialog } from '@/components/payments/edit-payment-dialog';
+import { DeletePaymentButton } from '@/components/payments/delete-payment-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,9 +74,12 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
                             <span className="flex items-center gap-1"><User className="h-4 w-4" /> {customer.fatherName}</span>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                         <Button asChild size="sm">
-                            <Link href="/inflow">
+                    <div className="flex flex-wrap gap-2">
+                        <CustomerStatementButton customer={customer} records={records} />
+                        <EditCustomerDialog customer={customer} />
+                        <DeleteCustomerButton customerId={customer.id} customerName={customer.name} variant="destructive" />
+                        <Button asChild size="sm">
+                            <Link href={`/inflow?customerId=${customer.id}`}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> New Inflow
                             </Link>
                         </Button>
@@ -118,6 +126,7 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
                 <Tabs defaultValue="active" className="w-full">
                     <TabsList>
                         <TabsTrigger value="active">Active Stock ({activeRecords.length})</TabsTrigger>
+                        <TabsTrigger value="payments">Payments</TabsTrigger>
                         <TabsTrigger value="history">History ({completedRecords.length})</TabsTrigger>
                     </TabsList>
                     
@@ -157,6 +166,66 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
                                 ))}
                             </div>
                         )}
+                    </TabsContent>
+
+                    <TabsContent value="payments" className="mt-4">
+                        <div className="rounded-md border overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted/50 border-b">
+                                    <tr className="text-left">
+                                        <th className="p-3 font-medium">Date</th>
+                                        <th className="p-3 font-medium">Record</th>
+                                        <th className="p-3 font-medium">Type</th>
+                                        <th className="p-3 text-right font-medium">Amount</th>
+                                        <th className="p-3 font-medium">Notes</th>
+                                        <th className="p-3 text-right font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {records.flatMap(r => 
+                                        (r.payments || []).map((p: any, idx: number) => ({
+                                            ...p,
+                                            recordId: r.id,
+                                            recordNumber: r.recordNumber,
+                                            paymentId: `${r.id}-${idx}` // Generate unique ID
+                                        }))
+                                    ).map((payment: any) => (
+                                        <tr key={payment.paymentId} className="border-b last:border-0 hover:bg-muted/50">
+                                            <td className="p-3">{new Date(payment.date).toLocaleDateString()}</td>
+                                            <td className="p-3 font-mono">#{payment.recordNumber}</td>
+                                            <td className="p-3 capitalize">{payment.type || 'other'}</td>
+                                            <td className="p-3 text-right font-mono font-semibold">{formatCurrency(payment.amount)}</td>
+                                            <td className="p-3 text-muted-foreground">{payment.notes || '-'}</td>
+                                            <td className="p-3">
+                                                <div className="flex justify-end gap-1">
+                                                    <EditPaymentDialog 
+                                                        payment={{
+                                                            id: payment.paymentId,
+                                                            recordId: payment.recordId,
+                                                            amount: payment.amount,
+                                                            date: typeof payment.date === 'string' ? payment.date : payment.date.toISOString(),
+                                                            type: payment.type || 'other',
+                                                            notes: payment.notes
+                                                        }}
+                                                        customerId={customer.id}
+                                                    />
+                                                    <DeletePaymentButton 
+                                                        paymentId={payment.paymentId}
+                                                        customerId={customer.id}
+                                                        amount={payment.amount}
+                                                    />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {records.flatMap(r => r.payments || []).length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="p-8 text-center text-muted-foreground">No payments recorded yet.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="history" className="mt-4">

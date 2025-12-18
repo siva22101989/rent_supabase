@@ -12,6 +12,7 @@ import { addLot, bulkAddLots, addLotsFromList, deleteLot } from '@/lib/lots-acti
 import Link from 'next/link';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { EditLotDialog } from '@/components/lots/edit-lot-dialog';
 
 export default async function LotsPage() {
   const warehouseId = await getUserWarehouse();
@@ -156,12 +157,21 @@ export default async function LotsPage() {
                             </TableCell>
                             <TableCell>{lot.status}</TableCell>
                             <TableCell>
-                                <form action={deleteLot.bind(null, lot.id)}>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="sr-only">Delete</span>
-                                    </Button>
-                                </form>
+                                <div className="flex items-center gap-1">
+                                    <EditLotDialog 
+                                        lot={{
+                                            id: lot.id,
+                                            name: lot.name,
+                                            capacity: lot.capacity || 1000
+                                        }}
+                                    />
+                                    <form action={deleteLot.bind(null, lot.id)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="sr-only">Delete</span>
+                                        </Button>
+                                    </form>
+                                </div>
                             </TableCell>
                         </TableRow>
                     ))}
