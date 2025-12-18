@@ -182,6 +182,7 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     storageStartDate: new Date(r.storage_start_date),
     storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
     billingCycle: r.billing_cycle,
+    payments: (r.payments || []).map((p: any) => ({
       amount: p.amount,
       date: new Date(p.payment_date),
       type: p.type || 'other', 
@@ -227,6 +228,7 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     storageStartDate: new Date(r.storage_start_date),
     storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
     billingCycle: r.billing_cycle,
+    payments: (r.payments || []).map((p: any) => ({
       amount: p.amount,
       date: new Date(p.payment_date),
       type: p.type || 'other',
