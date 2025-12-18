@@ -196,8 +196,8 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                     <div class="bill-info">
                         <h2>Outflow Bill</h2>
                         <div style="font-size: 12px; margin-top: 10px;">
-                            <div><strong>Bill #:</strong> ${record.id}</div>
-                            <div><strong>Serial No:</strong> ${record.id}</div>
+                            <div><strong>Bill #:</strong> ${record.outflowInvoiceNo || record.id}</div>
+                            <div><strong>Ref ID:</strong> ${record.id}</div>
                             <div><strong>Date:</strong> ${formattedEndDate}</div>
                         </div>
                     </div>
@@ -304,8 +304,8 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                     </div>
                     <div className="text-right">
                         <h2 className="text-xl font-semibold uppercase text-muted-foreground">Outflow Bill</h2>
-                        <p className="text-sm"><span className="font-medium">Bill #</span>: {record.id}</p>
-                        <p className="text-sm"><span className="font-medium">Serial No:</span> {record.id}</p>
+                        <p className="text-sm"><span className="font-medium">Bill #</span>: {record.outflowInvoiceNo || record.id}</p>
+                        <p className="text-sm"><span className="font-medium">Ref ID:</span> {record.id}</p>
                         <p className="text-sm"><span className="font-medium">Date:</span> {formattedEndDate}</p>
                     </div>
                 </div>

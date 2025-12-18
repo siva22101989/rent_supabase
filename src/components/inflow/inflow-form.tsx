@@ -144,7 +144,7 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
                 <CardHeader>
                     <CardTitle>New Storage Record Details</CardTitle>
                     <CardDescription>
-                        Next Serial No: <span className="font-bold text-primary">{nextSerialNumber}</span>
+                        Next Serial No: <span className="font-bold text-primary">Auto-Generated ({nextSerialNumber})</span>
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

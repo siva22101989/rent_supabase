@@ -44,6 +44,7 @@ export type StorageRecord = {
   loadBags?: number;
   khataAmount?: number;
   recordNumber?: number;
+  outflowInvoiceNo?: string;
 };
 
 export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "Other"] as const;

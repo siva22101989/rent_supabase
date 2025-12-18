@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
 import type { StorageRecord, Payment } from './definitions';
 import { expenseCategories } from './definitions';
+import { getNextInvoiceNumber } from '@/lib/sequence-utils';
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -288,12 +289,9 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         payments.push({ amount: hamaliPaid, date: new Date(storageStartDate), type: 'hamali' });
     }
     
-    const allRecords = await getStorageRecords();
-    const maxId = allRecords.reduce((max, record) => {
-        const idNum = parseInt(record.id.replace('SLWH-', ''), 10);
-        return isNaN(idNum) ? max : Math.max(max, idNum);
-    }, 0);
-    const newRecordId = `SLWH-${maxId + 1}`;
+    
+    // Generate Invoice Number (ID)
+    const newRecordId = await getNextInvoiceNumber('inflow');
 
     const newRecord: StorageRecord = {
         ...rest,
@@ -420,6 +418,9 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     if (isFullWithdrawal) {
         recordUpdate.storageEndDate = new Date(withdrawalDate);
         recordUpdate.billingCycle = 'Completed';
+        // Generate Outflow Invoice Number
+        // @ts-ignore - Field might not be in definition yet but exists in DB
+        recordUpdate.outflow_invoice_no = await getNextInvoiceNumber('outflow'); 
     }
 
     recordUpdate.totalRentBilled = (originalRecord.totalRentBilled || 0) + finalRent;
@@ -606,12 +607,11 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
     const customer = await getCustomer(record.customerId);
     if (customer) {
         const paymentTypeLabel = paymentType === 'Hamali' ? 'Hamali' : 'Rent/Storage';
-        await createNotification({
-            warehouseId: record.warehouseId,
-            title: 'Payment Received',
-            message: `Payment of ₹${paymentAmount} received from ${customer.name} for ${paymentTypeLabel}`,
-            type: 'info'
-        });
+        await createNotification(
+            'Payment Received',
+            `Payment of ₹${paymentAmount} received from ${customer.name} for ${paymentTypeLabel}`,
+            'info'
+        );
     }
     
     revalidatePath('/customers');

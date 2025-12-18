@@ -194,7 +194,7 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     plotBags: r.plot_bags,
     loadBags: r.load_bags,
     khataAmount: r.khata_amount,
-
+    outflowInvoiceNo: r.outflow_invoice_no
   }));
 }
 
@@ -236,7 +236,8 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     inflowType: r.inflow_type,
     plotBags: r.plot_bags,
     loadBags: r.load_bags,
-    khataAmount: r.khata_amount
+    khataAmount: r.khata_amount,
+    outflowInvoiceNo: r.outflow_invoice_no
   };
 };
 

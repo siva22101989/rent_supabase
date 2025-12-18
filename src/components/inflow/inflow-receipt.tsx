@@ -32,7 +32,7 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
             <html>
             <head>
                 <meta charset="UTF-8">
-                <title>Godown Receipt - ${record.recordNumber || record.id}</title>
+                <title>Godown Receipt - ${record.id}</title>
                 <style>
                     @media print {
                         @page { margin: 1cm; }
@@ -112,7 +112,7 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                     <div class="title">GODOWN RECEIPT</div>
                     
                     <div class="serial-date">
-                        <div><span class="label">Serial No.</span> ${record.recordNumber ? `REC-${record.recordNumber}` : record.id}</div>
+                        <div><span class="label">Serial No.</span> ${record.id}</div>
                         <div><span class="label">Date:</span> ${formattedDate}</div>
                     </div>
                     
@@ -208,7 +208,7 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                 </div>
 
                 <div className="flex justify-between items-baseline mb-4">
-                    <div><span className="font-bold">Serial No.</span> {record.recordNumber ? `REC-${record.recordNumber}` : record.id}</div>
+                    <div><span className="font-bold">Serial No.</span> {record.id}</div>
                     <div><span className="font-bold">Date:</span> {formattedDate}</div>
                 </div>
 

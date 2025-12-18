@@ -147,7 +147,7 @@ export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] 
                             return (
                                 <TableRow key={record.id}>
                                     <TableCell>{new Date(record.storageStartDate).toLocaleDateString()}</TableCell>
-                                    <TableCell className="font-medium font-mono">{record.recordNumber}</TableCell>
+                                    <TableCell className="font-medium font-mono">{record.id}</TableCell>
                                     <TableCell>
                                       <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
                                         {record.location}

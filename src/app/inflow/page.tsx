@@ -15,16 +15,8 @@ export default async function InflowPage() {
         getAvailableCrops()
     ]);
 
-  const nextSerialNumber = (() => {
-    if (records.length === 0) {
-      return 'SLWH-1';
-    }
-    const maxId = records.reduce((max, record) => {
-      const idNum = parseInt(record.id.replace('SLWH-', ''), 10);
-      return isNaN(idNum) ? max : Math.max(max, idNum);
-    }, 0);
-    return `SLWH-${maxId + 1}`;
-  })();
+  // Removed manual sequence logic as it is now handled server-side
+  const nextSerialNumber = "Auto-Generated";
 
   return (
     <AppLayout>
@@ -60,7 +52,7 @@ export default async function InflowPage() {
                      return (
                       <TableRow key={record.id}>
                         <TableCell>{new Date(record.storageStartDate).toLocaleDateString()}</TableCell>
-                        <TableCell className="font-medium">{record.id}</TableCell>
+                        <TableCell className="font-medium font-mono">{record.id}</TableCell>
                         <TableCell>{customerName}</TableCell>
                         <TableCell>{record.commodityDescription}</TableCell>
                         <TableCell className="text-right">{record.bagsStored}</TableCell>

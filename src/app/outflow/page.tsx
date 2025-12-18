@@ -48,7 +48,7 @@ export default async function OutflowPage() {
                      return (
                       <TableRow key={record.id}>
                         <TableCell>{new Date(record.storageEndDate!).toLocaleDateString()}</TableCell>
-                        <TableCell className="font-medium">{record.id}</TableCell>
+                        <TableCell className="font-medium font-mono">{record.outflowInvoiceNo || record.id}</TableCell>
                         <TableCell>{customerName}</TableCell>
                         <TableCell>{record.commodityDescription}</TableCell>
                         <TableCell className="text-right">{record.bagsStored}</TableCell>
