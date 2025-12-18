@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { updateWarehouseDetails, addCrop, deleteCrop, seedDatabase } from '@/lib/admin-actions';
+import { updateWarehouseDetails, addCrop, deleteCrop } from '@/lib/admin-actions';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Trash2 } from 'lucide-react';
 
@@ -57,9 +57,6 @@ export default async function SettingsPage() {
             <Button variant="outline" size="sm" asChild>
                 <Link href="/settings/team">Manage Team</Link>
             </Button>
-            <form action={seedDatabase}>
-                 <Button variant="destructive" size="sm">Reset & Heavy Seed</Button>
-            </form>
           </CardHeader>
           <CardContent>
             <form action={updateWarehouseDetails} className="grid gap-4 md:grid-cols-2">
