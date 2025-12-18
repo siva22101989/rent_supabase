@@ -110,6 +110,7 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
                 name="paymentAmount" 
                 type="number"
                 step="0.01"
+                min="0.01"
                 placeholder="0.00"
                 defaultValue={paymentType === 'Rent/Other' ? record.balanceDue.toFixed(2) : undefined}
                 className="col-span-3" 

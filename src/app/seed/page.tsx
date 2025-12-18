@@ -12,14 +12,15 @@ export default function SeedPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
 
-    const handleReset = async () => {
-        if (!confirm('ARE YOU SURE? This will DELETE ALL DATA (except users/warehouses) and reset the database. This cannot be undone.')) {
+    const handleReset = async (skipSeeding = false) => {
+        const action = skipSeeding ? 'FLUSH DATA ONLY' : 'RESET & SEED';
+        if (!confirm(`ARE YOU SURE? This will ${action}. Users & Warehouses will remain. This cannot be undone.`)) {
             return;
         }
 
         setIsLoading(true);
         try {
-            const res = await resetAndSeedDatabase();
+            const res = await resetAndSeedDatabase({ skipSeeding });
             if (res.success) {
                 setResult(res.message);
                 toast({
@@ -68,17 +69,27 @@ export default function SeedPage() {
                         variant="destructive" 
                         size="lg" 
                         className="w-full" 
-                        onClick={handleReset}
+                        onClick={() => handleReset(false)}
                         disabled={isLoading}
                     >
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Resetting & Seeding...
+                                Processing...
                             </>
                         ) : (
-                            'FLUSH DB & START FRESH'
+                            'FLUSH DB & SEED DATA'
                         )}
+                    </Button>
+
+                    <Button 
+                        variant="secondary" 
+                        size="lg" 
+                        className="w-full border-destructive/50 text-destructive bg-destructive/10 hover:bg-destructive/20" 
+                        onClick={() => handleReset(true)}
+                        disabled={isLoading}
+                    >
+                         {isLoading ? 'Processing...' : 'FLUSH DATA ONLY (KEEP USERS)'}
                     </Button>
 
                     <Button 

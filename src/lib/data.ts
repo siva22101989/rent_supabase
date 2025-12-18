@@ -97,6 +97,7 @@ export async function customers(): Promise<Customer[]> {
     address: c.address,
     fatherName: c.father_name || '',
     village: c.village || '',
+    updatedAt: c.updated_at ? new Date(c.updated_at) : undefined,
   }));
 }
 
@@ -118,6 +119,7 @@ export const getCustomer = async (id: string): Promise<Customer | null> => {
     address: data.address,
     fatherName: data.father_name || '',
     village: data.village || '',
+    updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
   };
 };
 
@@ -172,19 +174,19 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     id: r.id,
     customerId: r.customer_id,
     cropId: r.crop_id,
-    commodityDescription: r.commodity_description, // Or fetch crop name if migrating fully
+    commodityDescription: r.commodity_description,
     location: r.location,
-    bagsIn: r.bags_stored,
-    bagsOut: 0,
+    bagsIn: r.bags_in || r.bags_stored, // Fallback to bags_stored if bags_in is missing/zero
+    bagsOut: r.bags_out || 0,
     bagsStored: r.bags_stored,
     storageStartDate: new Date(r.storage_start_date),
     storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
     billingCycle: r.billing_cycle,
-    payments: (r.payments || []).map((p: any) => ({
       amount: p.amount,
       date: new Date(p.payment_date),
-      type: 'other', // Default or infer
-      notes: p.notes
+      type: p.type || 'other', 
+      notes: p.notes,
+      updatedAt: p.updated_at ? new Date(p.updated_at) : undefined
     })),
     hamaliPayable: r.hamali_payable,
     totalRentBilled: r.total_rent_billed,
@@ -194,7 +196,9 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     plotBags: r.plot_bags,
     loadBags: r.load_bags,
     khataAmount: r.khata_amount,
-    outflowInvoiceNo: r.outflow_invoice_no
+    recordNumber: r.record_number,
+    outflowInvoiceNo: r.outflow_invoice_no,
+    updatedAt: r.updated_at ? new Date(r.updated_at) : undefined
   }));
 }
 
@@ -217,17 +221,17 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     cropId: r.crop_id,
     commodityDescription: r.commodity_description,
     location: r.location,
-    bagsIn: r.bags_stored,
-    bagsOut: 0,
+    bagsIn: r.bags_in || r.bags_stored,
+    bagsOut: r.bags_out || 0,
     bagsStored: r.bags_stored,
     storageStartDate: new Date(r.storage_start_date),
     storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
     billingCycle: r.billing_cycle,
-    payments: (r.payments || []).map((p: any) => ({
       amount: p.amount,
       date: new Date(p.payment_date),
-      type: 'other', 
-      notes: p.notes
+      type: p.type || 'other',
+      notes: p.notes,
+      updatedAt: p.updated_at ? new Date(p.updated_at) : undefined
     })),
     hamaliPayable: r.hamali_payable,
     totalRentBilled: r.total_rent_billed,
@@ -237,7 +241,8 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     plotBags: r.plot_bags,
     loadBags: r.load_bags,
     khataAmount: r.khata_amount,
-    outflowInvoiceNo: r.outflow_invoice_no
+    outflowInvoiceNo: r.outflow_invoice_no,
+    updatedAt: r.updated_at ? new Date(r.updated_at) : undefined
   };
 };
 
@@ -253,6 +258,8 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
     commodity_description: record.commodityDescription,
     location: record.location,
     bags_stored: record.bagsStored,
+    bags_in: record.bagsIn, // Save initial quantity
+    bags_out: record.bagsOut, // Should be 0 initially
     weight: record.weight,
     lorry_tractor_no: record.lorryTractorNo,
     inflow_type: record.inflowType,
@@ -275,7 +282,8 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
     paymentPayload = {
         amount: p.amount,
         date: p.date,
-        notes: p.type === 'hamali' ? 'Hamali' : (p.notes || 'Initial Payment')
+        type: p.type || 'other', // Save type
+        notes: p.notes
     };
   }
 
@@ -300,12 +308,15 @@ export const updateStorageRecord = async (id: string, data: Partial<StorageRecor
     if (data.commodityDescription) dbData.commodity_description = data.commodityDescription;
     if (data.location) dbData.location = data.location;
     if (data.bagsStored !== undefined) dbData.bags_stored = data.bagsStored;
+    if (data.bagsIn !== undefined) dbData.bags_in = data.bagsIn;
+    if (data.bagsOut !== undefined) dbData.bags_out = data.bagsOut;
     if (data.weight !== undefined) dbData.weight = data.weight;
     if (data.storageStartDate) dbData.storage_start_date = data.storageStartDate;
     if (data.storageEndDate) dbData.storage_end_date = data.storageEndDate;
     if (data.billingCycle) dbData.billing_cycle = data.billingCycle;
     if (data.hamaliPayable !== undefined) dbData.hamali_payable = data.hamaliPayable;
     if (data.totalRentBilled !== undefined) dbData.total_rent_billed = data.totalRentBilled;
+    if (data.outflowInvoiceNo) dbData.outflow_invoice_no = data.outflowInvoiceNo;
 
     const { error } = await supabase
         .from('storage_records')
@@ -313,10 +324,6 @@ export const updateStorageRecord = async (id: string, data: Partial<StorageRecor
         .eq('id', id);
 
     if (error) throw error;
-    
-    // Note: Updating payments via this function is complex if we replace the whole array.
-    // Ideally, we use addPaymentToRecord. If the intent is to replace all, we'd delete and re-insert.
-    // For now, I'll assume this function is mostly for record fields, not deep payment updates.
 }
 
 export const deleteStorageRecord = async (id: string): Promise<void> => {
@@ -333,7 +340,8 @@ export const addPaymentToRecord = async (recordId: string, payment: Payment) => 
         storage_record_id: recordId,
         amount: payment.amount,
         payment_date: payment.date,
-        notes: payment.type // mapping type to notes or add a type column if needed. 
+        type: payment.type || 'other',
+        notes: payment.notes
     });
     if (error) throw error;
 }
@@ -363,6 +371,7 @@ export async function expenses(): Promise<Expense[]> {
     amount: e.amount,
     date: new Date(e.expense_date),
     category: e.category,
+    updatedAt: e.updated_at ? new Date(e.updated_at) : undefined
   }));
 }
 

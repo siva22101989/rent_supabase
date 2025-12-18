@@ -585,18 +585,20 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
     }
 
     if (paymentType === 'Hamali') {
-        // This is an additional Hamali charge, not a payment against balance.
-        const updatedRecord = {
-            ...record,
-            hamaliPayable: (record.hamaliPayable || 0) + paymentAmount,
+        const payment: Payment = {
+            amount: paymentAmount,
+            date: new Date(paymentDate),
+            type: 'hamali',
+            notes: 'Hamali Payment'
         };
-        await updateStorageRecord(recordId, { hamaliPayable: updatedRecord.hamaliPayable });
+        await addPaymentToRecord(recordId, payment);
     } else {
         // This is a payment against the outstanding balance.
         const payment: Payment = {
             amount: paymentAmount,
             date: new Date(paymentDate),
-            type: 'other' // This could be for rent or for hamali, we don't know from this dialog
+            type: 'rent',
+            notes: 'Rent Payment'
         };
         await addPaymentToRecord(recordId, payment);
     }

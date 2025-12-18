@@ -6,6 +6,7 @@ export type Customer = {
   address: string;
   fatherName: string;
   village: string;
+  updatedAt?: Date | string;
 };
 
 export type Commodity = {
@@ -19,6 +20,7 @@ export type Payment = {
   type?: 'rent' | 'hamali' | 'other';
   notes?: string;
   paymentNumber?: number;
+  updatedAt?: Date | string;
 };
 
 export type StorageRecord = {
@@ -45,6 +47,7 @@ export type StorageRecord = {
   khataAmount?: number;
   recordNumber?: number;
   outflowInvoiceNo?: string;
+  updatedAt?: Date | string;
 };
 
 export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "Other"] as const;
@@ -57,4 +60,5 @@ export type Expense = {
   amount: number;
   category: ExpenseCategory;
   date: Date | string;
+  updatedAt?: Date | string;
 };

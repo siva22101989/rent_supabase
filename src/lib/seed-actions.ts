@@ -21,7 +21,7 @@ function getRandomDate(monthsBack: number) {
     return date;
 }
 
-export async function resetAndSeedDatabase() {
+export async function resetAndSeedDatabase(options?: { skipSeeding?: boolean }) {
     console.log('Starting Database Reset...');
     const supabase = await createClient();
 
@@ -57,6 +57,15 @@ export async function resetAndSeedDatabase() {
         if (error) {
             console.error(`Error clearing ${table}:`, error);
         }
+    }
+
+    // Clear sequences explicitly (no ID column)
+    const { error: seqError } = await supabase.from('sequences').delete().neq('warehouse_id', '00000000-0000-0000-0000-000000000000');
+    if (seqError) console.error('Error clearing sequences:', seqError);
+
+    if (options?.skipSeeding) {
+        revalidatePath('/');
+        return { message: 'Database flushed successfully. Users and Warehouses preserved.', success: true };
     }
 
     console.log('Tables cleared. Starting Seed...');
@@ -99,14 +108,17 @@ export async function resetAndSeedDatabase() {
         for (let i = 1; i <= 20; i++) {
             // Link 25% of customers to the warehouse owner (Simulate Portal Users)
             const shouldLinkUser = ownerUserId && Math.random() < 0.25; 
+            
+            // Just for variety
+            const villageName = `Village ${String.fromCharCode(65 + (i % 5))}`;
 
             const { data } = await supabase.from('customers').insert({
                 warehouse_id: warehouseId,
-                name: `Customer ${i} - ${warehouseId.substring(0,4)}`,
+                name: `Customer ${i}`,
                 phone: `9${Math.floor(Math.random() * 1000000000)}`,
-                village: `Village ${String.fromCharCode(65 + (i % 5))}`,
+                village: villageName,
                 father_name: `Father ${i}`,
-                address: `Address ${i}, Village ${String.fromCharCode(65 + (i % 5))}`,
+                address: `Address ${i}, ${villageName}`,
                 linked_user_id: shouldLinkUser ? ownerUserId : null,
                 id: crypto.randomUUID()
             }).select().single();
@@ -132,6 +144,18 @@ export async function resetAndSeedDatabase() {
             const startDate = getRandomDate(6);
             const endDate = isCompleted ? new Date(startDate.getTime() + (Math.random() * 90 * 24 * 60 * 60 * 1000)) : null;
 
+            // Use the NEW invoice numbering utility? 
+            // Ideally we should use the utility, but for seeding massive data, calling RPC one by one is slow.
+            // But if we don't, the sequence table won't update!
+            // So we MUST use the sequence utility or sequences table.
+            
+            // However, the previous seed logic used `SEED-WH-ID`.
+            // Let's stick to the previous seed logic for IDs for now, OR update it to use sequences?
+            // User just asked to "remove the flush data once more but dont insert seed data".
+            // So I should focus on the FLUSH part, not changing the seed logic significantly right now.
+            // I'll keep the seed logic as is for now, even though it bypasses the sequence.
+            // If they click "Flush Only", they will manually create records which WILL use the sequence.
+            
             const recordId = `SEED-${warehouseId.substring(0,3)}-${i}`;
             
             const hamaliRate = 12; // Example
@@ -176,12 +200,6 @@ export async function resetAndSeedDatabase() {
             
              // Update Lot Stock (Simple increment, ignoring verifying capacity strictness here)
             if (!isCompleted) {
-                 await supabase.rpc('increment_lot_stock', { lot_id_input: lot.id, quantity: bags });
-                 // If RPC doesn't exist, we might need manual update, but usually I'd use the RPC I likely created before.
-                 // Fallback:
-                 // const { data: l } = await supabase.from('warehouse_lots').select('current_stock').eq('id', lot.id).single();
-                 // await supabase.from('warehouse_lots').update({ current_stock: (l?.current_stock || 0) + bags }).eq('id', lot.id);
-                 // *Actually, let's just do manual update to be safe if RPC is missing*
                  const { data: currentLot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', lot.id).single();
                  if (currentLot) {
                      await supabase.from('warehouse_lots').update({ 

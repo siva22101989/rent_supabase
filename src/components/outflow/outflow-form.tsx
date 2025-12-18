@@ -182,6 +182,8 @@ export function OutflowForm({ records, customers, crops }: { records: StorageRec
                                         name="bagsToWithdraw" 
                                         type="number" 
                                         placeholder="0"
+                                        min="1"
+                                        max={selectedRecord.bagsStored}
                                         required 
                                         onChange={e => setBagsToWithdraw(Number(e.target.value))}
                                     />
@@ -230,6 +232,7 @@ export function OutflowForm({ records, customers, crops }: { records: StorageRec
                                             type="number"
                                             placeholder="0.00"
                                             step="0.01"
+                                            min="0"
                                             max={totalPayable.toFixed(2)}
                                         />
                                         <p className="text-xs text-muted-foreground">

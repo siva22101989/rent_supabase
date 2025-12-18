@@ -104,7 +104,7 @@ export function AddExpenseDialog() {
             </div>
              <div className="space-y-2">
               <Label htmlFor="amount">Amount</Label>
-              <Input id="amount" name="amount" type="number" step="0.01" placeholder="0.00" required />
+              <Input id="amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required />
             </div>
           </div>
           <DialogFooter>
