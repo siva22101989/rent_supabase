@@ -43,12 +43,12 @@ function NavCard({ item }: { item: NavItem }) {
                       opacity-0 group-hover:opacity-100 transition-opacity" />
       
       <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-        <CardTitle className="text-lg font-medium">{item.label}</CardTitle>
-        <item.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+        <CardTitle className="text-base md:text-lg font-medium">{item.label}</CardTitle>
+        <item.icon className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground group-hover:text-primary transition-colors" />
       </CardHeader>
       <CardContent className="relative z-10">
         <p className="text-sm text-muted-foreground mb-4">{item.description}</p>
-        <Button asChild size="sm" className="shadow-sm hover:shadow-md transition-all">
+        <Button asChild size="sm" className="w-full md:w-auto shadow-sm hover:shadow-md transition-all min-h-[44px]">
           <Link href={item.href}>
             Go to {item.label}
             <ArrowRight className="ml-2 h-4 w-4" />

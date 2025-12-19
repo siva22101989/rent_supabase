@@ -129,10 +129,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-       <header className="sticky top-0 flex h-16 items-center justify-between gap-4 border-b bg-card px-4 md:px-6">
-            <div className="flex items-center gap-4">
+       <header className="sticky top-0 z-50 flex h-16 items-center justify-between gap-2 md:gap-4 border-b bg-card px-3 md:px-6">
+            <div className="flex items-center gap-2 md:gap-4">
               {backLink && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 md:h-8 md:w-8" asChild>
                     <Link href={backLink.href}>
                       <ArrowLeft className="h-4 w-4" />
                       <span className="sr-only">Back to {backLink.label}</span>
@@ -142,11 +142,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Logo />
             </div>
             
-            <div className="flex-1 flex justify-center max-w-xl mx-auto px-4">
+            <div className="hidden md:flex flex-1 justify-center max-w-xl mx-auto px-4">
                 <CommandSearch />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
               {/* <NotificationBell /> */} {/* Disabled for now */}
               <div className="hidden md:block">
                   <WarehouseSwitcher />
@@ -154,8 +154,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
+                   <Button variant="ghost" className="relative h-9 w-9 md:h-8 md:w-8 rounded-full">
+                    <Avatar className="h-9 w-9 md:h-8 md:w-8">
                       {/* Supabase user metadata access options */}
                        <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
                       <AvatarFallback>{user.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
@@ -184,7 +184,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </DropdownMenu>
             </div>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <main className="flex flex-1 flex-col gap-4 p-3 md:gap-8 md:p-8">
             {showOnboarding ? <WelcomeOnboarding /> : children}
         </main>
     </div>
