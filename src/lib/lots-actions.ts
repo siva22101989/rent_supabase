@@ -59,7 +59,6 @@ export async function bulkAddLots(formData: FormData) {
     }
   
     revalidatePath('/settings/lots');
-  return { message: 'Lots added successfully!', success: true };
 }
 
 export async function deleteLot(id: string) {

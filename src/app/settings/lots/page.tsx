@@ -14,6 +14,8 @@ import { ArrowLeft, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditLotDialog } from '@/components/lots/edit-lot-dialog';
 
+import { PageHeader } from '@/components/shared/page-header';
+
 export default async function LotsPage() {
   const warehouseId = await getUserWarehouse();
   if (!warehouseId) redirect('/login');
@@ -25,15 +27,6 @@ export default async function LotsPage() {
     .eq('warehouse_id', warehouseId)
     .order('created_at', { ascending: true });
 
-  return (
-    <AppLayout>
-    <div className="flex flex-col gap-6">
-import { PageHeader } from '@/components/shared/page-header';
-
-// (Removing manual imports of ArrowLeft and Link if unused, but Link is used elsewhere maybe? No. ArrowLeft is used. Link is used.)
-// I'll keep the imports for now to avoid breaking other things, but PageHeader handles the back button.
-
-// Inside LotsPage:
   return (
     <AppLayout>
     <div className="flex flex-col gap-6">
