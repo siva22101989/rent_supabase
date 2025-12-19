@@ -26,6 +26,10 @@ export default async function InflowPage() {
       <PageHeader
         title="Add Inflow"
         description="Create a new storage record for a customer."
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Inflow' }
+        ]}
       >
         <AddCustomerDialog />
       </PageHeader>

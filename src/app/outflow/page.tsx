@@ -23,6 +23,10 @@ export default async function OutflowPage() {
       <PageHeader
         title="Process Outflow"
         description="Select a record to process for withdrawal and generate a final bill."
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Outflow' }
+        ]}
       />
       <OutflowForm records={activeRecords || []} customers={customers || []} crops={crops || []} />
 

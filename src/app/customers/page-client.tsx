@@ -66,6 +66,10 @@ export function CustomersPageClient({
       <PageHeader
         title="Customers"
         description={`Manage your customers and view their activity. (${filteredCustomers.length} total)`}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Customers' }
+        ]}
       >
         <div data-add-customer-trigger>
           <AddCustomerDialog />

@@ -74,6 +74,10 @@ export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] 
       <PageHeader
         title="Storage Overview"
         description="A high-level summary of your warehouse inventory."
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Storage' }
+        ]}
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
