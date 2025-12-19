@@ -8,8 +8,12 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'BagBill',
-  description: 'Warehouse Rent Calculation App',
+  title: {
+    template: '%s | BagBill Warehouse Manager',
+    default: 'BagBill - Smart Warehouse Management'
+  },
+  description: 'Professional agricultural warehouse management system for inventory, billing, and rent tracking.',
+  keywords: ['warehouse', 'agriculture', 'inventory', 'billing', 'rent', 'management', 'saas'],
 };
 
 export default function RootLayout({
