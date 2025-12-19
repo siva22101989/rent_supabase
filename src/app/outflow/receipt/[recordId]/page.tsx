@@ -1,3 +1,7 @@
+import { Button } from "@/components/ui/button";
+import { PrintButton } from "@/components/shared/print-button";
+import Link from "next/link";
+import { X } from "lucide-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
@@ -36,7 +40,14 @@ export default async function OutflowReceiptPage({
       <PageHeader
         title="Outflow Receipt"
         description={`Final bill for storage record ${record.id}`}
-      />
+      >
+        <PrintButton />
+        <Button asChild variant="outline" size="sm" className="print:hidden gap-2">
+            <Link href={`/customers/${customer.id}`}>
+                <X className="h-4 w-4" /> Close
+            </Link>
+        </Button>
+      </PageHeader>
       <div className="flex justify-center">
         <OutflowReceipt 
             record={record} 

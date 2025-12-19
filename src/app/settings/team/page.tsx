@@ -42,7 +42,7 @@ export default function TeamSettingsPage() {
 
   return (
     <AppLayout>
-      <PageHeader title="Team Management" description="Create accounts for your staff." />
+      <PageHeader title="Team Management" description="Create accounts for your staff." backHref="/settings" />
       
       <div className="grid gap-6 max-w-2xl px-4 md:px-0">
         <Card>

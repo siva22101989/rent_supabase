@@ -56,6 +56,7 @@ export function OperationsDashboardClient({
             <PageHeader
                 title="Operational Analytics"
                 description="Warehouse efficiency and utilization insights"
+                backHref="/reports"
             />
 
             {/* Key Metrics */}

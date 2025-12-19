@@ -159,8 +159,8 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
     cropId: r.crop_id,
     commodityDescription: r.commodity_description,
     location: r.location,
-    bagsIn: r.bags_stored,
-    bagsOut: 0,
+    bagsIn: r.bags_in || r.bags_stored,
+    bagsOut: r.bags_out || 0,
     bagsStored: r.bags_stored,
     storageStartDate: new Date(r.storage_start_date),
     storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
@@ -168,7 +168,7 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
     payments: (r.payments || []).map((p: any) => ({
       amount: p.amount,
       date: new Date(p.payment_date),
-      type: 'other',
+      type: p.type || 'other',
       notes: p.notes,
       paymentNumber: p.payment_number
     })),
@@ -204,8 +204,8 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     cropId: r.crop_id,
     commodityDescription: r.commodity_description,
     location: r.location,
-    bagsIn: r.bags_stored,
-    bagsOut: 0,
+    bagsIn: r.bags_in || r.bags_stored,
+    bagsOut: r.bags_out || 0,
     bagsStored: r.bags_stored,
     storageStartDate: new Date(r.storage_start_date),
     storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
@@ -213,7 +213,7 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
      payments: (r.payments || []).map((p: any) => ({
       amount: p.amount,
       date: new Date(p.payment_date),
-      type: 'other', 
+      type: p.type || 'other', 
       notes: p.notes,
       paymentNumber: p.payment_number
     })),

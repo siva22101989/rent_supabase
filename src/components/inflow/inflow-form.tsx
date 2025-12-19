@@ -218,14 +218,13 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
                                 />
                             </div>
                              <div className="space-y-2">
-                                <Label htmlFor="loadBags">Load Bags <span className="text-destructive">*</span></Label>
+                                <Label htmlFor="loadBags">Load Bags (Final)</Label>
                                 <Input 
                                     id="loadBags" 
                                     name="loadBags" 
                                     type="number" 
                                     min="1"
                                     placeholder="0" 
-                                    required
                                 />
                             </div>
                         </div>

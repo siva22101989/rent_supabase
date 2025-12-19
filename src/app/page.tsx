@@ -72,8 +72,7 @@ export default async function DashboardPage() {
         description="Overview of your warehouse operations."
       />
       
-      {/* Metrics Section */}
-      <DashboardCharts metrics={metrics} />
+
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
         {navItems.map((item) => (
@@ -115,6 +114,9 @@ export default async function DashboardPage() {
         </div>
         </div>
        </div>
+
+      {/* Metrics Section (Moved) */}
+      <DashboardCharts metrics={metrics} />
     </AppLayout>
   );
 }

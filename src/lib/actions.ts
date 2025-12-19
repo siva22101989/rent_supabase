@@ -181,6 +181,65 @@ export async function deleteCustomer(customerId: string) {
     redirect('/customers');
 }
 
+const FinalizeDryingSchema = z.object({
+    recordId: z.string(),
+    finalBags: z.coerce.number().positive(),
+});
+
+export async function finalizePlotDrying(prevState: FormState, formData: FormData) {
+    const validatedFields = FinalizeDryingSchema.safeParse({
+        recordId: formData.get('recordId'),
+        finalBags: formData.get('finalBags'),
+    });
+
+    if (!validatedFields.success) {
+        return { message: "Invalid data", success: false };
+    }
+
+    const { recordId, finalBags } = validatedFields.data;
+    const record = await getStorageRecord(recordId);
+
+    if (!record || record.inflowType !== 'Plot') {
+        return { message: "Invalid record for drying finalization", success: false };
+    }
+
+    if (record.loadBags && record.loadBags > 0) {
+        return { message: "Drying already finalized", success: false };
+    }
+
+    const rawBags = record.plotBags || record.bagsStored;
+    const diff = rawBags - finalBags;
+
+    const supabase = await createClient();
+    
+    // Manual Lot Adjustment (Release difference)
+    if (record.lotId && diff > 0) {
+        const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', record.lotId).single();
+        if (lot) {
+            const newStock = Math.max(0, (lot.current_stock || 0) - diff);
+            await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', record.lotId);
+        }
+    } else if (record.lotId && diff < 0) { 
+        // Gained weight/bags? Rare but possible. Consume more space.
+         const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', record.lotId).single();
+         if (lot) {
+             const newStock = (lot.current_stock || 0) + Math.abs(diff);
+             await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', record.lotId);
+         }
+    }
+    
+    // Update Record 
+    // We update bags_stored to finalBags.
+    await updateStorageRecord(recordId, {
+        loadBags: finalBags,
+        bagsStored: finalBags,
+        bagsIn: finalBags // Sync bagsIn so Total Inflow = Current + Outflow (Loss is hidden from main stats but kept in plotBags)
+    });
+
+    revalidatePath('/storage');
+    return { message: `Drying finalized. Stock updated to ${finalBags} bags.`, success: true };
+}
+
 const InflowSchema = z.object({
     customerId: z.string().min(1, 'Customer is required.'),
     commodityDescription: z.string().min(2, 'Commodity description is required.'),
@@ -324,6 +383,16 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         bags: inflowBags, 
         commodity: rest.commodityDescription 
     });
+
+    // Update Lot Capacity (Increment Stock)
+    if (rest.lotId) {
+        const supabase = await createClient();
+        const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', rest.lotId).single();
+        if (lot) {
+            const newStock = (lot.current_stock || 0) + inflowBags;
+            await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', rest.lotId);
+        }
+    }
     
     // Check for Low Capacity Warning (>90%)
     if (rest.lotId) {
@@ -406,26 +475,46 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     const paymentMade = amountPaidNow || 0;
     
     const recordUpdate: Partial<StorageRecord> = {
-        payments: originalRecord.payments || [],
         bagsStored: originalRecord.bagsStored - bagsToWithdraw,
         bagsOut: (originalRecord.bagsOut || 0) + bagsToWithdraw,
+
     };
 
     if (paymentMade > 0) {
-        recordUpdate.payments!.push({ amount: paymentMade, date: new Date(withdrawalDate), type: 'rent' });
+        // Explicitly save the payment as updateStorageRecord doesn't handle relation updates
+        const { addPaymentToRecord } = await import('@/lib/data');
+        await addPaymentToRecord(recordId, { 
+            amount: paymentMade, 
+            date: new Date(withdrawalDate), 
+            type: 'rent',
+            notes: 'Rent paid during outflow' 
+        });
+    }
+
+    // Generate Outflow Invoice Number if not present (First Outflow)
+    if (!originalRecord.outflowInvoiceNo) {
+        // @ts-ignore - Field exists in DB
+        recordUpdate.outflow_invoice_no = await getNextInvoiceNumber('outflow'); 
     }
 
     if (isFullWithdrawal) {
         recordUpdate.storageEndDate = new Date(withdrawalDate);
         recordUpdate.billingCycle = 'Completed';
-        // Generate Outflow Invoice Number
-        // @ts-ignore - Field might not be in definition yet but exists in DB
-        recordUpdate.outflow_invoice_no = await getNextInvoiceNumber('outflow'); 
     }
 
     recordUpdate.totalRentBilled = (originalRecord.totalRentBilled || 0) + finalRent;
     
     await updateStorageRecord(recordId, recordUpdate);
+
+    // Update Lot Capacity (Release Space)
+    if (originalRecord.lotId) {
+        const supabase = await createClient();
+        const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', originalRecord.lotId).single();
+        if (lot) {
+            const newStock = Math.max(0, (lot.current_stock || 0) - bagsToWithdraw);
+            await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', originalRecord.lotId);
+        }
+    }
 
     const { createNotification } = await import('@/lib/logger');
     

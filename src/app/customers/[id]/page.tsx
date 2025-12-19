@@ -16,7 +16,8 @@ import {
     User,
     ArrowDownToDot,
     ArrowUpFromDot,
-    PlusCircle
+    PlusCircle,
+    ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -41,7 +42,7 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
 
     // --- Stats Calculation ---
     const activeRecords = records.filter(r => !r.storageEndDate);
-    const completedRecords = records.filter(r => r.storageEndDate);
+    const historyRecords = records.filter(r => r.storageEndDate || r.bagsOut > 0);
     
     const totalActiveBags = activeRecords.reduce((sum, r) => sum + r.bagsStored, 0);
     
@@ -61,6 +62,13 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
     return (
         <AppLayout>
             <div className="flex flex-col gap-6">
+                {/* Back Link */}
+                <Button variant="ghost" size="sm" asChild className="w-fit p-0 h-auto hover:bg-transparent hover:text-primary -ml-1 text-muted-foreground">
+                    <Link href="/customers" className="gap-1">
+                        <ArrowLeft className="h-4 w-4" /> Back to Customers
+                    </Link>
+                </Button>
+
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
                     <div>
@@ -127,7 +135,7 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
                     <TabsList>
                         <TabsTrigger value="active">Active Stock ({activeRecords.length})</TabsTrigger>
                         <TabsTrigger value="payments">Payments</TabsTrigger>
-                        <TabsTrigger value="history">History ({completedRecords.length})</TabsTrigger>
+                        <TabsTrigger value="history">History ({historyRecords.length})</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="active" className="mt-4 space-y-4">
@@ -237,20 +245,22 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
                                         <th className="p-3 font-medium">Date In</th>
                                         <th className="p-3 font-medium">Date Out</th>
                                         <th className="p-3 font-medium">Item</th>
-                                        <th className="p-3 text-right font-medium">Bags</th>
+                                        <th className="p-3 text-right font-medium">Bags Out</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {completedRecords.map((r) => (
+                                    {historyRecords.map((r) => (
                                         <tr key={r.id} className="border-b last:border-0 hover:bg-muted/50">
                                             <td className="p-3 font-mono">#{r.recordNumber}</td>
                                             <td className="p-3">{new Date(r.storageStartDate).toLocaleDateString()}</td>
-                                            <td className="p-3">{r.storageEndDate ? new Date(r.storageEndDate).toLocaleDateString() : '-'}</td>
+                                            <td className="p-3">
+                                                {r.storageEndDate ? new Date(r.storageEndDate).toLocaleDateString() : <span className="text-amber-600 font-medium text-xs border border-amber-200 bg-amber-50 px-2 py-0.5 rounded-full">Partial</span>}
+                                            </td>
                                             <td className="p-3">{r.commodityDescription}</td>
-                                            <td className="p-3 text-right font-mono">{r.bagsStored}</td>
+                                            <td className="p-3 text-right font-mono">{r.bagsOut}</td>
                                         </tr>
                                     ))}
-                                    {completedRecords.length === 0 && (
+                                    {historyRecords.length === 0 && (
                                          <tr>
                                             <td colSpan={5} className="p-8 text-center text-muted-foreground">No history available.</td>
                                         </tr>

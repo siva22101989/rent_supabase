@@ -12,6 +12,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import type { StorageRecord } from "@/lib/definitions";
 import { EditStorageDialog } from "@/components/storage/edit-storage-dialog";
+import { FinalizeDryingDialog } from "@/components/storage/finalize-drying-dialog";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -19,12 +20,10 @@ export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const totalInflow = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+  const totalInflow = allRecords.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
+  const totalOutflow = allRecords.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
   
-  const completedRecords = allRecords.filter(r => r.storageEndDate);
-  const totalOutflow = completedRecords.reduce((acc, record) => acc + record.bagsStored, 0);
-
-  const balanceStock = totalInflow - totalOutflow;
+  const balanceStock = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
   const activeRecords = allRecords.filter(r => !r.storageEndDate);
   const estimatedRent = activeRecords.reduce((total, record) => {
@@ -147,7 +146,7 @@ export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] 
                             return (
                                 <TableRow key={record.id}>
                                     <TableCell>{new Date(record.storageStartDate).toLocaleDateString()}</TableCell>
-                                    <TableCell className="font-medium font-mono">{record.id}</TableCell>
+                                    <TableCell className="font-medium font-mono">#{record.recordNumber}</TableCell>
                                     <TableCell>
                                       <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
                                         {record.location}
@@ -156,7 +155,17 @@ export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] 
                                     <TableCell>{record.commodityDescription}</TableCell>
                                     <TableCell className="text-right font-medium">{record.bagsStored}</TableCell>
                                     <TableCell className="text-right text-muted-foreground">{formatCurrency(rent)}</TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right flex justify-end gap-2">
+                                        {record.inflowType === 'Plot' && (!record.loadBags || record.loadBags === 0) && (
+                                            <FinalizeDryingDialog 
+                                                record={{
+                                                    id: record.id,
+                                                    plotBags: record.plotBags,
+                                                    bagsStored: record.bagsStored,
+                                                    commodityDescription: record.commodityDescription
+                                                }}
+                                            />
+                                        )}
                                         <EditStorageDialog 
                                             record={{
                                                 id: record.id,

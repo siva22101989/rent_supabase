@@ -28,14 +28,20 @@ export default async function LotsPage() {
   return (
     <AppLayout>
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-            <Link href="/settings">
-                <ArrowLeft className="h-4 w-4" />
-            </Link>
-        </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Warehouse Lots</h1>
-      </div>
+import { PageHeader } from '@/components/shared/page-header';
+
+// (Removing manual imports of ArrowLeft and Link if unused, but Link is used elsewhere maybe? No. ArrowLeft is used. Link is used.)
+// I'll keep the imports for now to avoid breaking other things, but PageHeader handles the back button.
+
+// Inside LotsPage:
+  return (
+    <AppLayout>
+    <div className="flex flex-col gap-6">
+      <PageHeader 
+        title="Warehouse Lots" 
+        backHref="/settings"
+      />
+
 
       <div className="flex gap-4">
         {/* Add Single Lot Dialog */}

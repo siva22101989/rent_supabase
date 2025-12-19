@@ -92,6 +92,7 @@ export function FinancialDashboardClient({
             <PageHeader
                 title="Financial Analytics"
                 description="Comprehensive revenue tracking and financial insights"
+                backHref="/reports"
             >
                 <Button onClick={handleExportExcel} variant="outline">
                     <Download className="mr-2 h-4 w-4" />

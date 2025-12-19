@@ -328,12 +328,7 @@ export const updateStorageRecord = async (id: string, data: Partial<StorageRecor
     if (error) throw error;
 }
 
-export const deleteStorageRecord = async (id: string): Promise<void> => {
-    'use server';
-    const supabase = await createClient();
-    const { error } = await supabase.from('storage_records').delete().eq('id', id);
-    if (error) throw error;
-};
+
 
 export const addPaymentToRecord = async (recordId: string, payment: Payment) => {
     'use server';
@@ -418,5 +413,24 @@ export const deleteExpense = async (id: string): Promise<void> => {
     'use server';
     const supabase = await createClient();
     const { error } = await supabase.from('expenses').delete().eq('id', id);
+    if (error) throw error;
+};
+
+export const deleteStorageRecord = async (id: string): Promise<void> => {
+    'use server';
+    const supabase = await createClient();
+    
+    // Fetch record first to release lot
+    const { data: record } = await supabase.from('storage_records').select('lot_id, bags_stored').eq('id', id).single();
+    
+    if (record && record.lot_id) {
+         const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', record.lot_id).single();
+         if (lot) {
+             const newStock = Math.max(0, (lot.current_stock || 0) - (record.bags_stored || 0));
+             await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', record.lot_id);
+         }
+    }
+
+    const { error } = await supabase.from('storage_records').delete().eq('id', id);
     if (error) throw error;
 };
