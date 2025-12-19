@@ -320,3 +320,33 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
         khataAmount: r.khata_amount,
     }));
 }
+
+export async function getTeamMembers() {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+    if (!warehouseId) return [];
+
+    const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('warehouse_id', warehouseId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching team members:', error);
+        return [];
+    }
+    
+    // We can't join auth.users directly from client SDK usually, 
+    // but some profiles setups mirror auth data.
+    // Assuming profiles table has everything we need based on createTeamMember action.
+    
+    return profiles.map((p: any) => ({
+        id: p.id,
+        email: p.email, // Assuming email is copied to profiles
+        fullName: p.full_name,
+        role: p.role,
+        createdAt: new Date(p.created_at),
+        // lastSignInAt: p.last_sign_in_at // If available
+    }));
+}

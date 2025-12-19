@@ -61,3 +61,12 @@ export type Expense = {
   date: Date | string;
   updatedAt?: Date | string;
 };
+
+export type TeamMember = {
+  id: string;
+  email: string;
+  fullName: string;
+  role: 'admin' | 'manager' | 'staff' | 'suspended';
+  createdAt: Date | string;
+  lastSignInAt?: Date | string;
+};

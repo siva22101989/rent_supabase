@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider"
 import NextTopLoader from 'nextjs-toploader';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/react';
+import { KeyboardShortcuts } from "@/components/layout/keyboard-shortcuts";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -41,6 +42,7 @@ export default function RootLayout({
           <Toaster />
           <SpeedInsights />
           <Analytics />
+          <KeyboardShortcuts />
         </ThemeProvider>
       </body>
     </html>

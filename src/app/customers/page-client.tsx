@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Users, Phone, MapPin } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
+import { useDebounce } from "@/hooks/use-debounce";
 
 import type { Customer, StorageRecord } from "@/lib/definitions";
 
@@ -36,11 +37,12 @@ export function CustomersPageClient({
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Filter customers based on search
   const filteredCustomers = useMemo(() => {
-    if (!searchQuery) return customers;
-    const query = searchQuery.toLowerCase();
+    if (!debouncedSearch) return customers;
+    const query = debouncedSearch.toLowerCase();
     return customers.filter(c => 
       c.name.toLowerCase().includes(query) ||
       c.phone?.toLowerCase().includes(query) ||

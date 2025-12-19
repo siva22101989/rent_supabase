@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { FileText } from 'lucide-react';
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
+import { useDebounce } from "@/hooks/use-debounce";
 
 
 const ITEMS_PER_PAGE = 25;
@@ -25,6 +26,7 @@ const ITEMS_PER_PAGE = 25;
 export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   const totalInflow = allRecords.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
   const totalOutflow = allRecords.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
@@ -39,8 +41,8 @@ export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] 
 
   // Filter records based on search
   const filteredRecords = useMemo(() => {
-    if (!searchQuery) return activeRecords;
-    const query = searchQuery.toLowerCase();
+    if (!debouncedSearch) return activeRecords;
+    const query = debouncedSearch.toLowerCase();
     return activeRecords.filter(r => 
       r.commodityDescription?.toLowerCase().includes(query) ||
       r.location?.toLowerCase().includes(query) ||

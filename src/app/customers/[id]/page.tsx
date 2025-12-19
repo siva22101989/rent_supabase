@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { CustomerStatementButton } from '@/components/customers/customer-statement-button';
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { EditCustomerDialog } from '@/components/customers/edit-customer-dialog';
 import { DeleteCustomerButton } from '@/components/customers/delete-customer-button';
 import { EditPaymentDialog } from '@/components/payments/edit-payment-dialog';
@@ -62,12 +63,14 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
     return (
         <AppLayout>
             <div className="flex flex-col gap-6">
-                {/* Back Link */}
-                <Button variant="ghost" size="sm" asChild className="w-fit p-0 h-auto hover:bg-transparent hover:text-primary -ml-1 text-muted-foreground">
-                    <Link href="/customers" className="gap-1">
-                        <ArrowLeft className="h-4 w-4" /> Back to Customers
-                    </Link>
-                </Button>
+                {/* Breadcrumbs */}
+                <div className="-ml-1">
+                    <Breadcrumbs items={[
+                        { label: 'Dashboard', href: '/' },
+                        { label: 'Customers', href: '/customers' },
+                        { label: customer.name }
+                    ]} />
+                </div>
 
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">

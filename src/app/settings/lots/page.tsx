@@ -44,6 +44,11 @@ export default async function LotsPage() {
       <PageHeader 
         title="Warehouse Lots" 
         backHref="/settings"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Settings', href: '/settings' },
+          { label: 'Lots' }
+        ]}
       />
 
 

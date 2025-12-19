@@ -13,6 +13,10 @@ export default async function ReportsPage() {
       <PageHeader
         title="Reports & Analytics"
         description="Access comprehensive reports and business insights"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Reports' }
+        ]}
       />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
