@@ -3,6 +3,7 @@
 import { useState, useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2, Plus, Warehouse } from 'lucide-react';
+import { SubmitButton } from "@/components/ui/submit-button";
 import { createWarehouse, type ActionState } from '@/lib/warehouse-actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,21 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating...
-        </>
-      ) : (
-        'Create Warehouse'
-      )}
-    </Button>
-  );
-}
+// Local SubmitButton removed in favor of shared component
 
 export function CreateWarehouseDialog() {
   const { toast } = useToast();
@@ -99,7 +86,7 @@ export function CreateWarehouseDialog() {
             </div>
           </div>
           <DialogFooter>
-            <SubmitButton />
+            <SubmitButton>Create Warehouse</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

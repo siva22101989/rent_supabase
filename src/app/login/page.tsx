@@ -15,6 +15,7 @@ import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/layout/logo';
 import { createClient } from '@/utils/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -87,12 +88,15 @@ export default function LoginPage() {
                  {error && (
                     <div className="text-sm font-medium text-destructive">{error}</div>
                 )}
-                <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Logging in...' : 'Login'}
+                <Button type="submit" className="w-full" isLoading={loading}>
+                    Login
                 </Button>
             </form>
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-                Public signup is disabled.
+            <div className="mt-4 text-center text-sm">
+                <span className="text-muted-foreground">Don&apos;t have an account? </span>
+                <Link href="/signup" className="underline text-primary hover:text-primary/80 font-medium">
+                    Sign up
+                </Link>
             </div>
         </CardContent>
         </Card>

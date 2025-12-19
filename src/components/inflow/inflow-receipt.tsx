@@ -157,11 +157,6 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                     </div>
                     
                     <div class="info-row">
-                        <div class="label">WEIGHT (KG)</div>
-                        <div class="value">: ${record.weight || 'N/A'}</div>
-                    </div>
-                    
-                    <div class="info-row">
                         <div class="label">LOT NO.</div>
                         <div class="value">: ${record.location || 'N/A'}</div>
                     </div>
@@ -246,10 +241,6 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                     <div className="flex">
                         <span className="w-1/3 font-bold">NO. OF BAGS</span>
                         <span>: {record.bagsStored}</span>
-                    </div>
-                    <div className="flex">
-                        <span className="w-1/3 font-bold">WEIGHT (KG)</span>
-                        <span>: {record.weight || 'N/A'}</span>
                     </div>
                     <div className="flex">
                         <span className="w-1/3 font-bold">LOT NO.</span>

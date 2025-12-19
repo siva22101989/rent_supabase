@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2, PlusCircle } from 'lucide-react';
+import { SubmitButton } from "@/components/ui/submit-button";
 import { addCustomer, type FormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,21 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        'Save Customer'
-      )}
-    </Button>
-  );
-}
+// Local SubmitButton removed in favor of shared component
 
 export function AddCustomerDialog() {
   const { toast } = useToast();
@@ -122,7 +109,7 @@ export function AddCustomerDialog() {
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <SubmitButton />
+            <SubmitButton>Save Customer</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

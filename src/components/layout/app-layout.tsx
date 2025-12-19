@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, LogOut } from 'lucide-react';
 // import { NotificationBell } from './notification-bell';
 import { CommandSearch } from './command-search';
-import { ModeToggle } from '@/components/mode-toggle';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { WarehouseSwitcher } from '@/components/warehouses/warehouse-switcher';
 import {
   DropdownMenu,
@@ -23,6 +23,8 @@ import {
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
+import { WelcomeOnboarding } from '@/components/onboarding/welcome-onboarding';
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isDashboard = pathname === '/';
@@ -30,6 +32,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
+  const [checkingOnboarding, setCheckingOnboarding] = React.useState(true);
 
   React.useEffect(() => {
     const supabase = createClient();
@@ -55,6 +59,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
 
   React.useEffect(() => {
+    async function checkProfile(userId: string) {
+       const supabase = createClient();
+       try {
+           const { data } = await supabase.from('profiles').select('warehouse_id').eq('id', userId).single();
+           if (data && !data.warehouse_id) {
+               // Double check if they have any assignments (edge case where active is null but they have access)
+               const { count } = await supabase.from('warehouse_assignments').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+               if (!count || count === 0) {
+                   setShowOnboarding(true);
+               }
+           } else {
+               setShowOnboarding(false);
+           }
+       } finally {
+           setCheckingOnboarding(false);
+       }
+    }
+
+    if (user) {
+        checkProfile(user.id);
+    } else if (!loading) {
+        // If not loading and no user, we are redirecting anyway, but stop checking
+        setCheckingOnboarding(false);
+    }
+  }, [user, loading]);
+
+  React.useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
@@ -67,10 +98,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  if (loading || !user) {
+  // Combine auth loading, onboarding check, and user existence check
+  if (loading || checkingOnboarding || !user) {
     return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center">
-            <div>Loading...</div>
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
+             <div className="flex flex-col items-center gap-2">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <p className="text-sm text-muted-foreground animate-pulse">Loading workspace...</p>
+             </div>
         </div>
     );
   }
@@ -116,7 +151,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="hidden md:block">
                   <WarehouseSwitcher />
               </div>
-              <ModeToggle />
+              <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -149,7 +184,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </DropdownMenu>
             </div>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">{children}</main>
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            {showOnboarding ? <WelcomeOnboarding /> : children}
+        </main>
     </div>
   );
 }

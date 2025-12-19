@@ -481,7 +481,6 @@ export function exportStorageRecordsToExcel(records: StorageRecord[]) {
         'Commodity': r.commodityDescription || '-',
         'Location': r.location || '-',
         'Bags Stored': r.bagsStored,
-        'Weight (kg)': r.weight || 0,
         'Hamali Payable': r.hamaliPayable || 0,
         'Rent Billed': r.totalRentBilled || 0,
         'Status': r.storageEndDate ? 'Completed' : 'Active',

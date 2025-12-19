@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
+import { SubmitButton } from "@/components/ui/submit-button";
 import { updateStorageRecordAction, type InflowFormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,21 +25,7 @@ import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        'Save Changes'
-      )}
-    </Button>
-  );
-}
+// Local SubmitButton removed in favor of shared component
 
 export function EditStorageDialog({ record, customers, children }: { record: StorageRecord, customers: Customer[], children: React.ReactNode }) {
   const { toast } = useToast();
@@ -135,7 +122,7 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                 Hamali Payable
               </Label>
               <Input 
-                id="hamaliPayable" _
+                id="hamaliPayable"
                 name="hamaliPayable" 
                 type="number"
                 step="0.01"
@@ -162,7 +149,7 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <SubmitButton />
+            <SubmitButton>Save Changes</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

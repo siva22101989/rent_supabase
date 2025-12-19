@@ -4,11 +4,11 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 const CROPS_DATA = [
-    { name: 'Paddy - Common', standard_bag_weight_kg: 75, rent_price_6m: 20, rent_price_1y: 35 },
-    { name: 'Maize - Hybrid', standard_bag_weight_kg: 60, rent_price_6m: 18, rent_price_1y: 30 },
-    { name: 'Groundnut - Pods', standard_bag_weight_kg: 40, rent_price_6m: 25, rent_price_1y: 45 },
-    { name: 'Chilli - Dry', standard_bag_weight_kg: 30, rent_price_6m: 30, rent_price_1y: 55 },
-    { name: 'Cotton - Bales', standard_bag_weight_kg: 170, rent_price_6m: 50, rent_price_1y: 90 }
+    { name: 'Paddy - Common', rent_price_6m: 20, rent_price_1y: 35 },
+    { name: 'Maize - Hybrid', rent_price_6m: 18, rent_price_1y: 30 },
+    { name: 'Groundnut - Pods', rent_price_6m: 25, rent_price_1y: 45 },
+    { name: 'Chilli - Dry', rent_price_6m: 30, rent_price_1y: 55 },
+    { name: 'Cotton - Bales', rent_price_6m: 50, rent_price_1y: 90 }
 ];
 
 const LOT_PREFIXES = ['A', 'B', 'C', 'D', 'E'];
@@ -176,8 +176,7 @@ export async function resetAndSeedDatabase(options?: { skipSeeding?: boolean }) 
                 hamali_payable: hamaliPayable,
                 total_rent_billed: isCompleted ? (bags * crop.rent_price_6m) : 0,
                 billing_cycle: isCompleted ? 'Completed' : 'Active',
-                inflow_type: 'Direct',
-                weight: bags * crop.standard_bag_weight_kg
+                inflow_type: 'Direct'
             });
 
             if (error) {

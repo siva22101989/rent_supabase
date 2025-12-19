@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Button } from "@/components/ui/button";
+import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
   const [finalBags, setFinalBags] = useState<number>(record.plotBags || record.bagsStored);
 
   const rawBags = record.plotBags || record.bagsStored;
@@ -47,11 +49,14 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
         formData.append('recordId', record.id);
         formData.append('finalBags', finalBags.toString());
 
-        const result = await finalizePlotDrying(null, formData);
+        const result = await finalizePlotDrying({ message: '', success: false }, formData);
 
         if (result?.success) {
             toast({ title: "Success", description: result.message });
             setOpen(false);
+            if (result.recordId) {
+                router.push(`/inflow/receipt/${result.recordId}`);
+            }
         } else {
             toast({ title: "Error", description: result?.message || "Failed to finalize.", variant: "destructive" });
         }

@@ -40,7 +40,6 @@ export type StorageRecord = {
   hamaliPayable: number;
   totalRentBilled: number;
   lorryTractorNo: string;
-  weight: number;
   inflowType?: 'Direct' | 'Plot';
   plotBags?: number;
   loadBags?: number;

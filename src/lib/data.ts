@@ -192,7 +192,6 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     hamaliPayable: r.hamali_payable,
     totalRentBilled: r.total_rent_billed,
     lorryTractorNo: r.lorry_tractor_no,
-    weight: r.weight,
     inflowType: r.inflow_type,
     plotBags: r.plot_bags,
     loadBags: r.load_bags,
@@ -238,7 +237,6 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     hamaliPayable: r.hamali_payable,
     totalRentBilled: r.total_rent_billed,
     lorryTractorNo: r.lorry_tractor_no,
-    weight: r.weight,
     inflowType: r.inflow_type,
     plotBags: r.plot_bags,
     loadBags: r.load_bags,
@@ -262,7 +260,6 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
     bags_stored: record.bagsStored,
     bags_in: record.bagsIn, // Save initial quantity
     bags_out: record.bagsOut, // Should be 0 initially
-    weight: record.weight,
     lorry_tractor_no: record.lorryTractorNo,
     inflow_type: record.inflowType,
     plot_bags: record.plotBags,
@@ -312,7 +309,6 @@ export const updateStorageRecord = async (id: string, data: Partial<StorageRecor
     if (data.bagsStored !== undefined) dbData.bags_stored = data.bagsStored;
     if (data.bagsIn !== undefined) dbData.bags_in = data.bagsIn;
     if (data.bagsOut !== undefined) dbData.bags_out = data.bagsOut;
-    if (data.weight !== undefined) dbData.weight = data.weight;
     if (data.storageStartDate) dbData.storage_start_date = data.storageStartDate;
     if (data.storageEndDate) dbData.storage_end_date = data.storageEndDate;
     if (data.billingCycle) dbData.billing_cycle = data.billingCycle;

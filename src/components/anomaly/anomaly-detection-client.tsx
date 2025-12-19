@@ -1,8 +1,9 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { Loader2, ShieldAlert } from 'lucide-react';
+import { useFormState } from 'react-dom';
+import { ShieldAlert } from 'lucide-react';
+import { SubmitButton } from "@/components/ui/submit-button";
 import { getAnomalyDetection } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,24 +13,7 @@ type AnomalyState = {
   success: boolean;
 };
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} size="lg">
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Analyzing...
-        </>
-      ) : (
-        <>
-          <ShieldAlert className="mr-2 h-4 w-4" />
-          Analyze Storage Records
-        </>
-      )}
-    </Button>
-  );
-}
+// Local SubmitButton removed in favor of shared component
 
 export function AnomalyDetectionClient() {
   const initialState: AnomalyState = { anomalies: null, success: true };
@@ -38,7 +22,10 @@ export function AnomalyDetectionClient() {
   return (
     <div className="flex flex-col items-center justify-center text-center">
       <form action={formAction}>
-        <SubmitButton />
+        <SubmitButton size="lg">
+          <ShieldAlert className="mr-2 h-4 w-4" />
+          Analyze Storage Records
+        </SubmitButton>
       </form>
 
       {state.anomalies && (

@@ -1,18 +1,17 @@
+
 import { AppLayout } from "@/components/layout/app-layout";
 import { createClient } from '@/utils/supabase/server';
 export const dynamic = 'force-dynamic';
 import { getUserWarehouse } from '@/lib/queries';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { updateWarehouseDetails, addCrop, deleteCrop } from '@/lib/admin-actions';
-import { EditCropDialog } from '@/components/lots/edit-crop-dialog';
-import { DeleteCropButton } from '@/components/lots/delete-crop-button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProfileSettingsTab } from "@/components/settings/profile-settings-tab";
+import { WarehouseSettingsTab } from "@/components/settings/warehouse-settings-tab";
+import { CropSettingsTab } from "@/components/settings/crop-settings-tab";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { User, Warehouse, Wheat, Users } from "lucide-react";
 
 export default async function SettingsPage() {
   const warehouseId = await getUserWarehouse();
@@ -22,6 +21,14 @@ export default async function SettingsPage() {
 
   const supabase = await createClient();
   
+  // Fetch User & Profile
+  const { data: { user } } = await supabase.auth.getUser();
+  let profile = null;
+  if (user) {
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      profile = data;
+  }
+
   // Fetch Warehouse Details
   const { data: warehouse } = await supabase
     .from('warehouses')
@@ -38,137 +45,55 @@ export default async function SettingsPage() {
 
   return (
     <AppLayout>
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8 max-w-5xl mx-auto w-full pb-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-      </div>
-
-      <div className="grid gap-6">
-        {/* Warehouse Settings */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div className="flex flex-col space-y-1.5">
-                <CardTitle>Warehouse Details</CardTitle>
-                <CardDescription>
-                  Update your warehouse information.
-                </CardDescription>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-                <Link href="/settings/lots">Manage Lots</Link>
+        <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            <p className="text-muted-foreground">Manage your account, warehouse preferences, and crop configurations.</p>
+        </div>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild className="gap-2">
+                <Link href="/settings/team">
+                    <Users className="w-4 h-4" />
+                    Manage Team
+                </Link>
             </Button>
-            <Button variant="outline" size="sm" asChild>
-                <Link href="/settings/team">Manage Team</Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <form action={updateWarehouseDetails} className="grid gap-4 md:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Warehouse Name</Label>
-                <Input id="name" name="name" defaultValue={warehouse?.name || ''} required />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="location">Location</Label>
-                <Input id="location" name="location" defaultValue={warehouse?.location || ''} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" name="phone" type="tel" defaultValue={warehouse?.phone || ''} placeholder="e.g., 9703503423" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" defaultValue={warehouse?.email || ''} placeholder="e.g., contact@warehouse.com" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="capacity">Capacity (Bags)</Label>
-                <Input id="capacity" name="capacity" type="number" defaultValue={warehouse?.capacity_bags || ''} />
-              </div>
-              <div className="flex items-end">
-                <Button type="submit">Save Changes</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Crop Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Crop Management</CardTitle>
-            <CardDescription>
-              Configure the crops you store and their standard rates.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            
-             {/* List Crops */}
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Crop Name</TableHead>
-                            <TableHead>Rent (6M)</TableHead>
-                            <TableHead>Rent (1Y)</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {crops?.map((crop) => (
-                            <TableRow key={crop.id}>
-                                <TableCell className="font-medium">{crop.name}</TableCell>
-                                <TableCell>₹{crop.rent_price_6m}</TableCell>
-                                <TableCell>₹{crop.rent_price_1y}</TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-1">
-                                        <EditCropDialog 
-                                            crop={{
-                                                id: crop.id,
-                                                name: crop.name,
-                                                rate: crop.rate || 0
-                                            }}
-                                        />
-                                        <DeleteCropButton 
-                                            cropId={crop.id}
-                                            cropName={crop.name}
-                                        />
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                         {(!crops || crops.length === 0) && (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                    No crops added yet.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-
-            {/* Add Crop Form */}
-            <div className="border-t pt-6">
-               <h3 className="mb-4 text-lg font-medium">Add New Crop</h3>
-               <form action={addCrop} className="grid gap-4 md:grid-cols-5 items-end">
-                <div className="grid gap-2 md:col-span-2">
-                    <Label htmlFor="crop-name">Name</Label>
-                    <Input id="crop-name" name="name" placeholder="e.g. Paddy" required />
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="price6m">Rent (6M)</Label>
-                    <Input id="price6m" name="price6m" type="number" step="0.01" placeholder="30" required />
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="price1y">Rent (1Y)</Label>
-                    <Input id="price1y" name="price1y" type="number" step="0.01" placeholder="50" required />
-                </div>
-                <div className="md:col-span-5">
-                    <Button type="submit" variant="secondary" className="w-full md:w-auto">Add Crop</Button>
-                </div>
-               </form>
-            </div>
-
-          </CardContent>
-        </Card>
+        </div>
       </div>
+      
+      <Separator />
+
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="w-full justify-start h-auto p-1 bg-muted/50 rounded-xl mb-6 flex-wrap">
+            <TabsTrigger value="profile" className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <User className="w-4 h-4" />
+                Profile & Account
+            </TabsTrigger>
+            <TabsTrigger value="warehouse" className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Warehouse className="w-4 h-4" />
+                Warehouse Details
+            </TabsTrigger>
+            <TabsTrigger value="crops" className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Wheat className="w-4 h-4" />
+                Crops & Rates
+            </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="profile" className="space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
+            <div className="grid gap-4">
+                <ProfileSettingsTab profile={profile} />
+            </div>
+        </TabsContent>
+        
+        <TabsContent value="warehouse" className="space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
+            <WarehouseSettingsTab warehouse={warehouse} />
+        </TabsContent>
+        
+        <TabsContent value="crops" className="space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
+            <CropSettingsTab crops={crops || []} />
+        </TabsContent>
+      </Tabs>
+      
     </div>
     </AppLayout>
   );

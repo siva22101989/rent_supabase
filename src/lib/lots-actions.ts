@@ -147,15 +147,20 @@ export async function updateCrop(cropId: string, formData: FormData) {
   if (!warehouseId) throw new Error('Unauthorized');
 
   const name = formData.get('name') as string;
-  const rate = parseFloat(formData.get('rate') as string);
+  const rentPrice6m = parseFloat(formData.get('price6m') as string);
+  const rentPrice1y = parseFloat(formData.get('price1y') as string);
 
-  if (!name || !rate || rate <= 0) {
+  if (!name || isNaN(rentPrice6m) || isNaN(rentPrice1y)) {
     throw new Error('Invalid crop data');
   }
 
   const { error } = await supabase
     .from('crops')
-    .update({ name, rate })
+    .update({ 
+        name, 
+        rent_price_6m: rentPrice6m,
+        rent_price_1y: rentPrice1y
+    })
     .eq('id', cropId)
     .eq('warehouse_id', warehouseId);
 
@@ -164,6 +169,7 @@ export async function updateCrop(cropId: string, formData: FormData) {
     throw new Error('Failed to update crop');
   }
 
+  revalidatePath('/settings');
   revalidatePath('/settings/lots');
 }
 

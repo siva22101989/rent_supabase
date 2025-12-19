@@ -21,7 +21,8 @@ interface Props {
     crop: {
         id: string;
         name: string;
-        rate: number;
+        rent_price_6m: number;
+        rent_price_1y: number;
     };
 }
 
@@ -52,7 +53,7 @@ export function EditCropDialog({ crop }: Props) {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button variant="ghost" size="icon">
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-4 w-4 text-blue-600" />
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
@@ -60,7 +61,7 @@ export function EditCropDialog({ crop }: Props) {
                     <DialogHeader>
                         <DialogTitle>Edit Crop</DialogTitle>
                         <DialogDescription>
-                            Update crop name and rate.
+                            Update crop name and rental rates.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -73,17 +74,31 @@ export function EditCropDialog({ crop }: Props) {
                                 required
                             />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="rate">Rate (₹/bag/month) *</Label>
-                            <Input
-                                id="rate"
-                                name="rate"
-                                type="number"
-                                step="0.01"
-                                defaultValue={crop.rate}
-                                required
-                                min="0.01"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="price6m">Rent (6M) *</Label>
+                                <Input
+                                    id="price6m"
+                                    name="price6m"
+                                    type="number"
+                                    step="0.01"
+                                    defaultValue={crop.rent_price_6m}
+                                    required
+                                    min="0.01"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="price1y">Rent (1Y) *</Label>
+                                <Input
+                                    id="price1y"
+                                    name="price1y"
+                                    type="number"
+                                    step="0.01"
+                                    defaultValue={crop.rent_price_1y}
+                                    required
+                                    min="0.01"
+                                />
+                            </div>
                         </div>
                     </div>
                     {error && (

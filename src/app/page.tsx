@@ -33,14 +33,22 @@ const navItems: NavItem[] = [
 
 function NavCard({ item }: { item: NavItem }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="relative overflow-hidden group transition-all
+                     bg-card border-border/50 shadow-sm
+                     dark:border-border/30 dark:shadow-lg dark:shadow-primary/5
+                     hover:shadow-md dark:hover:shadow-xl dark:hover:shadow-primary/10">
+      {/* Gradient overlay on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent
+                      dark:from-primary/10 dark:to-transparent
+                      opacity-0 group-hover:opacity-100 transition-opacity" />
+      
+      <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
         <CardTitle className="text-lg font-medium">{item.label}</CardTitle>
-        <item.icon className="h-6 w-6 text-muted-foreground" />
+        <item.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="relative z-10">
         <p className="text-sm text-muted-foreground mb-4">{item.description}</p>
-        <Button asChild size="sm">
+        <Button asChild size="sm" className="shadow-sm hover:shadow-md transition-all">
           <Link href={item.href}>
             Go to {item.label}
             <ArrowRight className="ml-2 h-4 w-4" />

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { AppLayout } from "@/components/layout/app-layout";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, Warehouse, IndianRupee, Search } from "lucide-react";
@@ -13,6 +14,10 @@ import { Input } from "@/components/ui/input";
 import type { StorageRecord } from "@/lib/definitions";
 import { EditStorageDialog } from "@/components/storage/edit-storage-dialog";
 import { FinalizeDryingDialog } from "@/components/storage/finalize-drying-dialog";
+import Link from 'next/link';
+import { FileText } from 'lucide-react';
+import { EmptyState } from "@/components/ui/empty-state";
+
 
 const ITEMS_PER_PAGE = 25;
 
@@ -176,17 +181,27 @@ export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] 
                                                 storageStartDate: record.storageStartDate,
                                                 storageEndDate: record.storageEndDate
                                             }}
-                                            variant="ghost"
                                             size="sm"
                                         />
+                                        <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0" title="View Receipt">
+                                            <Link href={`/inflow/receipt/${record.id}`}>
+                                                <FileText className="h-4 w-4 text-blue-600" />
+                                            </Link>
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             );
                         })}
                         {paginatedRecords.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                                    {searchQuery ? 'No matching records found.' : 'No active stock found in the warehouse.'}
+                                <TableCell colSpan={7} className="h-64">
+                                    <EmptyState
+                                        icon={Warehouse}
+                                        title={searchQuery ? "No results found" : "No active storage records"}
+                                        description={searchQuery ? `No records match "${searchQuery}". Try a different search term.` : "Get started by adding your first inflow to create storage records."}
+                                        actionLabel={searchQuery ? undefined : "Add First Inflow"}
+                                        actionHref={searchQuery ? undefined : "/inflow"}
+                                    />
                                 </TableCell>
                             </TableRow>
                         )}

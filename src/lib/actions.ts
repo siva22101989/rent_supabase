@@ -237,7 +237,7 @@ export async function finalizePlotDrying(prevState: FormState, formData: FormDat
     });
 
     revalidatePath('/storage');
-    return { message: `Drying finalized. Stock updated to ${finalBags} bags.`, success: true };
+    return { message: `Drying finalized. Stock updated to ${finalBags} bags.`, success: true, recordId };
 }
 
 const InflowSchema = z.object({
@@ -249,7 +249,6 @@ const InflowSchema = z.object({
     hamaliRate: z.coerce.number().nonnegative('Hamali rate must be a non-negative number.').optional(),
     hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.').optional(),
     lorryTractorNo: z.string().optional(),
-    weight: z.coerce.number().positive('Weight must be greater than 0.').optional(), // Weight should generally be positive if provided
     // For updating customer details from inflow form
     fatherName: z.string().optional(),
     village: z.string().optional(),
@@ -276,7 +275,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         hamaliRate: formData.get('hamaliRate'),
         hamaliPaid: formData.get('hamaliPaid'),
         lorryTractorNo: formData.get('lorryTractorNo'),
-        weight: formData.get('weight'),
         fatherName: formData.get('fatherName'),
         village: formData.get('village'),
         inflowType: formData.get('inflowType'),
@@ -365,7 +363,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         hamaliPayable: hamaliPayable,
         totalRentBilled: 0,
         lorryTractorNo: rest.lorryTractorNo ?? '',
-        weight: rest.weight ?? 0,
         inflowType: inflowType ?? 'Direct',
         plotBags: plotBags ?? undefined,
         loadBags: loadBags ?? undefined,
@@ -1006,4 +1003,36 @@ export async function createTeamMember(prevState: FormState, formData: FormData)
     console.error('Create User Error:', err);
     return { message: err.message || 'Server Error: Check SUPABASE_SERVICE_ROLE_KEY', success: false };
   }
+}
+
+const UserProfileSchema = z.object({
+    fullName: z.string().min(2, "Name must be at least 2 characters."),
+});
+
+export async function updateUserProfile(prevState: FormState, formData: FormData) {
+    const validatedFields = UserProfileSchema.safeParse({
+        fullName: formData.get('fullName'),
+    });
+
+    if (!validatedFields.success) {
+        return { message: "Invalid name", success: false };
+    }
+
+    const { fullName } = validatedFields.data;
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return { message: "Unauthorized", success: false };
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName })
+        .eq('id', user.id);
+
+    if (error) {
+        return { message: "Failed to update profile", success: false };
+    }
+
+    revalidatePath('/settings');
+    return { message: "Profile updated successfully", success: true };
 }

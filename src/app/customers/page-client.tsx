@@ -18,9 +18,11 @@ import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { formatCurrency } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Users } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 import type { Customer, StorageRecord } from "@/lib/definitions";
+
 
 const ITEMS_PER_PAGE = 20;
 
@@ -64,7 +66,9 @@ export function CustomersPageClient({
         title="Customers"
         description={`Manage your customers and view their activity. (${filteredCustomers.length} total)`}
       >
-        <AddCustomerDialog />
+        <div data-add-customer-trigger>
+          <AddCustomerDialog />
+        </div>
       </PageHeader>
 
       <div className="mb-4">
@@ -92,48 +96,62 @@ export function CustomersPageClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedCustomers.map((customer) => {
-                // Calculate insights
-                const customerRecords = records.filter(r => r.customerId === customer.id);
-                const activeBags = customerRecords
-                  .filter(r => !r.storageEndDate) // Only active
-                  .reduce((sum, r) => sum + r.bagsStored, 0);
-                
-                const totalDue = customerRecords.reduce((sum, r) => {
-                   const totalBilled = (r.hamaliPayable || 0) + (r.totalRentBilled || 0);
-                   const amountPaid = (r.payments || []).reduce((acc: any, p: any) => acc + p.amount, 0);
-                   const balance = totalBilled - amountPaid;
-                   // Only count positive balance (debt)
-                   return sum + (balance > 0 ? balance : 0);
-                }, 0);
+              {paginatedCustomers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-64">
+                    <EmptyState
+                      icon={Users}
+                      title={searchQuery ? "No customers found" : "No customers yet"}
+                      description={searchQuery ? `No customers match "${searchQuery}". Try a different search term.` : "Add your first customer to start tracking storage and payments."}
+                      actionLabel={searchQuery ? undefined : "Add First Customer"}
+                      onAction={searchQuery ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedCustomers.map((customer) => {
+                  // Calculate insights
+                  const customerRecords = records.filter(r => r.customerId === customer.id);
+                  const activeBags = customerRecords
+                    .filter(r => !r.storageEndDate) // Only active
+                    .reduce((sum, r) => sum + r.bagsStored, 0);
+                  
+                  const totalDue = customerRecords.reduce((sum, r) => {
+                     const totalBilled = (r.hamaliPayable || 0) + (r.totalRentBilled || 0);
+                     const amountPaid = (r.payments || []).reduce((acc: any, p: any) => acc + p.amount, 0);
+                     const balance = totalBilled - amountPaid;
+                     // Only count positive balance (debt)
+                     return sum + (balance > 0 ? balance : 0);
+                  }, 0);
 
-                return (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">
-                      <Link href={`/customers/${customer.id}`} className="hover:underline">
-                        <div className="text-base font-semibold text-primary">{customer.name}</div>
-                      </Link>
-                      <div className="text-xs text-muted-foreground">{customer.email || '-'}</div>
-                    </TableCell>
-                    <TableCell>{customer.phone}</TableCell>
-                    <TableCell>{customer.village || customer.address}</TableCell>
-                    <TableCell className="text-right font-mono">
-                      {activeBags > 0 ? (
-                        <span className="font-medium text-green-600">{activeBags}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {totalDue > 0 ? (
-                        <span className="font-bold text-destructive">{formatCurrency(totalDue)}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                  return (
+                    <TableRow key={customer.id}>
+                      <TableCell className="font-medium">
+                        <Link href={`/customers/${customer.id}`} className="hover:underline">
+                          <div className="text-base font-semibold text-primary">{customer.name}</div>
+                        </Link>
+                        <div className="text-xs text-muted-foreground">{customer.email || '-'}</div>
+                      </TableCell>
+                      <TableCell>{customer.phone}</TableCell>
+                      <TableCell>{customer.village || customer.address}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {activeBags > 0 ? (
+                          <span className="font-medium text-green-600">{activeBags}</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {totalDue > 0 ? (
+                          <span className="font-bold text-destructive">{formatCurrency(totalDue)}</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>

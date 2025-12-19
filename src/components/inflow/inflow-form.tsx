@@ -4,6 +4,7 @@
 import { useActionState, useEffect, useState, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
+import { SubmitButton } from '@/components/ui/submit-button';
 import { addInflow, type InflowFormState } from '@/lib/actions';
 // ... (rest of imports unchanged)
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,21 +18,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
-    return (
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          'Create Storage Record'
-        )}
-      </Button>
-    );
-}
+// Local SubmitButton removed in favor of shared component
 
 function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { customers: Customer[], nextSerialNumber: string, lots: any[], crops: any[] }) {
     const { toast } = useToast();
@@ -69,7 +56,6 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
     
     // We'll use a derived state/key for Weight default if we want to force updates, or just controlled input.
     // Let's make Weight controlled slightly or just defaultValue logic.
-    const [weight, setWeight] = useState<string>('');
 
      useEffect(() => {
         if (state.message) {
@@ -108,10 +94,9 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
             bags: Number(formData.get('bagsStored')),
             plotBags: Number(formData.get('plotBags')),
             type: formData.get('inflowType'),
-            weight: Number(formData.get('weight')),
         };
 
-        let errMsg = null;
+        let errMsg: string | null = null;
 
         if (!tParams.customerId) errMsg = 'Please select a Customer.';
         else if (!tParams.lot) errMsg = 'Please select a Lot.';
@@ -121,10 +106,6 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
              if (tParams.bags <= 0) errMsg = 'Number of bags must be greater than 0.';
         } else if (tParams.type === 'Plot') {
              if (tParams.plotBags <= 0) errMsg = 'Plot bags must be greater than 0.';
-        }
-        
-        if (!errMsg && tParams.weight <= 0) {
-             errMsg = 'Weight must be greater than 0.';
         }
 
         if (errMsg) {
@@ -300,24 +281,9 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
                                     required 
                                     min="1"
                                     onChange={e => setBags(Number(e.target.value))}
-                                    value={bags || ''}
                                 />
                             </div>
                         )}
-                         <div className="space-y-2">
-                            <Label htmlFor="weight">Weight (kg) <span className="text-destructive">*</span></Label>
-                            <Input 
-                                id="weight" 
-                                name="weight" 
-                                type="number" 
-                                step="0.01" 
-                                placeholder="0.00" 
-                                required
-                                min="0.01"
-                                key={selectedCropId} 
-                                defaultValue={selectedCrop ? selectedCrop.standard_bag_weight_kg : ''}
-                            />
-                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -358,7 +324,7 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <SubmitButton />
+                    <SubmitButton className="w-full">Create Storage Record</SubmitButton>
                 </CardFooter>
             </Card>
         </form>

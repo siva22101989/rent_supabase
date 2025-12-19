@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
+import { SubmitButton } from "@/components/ui/submit-button";
 import { addPayment, type PaymentFormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,21 +26,7 @@ import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        'Record Transaction'
-      )}
-    </Button>
-  );
-}
+// Local SubmitButton removed in favor of shared component
 
 export function AddPaymentDialog({ record }: { record: StorageRecord & { balanceDue: number } }) {
   const { toast } = useToast();
@@ -135,7 +122,7 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <SubmitButton />
+            <SubmitButton>Record Transaction</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

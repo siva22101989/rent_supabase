@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2, PlusCircle } from 'lucide-react';
+import { SubmitButton } from "@/components/ui/submit-button";
 import { addExpense, type FormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,21 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { expenseCategories } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        'Save Expense'
-      )}
-    </Button>
-  );
-}
+// Local SubmitButton removed in favor of shared component
 
 export function AddExpenseDialog() {
   const { toast } = useToast();
@@ -111,7 +98,7 @@ export function AddExpenseDialog() {
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <SubmitButton />
+            <SubmitButton>Save Expense</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

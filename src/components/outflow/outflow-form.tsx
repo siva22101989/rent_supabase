@@ -3,6 +3,7 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { SubmitButton } from "@/components/ui/submit-button";
 import { addOutflow, type OutflowFormState } from '@/lib/actions';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,21 +18,7 @@ import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
-    return (
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          'Process Withdrawal and Generate Bill'
-        )}
-      </Button>
-    );
-}
+// Local SubmitButton removed in favor of shared component
 
 
 export function OutflowForm({ records, customers, crops }: { records: StorageRecord[], customers: Customer[], crops?: any[] }) {
@@ -246,7 +233,7 @@ export function OutflowForm({ records, customers, crops }: { records: StorageRec
                     )}
                 </CardContent>
                 <CardFooter>
-                    <SubmitButton />
+                    <SubmitButton className="w-full">Process Outflow</SubmitButton>
                 </CardFooter>
             </Card>
         </form>

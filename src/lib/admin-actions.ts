@@ -179,15 +179,16 @@ export async function seedDatabase() {
      date.setDate(date.getDate() - Math.floor(Math.random() * 60)); // Past 60 days
 
      records.push({
+        warehouse_id: warehouseId,
         customer_id: customer.id,
         crop_id: crop.id,
         lot_id: lot.id,
         bags_in: bags,
-        bags_stored: bags, // Assuming no outflow yet
-        bag_weight: 75, // Default as standard weight removed from crop
-        in_date: date.toISOString().split('T')[0],
-        estimated_rent: bags * (crop.rent_price_6m || 30),
-        status: 'Active'
+        bags_stored: bags,
+        commodity_description: crop.name,
+        location: lot.name,
+        storage_start_date: date,
+        billing_cycle: 'Active'
      });
   }
   
