@@ -13,6 +13,17 @@ import Link from 'next/link';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditLotDialog } from '@/components/lots/edit-lot-dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 import { PageHeader } from '@/components/shared/page-header';
 
@@ -164,12 +175,34 @@ export default async function LotsPage() {
                                             capacity: lot.capacity || 1000
                                         }}
                                     />
-                                    <form action={deleteLot.bind(null, lot.id)}>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                            <Trash2 className="h-4 w-4" />
-                                            <span className="sr-only">Delete</span>
-                                        </Button>
-                                    </form>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                                <Trash2 className="h-4 w-4" />
+                                                <span className="sr-only">Delete</span>
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete Lot?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This will permanently delete lot <strong>{lot.name}</strong>.
+                                                    This action cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <form action={deleteLot.bind(null, lot.id)}>
+                                                    <AlertDialogAction
+                                                        type="submit"
+                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    >
+                                                        Delete Lot
+                                                    </AlertDialogAction>
+                                                </form>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 </div>
                             </TableCell>
                         </TableRow>
