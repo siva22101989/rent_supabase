@@ -16,6 +16,7 @@ import {
 import { Trash2 } from 'lucide-react';
 import { deleteCrop } from '@/lib/lots-actions';
 import { useRouter } from 'next/navigation';
+import { useStaticData } from '@/hooks/use-static-data';
 
 interface Props {
     cropId: string;
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function DeleteCropButton({ cropId, cropName }: Props) {
+    const { refresh } = useStaticData();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
@@ -33,6 +35,7 @@ export function DeleteCropButton({ cropId, cropName }: Props) {
 
         try {
             await deleteCrop(cropId);
+            await refresh();
             router.refresh();
         } catch (err: any) {
             setError(err.message || 'Failed to delete crop');

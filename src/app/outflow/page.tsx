@@ -1,7 +1,7 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowForm } from "@/components/outflow/outflow-form";
-import { getCustomers, getStorageRecords, getAvailableCrops } from "@/lib/queries";
+import { getStorageRecords, getRecentOutflows } from "@/lib/queries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ArrowUpFromDot } from "lucide-react";
@@ -10,11 +10,8 @@ import { ArrowUpFromDot } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 export default async function OutflowPage() {
-  const [customers, records, crops] = await Promise.all([
-    getCustomers(),
-    getStorageRecords(),
-    getAvailableCrops()
-  ]);
+  const records = await getStorageRecords(); 
+  const recentOutflows = await getRecentOutflows(5);
   
   const activeRecords = records.filter(r => !r.storageEndDate);
 
@@ -28,7 +25,7 @@ export default async function OutflowPage() {
           { label: 'Outflow' }
         ]}
       />
-      <OutflowForm records={activeRecords || []} customers={customers || []} crops={crops || []} />
+      <OutflowForm records={activeRecords || []} />
 
       {/* Recent Withdrawals Table */}
       {/* Recent Withdrawals Table */}
@@ -46,23 +43,18 @@ export default async function OutflowPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {records
-                   .filter(r => r.storageEndDate) // Only show completed/outflow records
-                   .sort((a, b) => new Date(b.storageEndDate!).getTime() - new Date(a.storageEndDate!).getTime())
-                   .slice(0, 5)
-                   .map((record) => {
-                     const customerName = customers?.find(c => c.id === record.customerId)?.name || 'Unknown';
+                {recentOutflows.map((record) => {
                      return (
                       <TableRow key={record.id}>
-                        <TableCell>{new Date(record.storageEndDate!).toLocaleDateString()}</TableCell>
-                        <TableCell className="font-medium font-mono">{record.outflowInvoiceNo || record.id}</TableCell>
-                        <TableCell>{customerName}</TableCell>
-                        <TableCell>{record.commodityDescription}</TableCell>
-                        <TableCell className="text-right">{record.bagsStored}</TableCell>
+                        <TableCell>{record.date.toLocaleDateString()}</TableCell>
+                        <TableCell className="font-medium font-mono">{record.invoiceNo}</TableCell>
+                        <TableCell>{record.customerName}</TableCell>
+                        <TableCell>{record.commodity}</TableCell>
+                        <TableCell className="text-right">{record.bags}</TableCell>
                       </TableRow>
                     );
                    })}
-                 {records.filter(r => r.storageEndDate).length === 0 && (
+                 {recentOutflows.length === 0 && (
                    <TableRow>
                      <TableCell colSpan={5} className="h-48">
                        <EmptyState

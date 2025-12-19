@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
 import { addPayment, type PaymentFormState } from '@/lib/actions';
@@ -30,6 +31,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 export function AddPaymentDialog({ record }: { record: StorageRecord & { balanceDue: number } }) {
   const { toast } = useToast();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [paymentType, setPaymentType] = useState<'Rent/Other' | 'Hamali'>('Rent/Other');
   
@@ -41,7 +43,9 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
     if (state.success) {
       toast({ title: 'Success', description: state.message });
       setIsOpen(false);
+      router.refresh();
     } else {
+      router.refresh();
       toast({
         title: 'Error',
         description: state.message,

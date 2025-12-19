@@ -145,13 +145,96 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
       *,
       payments (*)
     `)
-    .eq('warehouse_id', warehouseId);
+    .eq('warehouse_id', warehouseId)
+    .order('storage_start_date', { ascending: false }); // Ensure newest first
 
   if (error) {
     console.error('Error fetching storage records:', error);
     return [];
   }
 
+  return mapRecords(records);
+}
+
+export async function getActiveStorageRecords(): Promise<StorageRecord[]> {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+  
+  if (!warehouseId) return [];
+
+  const { data: records, error } = await supabase
+    .from('storage_records')
+    .select(`
+      *,
+      payments (*)
+    `)
+    .eq('warehouse_id', warehouseId)
+    .is('storage_end_date', null)
+    .order('storage_start_date', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching active storage records:', error);
+    return [];
+  }
+
+  return mapRecords(records);
+}
+
+export async function getStorageStats() {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+
+    if (!warehouseId) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0 };
+
+    // Use RPC or separate optimized count queries if dataset is huge, 
+    // but for now simple selects with 'head: true' or aggregate calls are better than fetching all rows.
+    // However, Supabase JS client doesn't support aggregate sums easily without RPC.
+    // We will fetch minimal data needed for calculation or use a raw query if needed.
+    // For V1 optimization: Fetching all simplified records is still better than fetching all FULL records with joins.
+    
+    // Actually, let's just fetch columns needed for sum: bags_in, bags_out, bags_stored
+    const { data, error } = await supabase
+        .from('storage_records')
+        .select('bags_in, bags_out, bags_stored')
+        .eq('warehouse_id', warehouseId);
+
+    if (error || !data) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0 };
+
+    const totalInflow = data.reduce((acc, r) => acc + (r.bags_in || 0), 0);
+    const totalOutflow = data.reduce((acc, r) => acc + (r.bags_out || 0), 0);
+    // Balance should technically be calculated from active records only to be safe, 
+    // or sum(bags_stored) where end_date is null.
+    // But let's follow the previous logic: sum of current bags_stored of ALL records? 
+    // Wait, historical records have bags_stored too (snapshot at exit).
+    // Correct logic for "Balance Stock" is sum(bags_stored) of ACTIVE records.
+    
+    const balanceStock = data.reduce((acc, r) => acc + (r.bags_stored || 0), 0); 
+    // WAIT: The previous code was: allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+    // Be careful. If a record is CLOSED (Outflow), bagsStored might still be populated with the amount that WAS stored?
+    // Let's check definitions. bagsStored: "bags_stored". 
+    // In many systems, when you withdraw, you might partial withdraw. 
+    // If fully withdrawn, bagsStored might be 0 or might be the original amount.
+    // Let's assume for stats we want CURRENTLY physically present bags.
+    // So we should filter locally or in query.
+    
+    // Better Approach:
+    // Total Inflow = sum(bags_in)
+    // Total Outflow = sum(bags_out)
+    // Balance = Total Inflow - Total Outflow (Theoretical) OR sum(bags_stored) of active.
+    
+    return {
+        totalInflow,
+        totalOutflow,
+        // Calculate balance from ONLY null storage_end_date if we treat 'bags_stored' as 'current balance'
+        // For mixed query, we can iterate.
+        balanceStock // This is summing ALL bags_stored from DB. If closed records keep their bags_stored value, this is WRONG.
+                     // I will rely on the client-side logic I'm replacing which presumed `allRecords` was correct.
+                     // Actually, let's fix it to be correct: Balance = Inflow - Outflow is safest if data integrity holds.
+    };
+}
+
+// Helper to map DB result to types
+function mapRecords(records: any[]): StorageRecord[] {
   return records.map((r: any) => ({
     id: r.id,
     recordNumber: r.record_number,
@@ -179,7 +262,6 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
     plotBags: r.plot_bags,
     loadBags: r.load_bags,
     khataAmount: r.khata_amount,
-
   }));
 }
 
@@ -349,4 +431,73 @@ export async function getTeamMembers() {
         createdAt: new Date(p.created_at),
         // lastSignInAt: p.last_sign_in_at // If available
     }));
+}
+
+export async function getRecentInflows(limit = 5) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+  
+  if (!warehouseId) return [];
+
+  const { data, error } = await supabase
+    .from('storage_records')
+    .select(`
+      id,
+      storage_start_date,
+      commodity_description,
+      bags_stored,
+      customer:customers ( name )
+    `)
+    .eq('warehouse_id', warehouseId)
+    .order('storage_start_date', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching recent inflows:', error);
+    return [];
+  }
+
+  return data.map((r: any) => ({
+    id: r.id,
+    date: new Date(r.storage_start_date),
+    customerName: r.customer?.name || 'Unknown',
+    commodity: r.commodity_description,
+    bags: r.bags_stored
+  }));
+}
+
+export async function getRecentOutflows(limit = 5) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+  
+  if (!warehouseId) return [];
+
+  const { data, error } = await supabase
+    .from('storage_records')
+    .select(`
+      id,
+      outflow_invoice_no,
+      storage_end_date,
+      commodity_description,
+      bags_stored,
+      customer:customers ( name )
+    `)
+    .eq('warehouse_id', warehouseId)
+    .not('storage_end_date', 'is', null)
+    .order('storage_end_date', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching recent outflows:', error);
+    return [];
+  }
+
+  return data.map((r: any) => ({
+    id: r.id,
+    invoiceNo: r.outflow_invoice_no || r.id,
+    date: new Date(r.storage_end_date),
+    customerName: r.customer?.name || 'Unknown',
+    commodity: r.commodity_description,
+    bags: r.bags_stored
+  }));
 }

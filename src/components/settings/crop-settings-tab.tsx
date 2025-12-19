@@ -1,16 +1,11 @@
 'use client';
 
-import { addCrop } from "@/lib/admin-actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EditCropDialog } from '@/components/lots/edit-crop-dialog';
 import { DeleteCropButton } from '@/components/lots/delete-crop-button';
-import { Plus, Wheat, IndianRupee, Loader2 } from "lucide-react";
-import { useFormStatus } from "react-dom";
-import { SubmitButton } from "@/components/ui/submit-button";
+import { Plus, Wheat } from "lucide-react";
+import { AddCropForm } from "@/components/lots/add-crop-form";
 
 type CropTabProps = {
     crops: any[];
@@ -96,31 +91,7 @@ export function CropSettingsTab({ crops }: CropTabProps) {
                        <h3 className="mb-4 text-base font-medium flex items-center gap-2">
                            <Plus className="w-4 h-4 text-primary" /> Add New Crop
                        </h3>
-                       <form action={addCrop} className="grid gap-4 md:grid-cols-5 items-end bg-muted/20 p-4 rounded-lg border border-dashed">
-                        <div className="grid gap-2 md:col-span-2">
-                            <Label htmlFor="crop-name">Name</Label>
-                            <Input id="crop-name" name="name" placeholder="e.g. Paddy" required className="bg-background" />
-                        </div>
-                         <div className="grid gap-2">
-                            <Label htmlFor="price6m">Rent (6M)</Label>
-                            <div className="relative">
-                                <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input id="price6m" name="price6m" type="number" step="0.01" placeholder="30" required className="pl-9 bg-background" />
-                            </div>
-                        </div>
-                         <div className="grid gap-2">
-                            <Label htmlFor="price1y">Rent (1Y)</Label>
-                             <div className="relative">
-                                <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input id="price1y" name="price1y" type="number" step="0.01" placeholder="50" required className="pl-9 bg-background" />
-                            </div>
-                        </div>
-                        <div className="md:col-span-5 md:col-start-5">
-                            <SubmitButton className="w-full md:w-auto">
-                              <Plus className="mr-2 h-4 w-4" /> Add Crop
-                            </SubmitButton>
-                        </div>
-                       </form>
+                        <AddCropForm />
                     </div>
                 </CardContent>
             </Card>

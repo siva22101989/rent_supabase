@@ -5,10 +5,7 @@ import { CustomersPageClient } from "./page-client";
 export const dynamic = 'force-dynamic';
 
 export default async function CustomersPage() {
-  const [customers, records] = await Promise.all([
-    getCustomers(),
-    getStorageRecords()
-  ]);
-
-  return <CustomersPageClient customers={customers} records={records} />;
+  const records = await getStorageRecords(); // Keep records for now as they are dynamic/complex
+  // Customers will be fetched on client via context (cached)
+  return <CustomersPageClient customers={[]} records={records} />;
 }

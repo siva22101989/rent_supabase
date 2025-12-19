@@ -1,13 +1,11 @@
 import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/shared/page-header';
-import { getTeamMembers } from '@/lib/queries';
 import { TeamManager } from '@/components/settings/team/team-manager';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TeamSettingsPage() {
-  const members = await getTeamMembers();
-
+  // Members will be fetched on client side
   return (
     <AppLayout>
       <PageHeader
@@ -21,7 +19,7 @@ export default async function TeamSettingsPage() {
       />
       
       <div className="max-w-6xl mx-auto">
-         <TeamManager initialMembers={members} />
+         <TeamManager initialMembers={[]} />
       </div>
     </AppLayout>
   );

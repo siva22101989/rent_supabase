@@ -1,121 +1,57 @@
-
 'use client';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { useDashboardMetrics } from "@/hooks/use-dashboard-metrics";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { IndianRupee, Package, Warehouse, Users, TrendingUp } from 'lucide-react';
 
-export function DashboardCharts({ metrics }: { metrics: any }) {
+export function DashboardCharts({ metrics: initialMetrics }: { metrics?: any }) {
+    // Upgrading to SWR for client-side revalidation
+    const { metrics } = useDashboardMetrics(initialMetrics);
+    
+    // Safety check if metrics is null (legacy/initial state)
     if (!metrics) return null;
 
-    const occupancyData = [
-        { name: 'Used', value: metrics.totalStock, fill: 'hsl(var(--chart-1))' },
-        { name: 'Free', value: metrics.totalCapacity - metrics.totalStock, fill: 'hsl(var(--muted))' },
-    ];
-
-    // Mock trend data (would normally fetch real historical data)
-    const trendData = [
-        { name: 'Mon', bags: 120 },
-        { name: 'Tue', bags: 200 },
-        { name: 'Wed', bags: metrics.activeRecordsCount * 5 }, // Just dynamic enough to change
-        { name: 'Thu', bags: 180 },
-        { name: 'Fri', bags: 250 },
-        { name: 'Sat', bags: 300 },
-        { name: 'Sun', bags: metrics.totalStock / 10 },
-    ];
-
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
-            <Card className="col-span-4">
-                <CardHeader>
-                    <CardTitle>Overview</CardTitle>
-                    <CardDescription>
-                        Weekly Inflow/Outflow Activity
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pl-2">
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={trendData}>
-                            <XAxis
-                                dataKey="name"
-                                stroke="#888888"
-                                fontSize={12}
-                                tickLine={false}
-                                axisLine={false}
+        <div className="space-y-6 animate-in fade-in-50">
+            {/* KPI Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+                         <div className={`p-2 rounded-full ${metrics.occupancyRate > 90 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                            <Warehouse className="h-4 w-4" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{metrics.occupancyRate.toFixed(1)}%</div>
+                        <p className="text-xs text-muted-foreground">
+                            {metrics.totalStock} / {metrics.totalCapacity} bags
+                        </p>
+                        <div className="h-1 w-full bg-secondary mt-3 rounded-full overflow-hidden">
+                            <div 
+                                className={`h-full ${metrics.occupancyRate > 90 ? 'bg-red-500' : 'bg-green-500'}`} 
+                                style={{ width: `${metrics.occupancyRate}%` }} 
                             />
-                            <YAxis
-                                stroke="#888888"
-                                fontSize={12}
-                                tickLine={false}
-                                axisLine={false}
-                                tickFormatter={(value) => `${value}`}
-                            />
-                            <Tooltip 
-                                cursor={{fill: 'transparent'}}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                            />
-                            <Bar
-                                dataKey="bags"
-                                fill="hsl(var(--primary))"
-                                radius={[4, 4, 0, 0]}
-                            />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
-
-            <Card className="col-span-3">
-                 <CardHeader>
-                    <CardTitle>Storage Capacity</CardTitle>
-                    <CardDescription>
-                        Current utilization of warehouse space
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                             <Pie
-                                data={occupancyData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                            >
-                                {occupancyData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                ))}
-                            </Pie>
-                             <Tooltip 
-                                formatter={(value: number) => [`${value} Bags`, 'Quantity']}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                            />
-                            <Legend verticalAlign="bottom" height={36}/>
-                        </PieChart>
-                     </ResponsiveContainer>
-                         <div className="text-center text-2xl font-bold mt-2">
-                        {metrics.occupancyRate.toFixed(1)}% Full
-                    </div>
-                </CardContent>
-            </Card>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Active Records</CardTitle>
+                        <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                             <TrendingUp className="h-4 w-4" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{metrics.activeRecordsCount}</div>
+                         <p className="text-xs text-muted-foreground">
+                            Currently in storage
+                        </p>
+                    </CardContent>
+                </Card>
+           </div>
         </div>
     );
 }

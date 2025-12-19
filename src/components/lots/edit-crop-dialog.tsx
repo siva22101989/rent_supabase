@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Pencil } from 'lucide-react';
 import { updateCrop } from '@/lib/lots-actions';
 import { useRouter } from 'next/navigation';
+import { useStaticData } from '@/hooks/use-static-data';
 
 interface Props {
     crop: {
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export function EditCropDialog({ crop }: Props) {
+    const { refresh } = useStaticData();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -41,6 +43,7 @@ export function EditCropDialog({ crop }: Props) {
             const formData = new FormData(e.currentTarget);
             await updateCrop(crop.id, formData);
             setOpen(false);
+            await refresh();
             router.refresh();
         } catch (err: any) {
             setError(err.message || 'Failed to update crop');

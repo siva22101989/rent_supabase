@@ -15,12 +15,14 @@ import {
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useTeamMembers } from '@/hooks/use-team-members';
 
 const initialState: FormState = { message: '', success: false };
 
 export function AddTeamMemberForm({ onSuccess }: { onSuccess?: () => void }) {
     const [state, formAction, isPending] = useActionState(createTeamMember, initialState);
     const { toast } = useToast();
+    const { refreshMembers } = useTeamMembers();
 
     useEffect(() => {
         if (state.message) {
@@ -32,6 +34,9 @@ export function AddTeamMemberForm({ onSuccess }: { onSuccess?: () => void }) {
             
             if (state.success && onSuccess) {
                 onSuccess();
+            }
+            if (state.success) {
+                refreshMembers();
             }
         }
     }, [state, toast, onSuccess]);

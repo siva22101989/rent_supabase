@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getUserWarehouses, getActiveWarehouseId } from '@/lib/warehouse-actions';
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 type Warehouse = {
   id: string;
@@ -24,6 +25,8 @@ const CACHE_KEY = 'bagbill_warehouses';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export function WarehouseProvider({ children }: { children: React.ReactNode }) {
+  const [warehouseCache, setWarehouseCache] = useLocalStorage<any>(CACHE_KEY, null);
+  
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [currentWarehouse, setCurrentWarehouse] = useState<Warehouse | undefined>();
   const [isLoading, setIsLoading] = useState(true);
@@ -42,12 +45,12 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
         setCurrentWarehouse(match);
       }
 
-      // Cache in localStorage
-      localStorage.setItem(CACHE_KEY, JSON.stringify({
+      // Cache
+      setWarehouseCache({
         data: list,
         timestamp: Date.now(),
         activeId
-      }));
+      });
     } catch (err) {
       console.error('Warehouse fetch error:', err);
     } finally {
@@ -58,11 +61,9 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const init = async () => {
       // Try to load from cache first
-      const cached = localStorage.getItem(CACHE_KEY);
-      
-      if (cached) {
+      if (warehouseCache) {
         try {
-          const { data, timestamp, activeId } = JSON.parse(cached);
+          const { data, timestamp, activeId } = warehouseCache;
           const age = Date.now() - timestamp;
           
           if (age < CACHE_DURATION) {
@@ -76,7 +77,7 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
             return; // Don't fetch from server
           }
         } catch (e) {
-          console.error('Cache parse error:', e);
+          console.error('Cache read error:', e);
         }
       }
 
@@ -85,7 +86,7 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
     };
 
     init();
-  }, []);
+  }, [warehouseCache]); // Depend on cache to trigger specific logic if needed, but mostly on mount logic really.
 
   return (
     <WarehouseContext.Provider value={{ 

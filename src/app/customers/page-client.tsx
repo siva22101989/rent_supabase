@@ -21,26 +21,32 @@ import { Input } from "@/components/ui/input";
 import { Search, Users, Phone, MapPin } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@uidotdev/usehooks";
 
 import type { Customer, StorageRecord } from "@/lib/definitions";
 
 
 const ITEMS_PER_PAGE = 20;
 
+import { useCustomers } from "@/contexts/customer-context";
+
+// ... imports
+
 export function CustomersPageClient({ 
-  customers, 
+  customers: initialCustomers, // Unused now, but kept for signature compatibility if needed
   records 
 }: { 
   customers: Customer[], 
   records: StorageRecord[] 
 }) {
+  const { customers, isLoading } = useCustomers();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Filter customers based on search
   const filteredCustomers = useMemo(() => {
+    if (!customers) return [];
     if (!debouncedSearch) return customers;
     const query = debouncedSearch.toLowerCase();
     return customers.filter(c => 
@@ -50,6 +56,21 @@ export function CustomersPageClient({
       c.village?.toLowerCase().includes(query)
     );
   }, [customers, searchQuery]);
+
+  // Loading State
+  if (isLoading && customers.length === 0) {
+      return (
+          <AppLayout>
+             <PageHeader title="Customers" description="Loading..." breadcrumbs={[{ label: 'Dashboard', href: '/' }, { label: 'Customers' }]}>
+                 <div className="h-10 w-32 bg-muted animate-pulse rounded" />
+             </PageHeader>
+             <div className="space-y-4">
+                 <div className="h-10 w-full bg-muted animate-pulse rounded" />
+                 <div className="h-64 w-full bg-muted animate-pulse rounded" />
+             </div>
+          </AppLayout>
+      )
+  }
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
@@ -67,7 +88,7 @@ export function CustomersPageClient({
     <AppLayout>
       <PageHeader
         title="Customers"
-        description={`Manage your customers and view their activity. (${filteredCustomers.length} total)`}
+        description={`Manage your customers and view their activity. (${customers.length} total)`}
         breadcrumbs={[
           { label: 'Dashboard', href: '/' },
           { label: 'Customers' }
@@ -77,7 +98,7 @@ export function CustomersPageClient({
           <AddCustomerDialog />
         </div>
       </PageHeader>
-
+      
       <div className="mb-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

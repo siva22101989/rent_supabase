@@ -21,11 +21,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useCustomers } from '@/contexts/customer-context';
 
 // Local SubmitButton removed in favor of shared component
 
 export function AddCustomerDialog() {
   const { toast } = useToast();
+  const { refreshCustomers } = useCustomers();
   const [isOpen, setIsOpen] = useState(false);
   
   const initialState: FormState = { message: '', success: false };
@@ -36,6 +38,7 @@ export function AddCustomerDialog() {
     
     if (state.success) {
       toast({ title: 'Success', description: state.message });
+      refreshCustomers(true);
       setIsOpen(false); 
     } else {
       toast({

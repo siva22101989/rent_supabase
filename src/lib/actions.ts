@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
-import { getStorageRecords, getCustomers, getStorageRecord, getCustomer, getUserWarehouse } from '@/lib/queries';
+import { getStorageRecords, getCustomers, getStorageRecord, getCustomer, getUserWarehouse, getAvailableCrops, getAvailableLots, getTeamMembers, getDashboardMetrics } from '@/lib/queries';
 import { saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, deleteStorageRecord, saveExpense, updateExpense, deleteExpense } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -1102,4 +1102,24 @@ export async function deactivateTeamMember(userId: string) {
     } catch (e: any) {
         return { message: `Deactivation failed: ${e.message}`, success: false };
     }
+}
+
+export async function fetchCustomers() {
+    return await getCustomers();
+}
+
+export async function fetchCrops() {
+    return await getAvailableCrops();
+}
+
+export async function fetchLots() {
+    return await getAvailableLots();
+}
+
+export async function fetchTeamMembers() {
+    return await getTeamMembers();
+}
+
+export async function fetchDashboardMetrics() {
+    return await getDashboardMetrics();
 }

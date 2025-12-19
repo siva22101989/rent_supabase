@@ -18,26 +18,28 @@ import Link from 'next/link';
 import { FileText } from 'lucide-react';
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@uidotdev/usehooks";
 
 
 const ITEMS_PER_PAGE = 25;
 
-export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] }) {
+export function StoragePageClient({ activeRecords, initialStats }: { activeRecords: StorageRecord[], initialStats: { totalInflow: number, totalOutflow: number, balanceStock: number } }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  const totalInflow = allRecords.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
-  const totalOutflow = allRecords.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
-  
-  const balanceStock = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
-
-  const activeRecords = allRecords.filter(r => !r.storageEndDate);
-  const estimatedRent = activeRecords.reduce((total, record) => {
-    const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
-    return total + rent;
-  }, 0);
+  const stats = useMemo(() => {
+    // We utilize initialStats for the big numbers, but we could also refine them based on filter if needed.
+    // For now, let's keep the dashboard-style stats static as they represent the Warehouse totals.
+    // The "Estimated Rent" however should be based on the currently displayed/filtered active records.
+    return {
+        ...initialStats,
+        estimatedRent: activeRecords.reduce((total, record) => {
+             const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
+             return total + rent;
+        }, 0)
+    }
+  }, [activeRecords, initialStats]);
 
   // Filter records based on search
   const filteredRecords = useMemo(() => {
@@ -68,8 +70,6 @@ export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] 
     setSearchQuery(value);
     setCurrentPage(1);
   };
-
-  const stats = { totalInflow, totalOutflow, balanceStock, estimatedRent };
 
   return (
     <AppLayout>

@@ -11,7 +11,8 @@ import { WarehouseSettingsTab } from "@/components/settings/warehouse-settings-t
 import { CropSettingsTab } from "@/components/settings/crop-settings-tab";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { User, Warehouse, Wheat, Users } from "lucide-react";
+import { DataManagementTab } from "@/components/settings/data-management-tab";
+import { User, Warehouse, Wheat, Users, Database } from "lucide-react";
 
 export default async function SettingsPage() {
   const warehouseId = await getUserWarehouse();
@@ -77,6 +78,10 @@ export default async function SettingsPage() {
                 <Wheat className="w-4 h-4" />
                 Crops & Rates
             </TabsTrigger>
+            <TabsTrigger value="data" className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Database className="w-4 h-4" />
+                Data Management
+            </TabsTrigger>
         </TabsList>
         
         <TabsContent value="profile" className="space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
@@ -91,6 +96,10 @@ export default async function SettingsPage() {
         
         <TabsContent value="crops" className="space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
             <CropSettingsTab crops={crops || []} />
+        </TabsContent>
+
+        <TabsContent value="data" className="space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
+            <DataManagementTab />
         </TabsContent>
       </Tabs>
       

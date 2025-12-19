@@ -1,29 +1,15 @@
 import { AppLayout } from '@/components/layout/app-layout';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { EditLotDialog } from '@/components/lots/edit-lot-dialog';
 import { createClient } from '@/utils/supabase/server';
 export const dynamic = 'force-dynamic';
 import { getUserWarehouse } from "@/lib/queries";
 import { redirect } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { addLot, bulkAddLots, addLotsFromList, deleteLot } from '@/lib/lots-actions';
-import Link from 'next/link';
-import { ArrowLeft, Trash2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { EditLotDialog } from '@/components/lots/edit-lot-dialog';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { AddLotDialog } from '@/components/lots/add-lot-dialog';
+import { BulkAddLotsDialog } from '@/components/lots/bulk-add-lots-dialog';
+import { PasteLotListDialog } from '@/components/lots/paste-lot-list-dialog';
+import { DeleteLotButton } from '@/components/lots/delete-lot-button';
 
 import { PageHeader } from '@/components/shared/page-header';
 
@@ -53,91 +39,9 @@ export default async function LotsPage() {
 
 
       <div className="flex gap-4">
-        {/* Add Single Lot Dialog */}
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button>Add Single Lot</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add New Lot</DialogTitle>
-                </DialogHeader>
-                <form action={addLot} className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="name">Lot Name</Label>
-                        <Input id="name" name="name" placeholder="e.g. A-1" required />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="capacity">Capacity (Bags)</Label>
-                        <Input id="capacity" name="capacity" type="number" placeholder="1000" defaultValue="1000" />
-                    </div>
-                    <Button type="submit">Create Lot</Button>
-                </form>
-            </DialogContent>
-        </Dialog>
-
-        {/* Bulk Add Dialog */}
-        <Dialog>
-             <DialogTrigger asChild>
-                <Button variant="secondary">Bulk Add Lots</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Bulk Add Lots</DialogTitle>
-                </DialogHeader>
-                <form action={bulkAddLots} className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="prefix">Prefix</Label>
-                        <Input id="prefix" name="prefix" placeholder="e.g. Row A-" required />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="start">Start Number</Label>
-                            <Input id="start" name="start" type="number" placeholder="1" required />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="end">End Number</Label>
-                            <Input id="end" name="end" type="number" placeholder="50" required />
-                        </div>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="capacity">Capacity per Lot (Bags)</Label>
-                        <Input id="capacity" name="capacity" type="number" placeholder="1000" defaultValue="1000" />
-                    </div>
-                    <Button type="submit">Generate Lots</Button>
-                </form>
-            </DialogContent>
-        </Dialog>
-
-        {/* Paste List Dialog */}
-        <Dialog>
-             <DialogTrigger asChild>
-                <Button variant="outline">Paste List</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Paste Lot List</DialogTitle>
-                </DialogHeader>
-                <form action={addLotsFromList} className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="list_content">Lot Names</Label>
-                        <p className="text-xs text-muted-foreground">Separate by comma or new line (e.g. "A1, A2, B1")</p>
-                        <textarea 
-                            id="list_content" 
-                            name="list_content" 
-                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            placeholder="A1, A2, A3..." 
-                            required 
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="capacity">Capacity per Lot (Bags)</Label>
-                        <Input id="capacity" name="capacity" type="number" placeholder="1000" defaultValue="1000" />
-                    </div>
-                    <Button type="submit">Add Lots</Button>
-                </form>
-            </DialogContent>
-        </Dialog>
+        <AddLotDialog />
+        <BulkAddLotsDialog />
+        <PasteLotListDialog />
       </div>
 
       <Card>
@@ -180,34 +84,7 @@ export default async function LotsPage() {
                                             capacity: lot.capacity || 1000
                                         }}
                                     />
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                                <Trash2 className="h-4 w-4" />
-                                                <span className="sr-only">Delete</span>
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Delete Lot?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This will permanently delete lot <strong>{lot.name}</strong>.
-                                                    This action cannot be undone.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <form action={deleteLot.bind(null, lot.id)}>
-                                                    <AlertDialogAction
-                                                        type="submit"
-                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                    >
-                                                        Delete Lot
-                                                    </AlertDialogAction>
-                                                </form>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
+                                    <DeleteLotButton lotId={lot.id} lotName={lot.name} />
                                 </div>
                             </TableCell>
                         </TableRow>

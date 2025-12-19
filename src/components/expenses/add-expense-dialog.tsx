@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
 import { addExpense, type FormState } from '@/lib/actions';
@@ -29,6 +30,7 @@ import { Textarea } from '../ui/textarea';
 
 export function AddExpenseDialog() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   
   const initialState: FormState = { message: '', success: false };
@@ -39,7 +41,8 @@ export function AddExpenseDialog() {
     
     if (state.success) {
       toast({ title: 'Success', description: state.message });
-      setIsOpen(false); 
+      setIsOpen(false);
+      router.refresh(); 
     } else {
       toast({
         title: 'Error',

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useTeamMembers } from '@/hooks/use-team-members';
 
 interface TeamMemberDetailsProps {
     member: TeamMember;
@@ -21,9 +22,10 @@ interface TeamMemberDetailsProps {
 export function TeamMemberDetails({ member }: TeamMemberDetailsProps) {
     const [isEditing, setIsEditing] = useState(false);
     const { toast } = useToast();
+    const { refreshMembers } = useTeamMembers();
 
     if (isEditing) {
-        return <EditMemberForm member={member} onCancel={() => setIsEditing(false)} />;
+        return <EditMemberForm member={member} onCancel={() => setIsEditing(false)} onSuccess={refreshMembers} />;
     }
 
     return (
@@ -99,6 +101,9 @@ export function TeamMemberDetails({ member }: TeamMemberDetailsProps) {
                          if(!confirm('Are you sure?')) return;
                          await deactivateTeamMember(member.id);
                          toast({ title: 'User Deactivated', variant: 'destructive' });
+                         await deactivateTeamMember(member.id);
+                         toast({ title: 'User Deactivated', variant: 'destructive' });
+                         refreshMembers();
                     }}>
                         <Button variant="destructive" size="sm">
                             <UserX className="w-4 h-4 mr-2" />
@@ -111,13 +116,14 @@ export function TeamMemberDetails({ member }: TeamMemberDetailsProps) {
     );
 }
 
-function EditMemberForm({ member, onCancel }: { member: TeamMember, onCancel: () => void }) {
+function EditMemberForm({ member, onCancel, onSuccess }: { member: TeamMember, onCancel: () => void, onSuccess: () => void }) {
     const { toast } = useToast();
     
     async function handleSubmit(formData: FormData) {
         const res = await updateTeamMember(member.id, formData);
         if (res.success) {
             toast({ title: 'Success', description: 'Member updated successfully', variant: 'success' });
+            onSuccess();
             onCancel();
         } else {
             toast({ title: 'Error', description: res.message, variant: 'destructive' });

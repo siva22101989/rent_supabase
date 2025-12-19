@@ -3,7 +3,7 @@
 
 import { useActionState, useEffect, useState, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { addInflow, type InflowFormState } from '@/lib/actions';
 // ... (rest of imports unchanged)
@@ -20,11 +20,21 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 // Local SubmitButton removed in favor of shared component
 
-function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { customers: Customer[], nextSerialNumber: string, lots: any[], crops: any[] }) {
+
+import { useCustomers } from "@/contexts/customer-context";
+import { useStaticData } from "@/hooks/use-static-data";
+
+function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
     const { toast } = useToast();
     const searchParams = useSearchParams();
     const queryCustomerId = searchParams.get('customerId');
     
+    // Hooks for data
+    const { customers, isLoading: customersLoading } = useCustomers();
+    const { crops, lots, loading: staticLoading, refresh } = useStaticData();
+    const router = useRouter();
+    const isLoading = customersLoading || staticLoading;
+
     const initialState: InflowFormState = { message: '', success: false };
     const [state, formAction] = useActionState(addInflow, initialState);
 
@@ -57,13 +67,18 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
     // We'll use a derived state/key for Weight default if we want to force updates, or just controlled input.
     // Let's make Weight controlled slightly or just defaultValue logic.
 
-     useEffect(() => {
+    useEffect(() => {
         if (state.message) {
             if (state.success) {
                 toast({
                     title: 'Success!',
                     description: state.message,
                 });
+                const initRefresh = async () => {
+                   await refresh();
+                   router.refresh();
+                };
+                initRefresh();
             } else {
                 toast({
                     title: 'Error',
@@ -72,7 +87,7 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
                 });
             }
         }
-    }, [state, toast]);
+    }, [state, toast, refresh, router]);
 
     useEffect(() => {
         const bagsValue = inflowType === 'Plot' ? plotBags : bags;
@@ -332,7 +347,7 @@ function InflowFormInner({ customers, nextSerialNumber, lots, crops }: { custome
   );
 }
 
-export function InflowForm(props: { customers: Customer[], nextSerialNumber: string, lots: any[], crops: any[] }) {
+export function InflowForm(props: { nextSerialNumber: string }) {
     return (
         <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>}>
             <InflowFormInner {...props} />

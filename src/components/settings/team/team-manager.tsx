@@ -6,19 +6,21 @@ import { TeamMembersList } from "./team-members-list";
 import { TeamMemberDetails } from "./team-member-details";
 import { AddTeamMemberForm } from "./add-team-member-form";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Plus, Loader2 } from "lucide-react";
+import { useTeamMembers } from '@/hooks/use-team-members';
 
 interface TeamManagerProps {
-  initialMembers: TeamMember[];
+  initialMembers: TeamMember[]; // Kept for interface compatibility but unused/empty
 }
 
 export function TeamManager({ initialMembers }: TeamManagerProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [members, setMembers] = useState(initialMembers); // For optimistic updates if needed, though we rely on revalidate mostly
+  
+  // Use new hook
+  const { members, loading, refreshMembers } = useTeamMembers();
 
-  const selectedMember = members.find(m => m.id === selectedId);
+  const selectedMember = members.find((m: any) => m.id === selectedId);
 
   const handleAddClick = () => {
     setSelectedId(null);
@@ -35,11 +37,17 @@ export function TeamManager({ initialMembers }: TeamManagerProps) {
       
       {/* Left Column: List */}
       <div className="flex flex-col h-full border-r">
-         <TeamMembersList 
-            members={members} 
-            selectedId={selectedId} 
-            onSelect={handleSelect} 
-         />
+         {loading ? (
+             <div className="flex items-center justify-center flex-1 h-32">
+                 <Loader2 className="animate-spin rounded-full h-8 w-8 text-primary" />
+             </div>
+         ) : (
+            <TeamMembersList 
+                members={members} 
+                selectedId={selectedId} 
+                onSelect={handleSelect} 
+            />
+         )}
          <div className="p-4 border-t bg-muted/20">
             <Button className="w-full gap-2" variant="outline" onClick={handleAddClick}>
                 <Plus className="w-4 h-4" />
@@ -56,9 +64,9 @@ export function TeamManager({ initialMembers }: TeamManagerProps) {
                     <h2 className="text-xl font-bold">Add New Team Member</h2>
                     <p className="text-muted-foreground">Invite a colleague to your warehouse.</p>
                  </div>
-                 <AddTeamMemberForm onSuccess={() => {
+                 <AddTeamMemberForm onSuccess={async () => {
                      setIsAdding(false);
-                     // Ideally we refresh data here or router.refresh() handles it 
+                     await refreshMembers();
                  }} />
             </div>
         ) : selectedMember ? (

@@ -17,6 +17,7 @@ import { Pencil } from 'lucide-react';
 import { updateCustomer } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import type { Customer } from '@/lib/definitions';
+import { useCustomers } from '@/contexts/customer-context';
 
 interface Props {
     customer: Customer;
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function EditCustomerDialog({ customer, variant = 'outline', size = 'sm' }: Props) {
+    const { refreshCustomers } = useCustomers();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -39,6 +41,7 @@ export function EditCustomerDialog({ customer, variant = 'outline', size = 'sm' 
         const result = await updateCustomer(customer.id, formData);
 
         if (result.success) {
+            await refreshCustomers(true);
             setOpen(false);
             router.refresh();
         } else {

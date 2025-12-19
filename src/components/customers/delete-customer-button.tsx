@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Trash2 } from 'lucide-react';
 import { deleteCustomer } from '@/lib/actions';
+import { useCustomers } from '@/contexts/customer-context';
+import { useRouter } from 'next/navigation';
 
 interface Props {
     customerId: string;
@@ -24,6 +26,8 @@ interface Props {
 }
 
 export function DeleteCustomerButton({ customerId, customerName, variant = 'outline', size = 'sm' }: Props) {
+    const { refreshCustomers } = useCustomers();
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -36,8 +40,10 @@ export function DeleteCustomerButton({ customerId, customerName, variant = 'outl
         if (!result.success) {
             setError(result.message);
             setLoading(false);
+        } else {
+            await refreshCustomers(true);
+            router.refresh();
         }
-        // If successful, redirect happens in the action
     }
 
     return (

@@ -2,7 +2,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
-import { getCustomers, getStorageRecords, getAvailableLots, getAvailableCrops } from "@/lib/queries";
+import { getRecentInflows } from "@/lib/queries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ArrowDownToDot } from "lucide-react";
@@ -11,12 +11,7 @@ import { ArrowDownToDot } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 export default async function InflowPage() {
-    const [customers, records, lots, crops] = await Promise.all([
-        getCustomers(),
-        getStorageRecords(),
-        getAvailableLots(),
-        getAvailableCrops()
-    ]);
+    const records = await getRecentInflows(5);
 
   // Removed manual sequence logic as it is now handled server-side
   const nextSerialNumber = "Auto-Generated";
@@ -33,9 +28,8 @@ export default async function InflowPage() {
       >
         <AddCustomerDialog />
       </PageHeader>
-      <InflowForm customers={customers || []} nextSerialNumber={nextSerialNumber} lots={lots} crops={crops} />
+      <InflowForm nextSerialNumber={nextSerialNumber} />
 
-      {/* Recent Inflows Table */}
       {/* Recent Inflows Table */}
       <div className="mt-8">
         <h3 className="text-lg font-medium mb-4">Recent Inflows</h3>
@@ -51,18 +45,14 @@ export default async function InflowPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {records
-                   .sort((a, b) => new Date(b.storageStartDate).getTime() - new Date(a.storageStartDate).getTime())
-                   .slice(0, 5)
-                   .map((record) => {
-                     const customerName = customers?.find(c => c.id === record.customerId)?.name || 'Unknown';
+                {records.map((record) => {
                      return (
                       <TableRow key={record.id}>
-                        <TableCell>{new Date(record.storageStartDate).toLocaleDateString()}</TableCell>
+                        <TableCell>{record.date.toLocaleDateString()}</TableCell>
                         <TableCell className="font-medium font-mono">{record.id}</TableCell>
-                        <TableCell>{customerName}</TableCell>
-                        <TableCell>{record.commodityDescription}</TableCell>
-                        <TableCell className="text-right">{record.bagsStored}</TableCell>
+                        <TableCell>{record.customerName}</TableCell>
+                        <TableCell>{record.commodity}</TableCell>
+                        <TableCell className="text-right">{record.bags}</TableCell>
                       </TableRow>
                     );
                    })}

@@ -62,7 +62,26 @@ export default async function ReportsPage() {
           </CardContent>
         </Card>
 
-
+        {/* Custom Reports */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <CardTitle>Custom Reports</CardTitle>
+            </div>
+            <CardDescription>
+              Generate APMC checklists, filtered transaction lists, and exportable data
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full" variant="secondary">
+              <Link href="/reports/custom">
+                <FileText className="mr-2 h-4 w-4" />
+                Create Custom Report
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );

@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Pencil } from 'lucide-react';
 import { updateLot } from '@/lib/lots-actions';
 import { useRouter } from 'next/navigation';
+import { useStaticData } from '@/hooks/use-static-data';
 
 interface Props {
     lot: {
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function EditLotDialog({ lot }: Props) {
+    const { refresh } = useStaticData();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -40,6 +42,7 @@ export function EditLotDialog({ lot }: Props) {
             const formData = new FormData(e.currentTarget);
             await updateLot(lot.id, formData);
             setOpen(false);
+            refresh();
             router.refresh();
         } catch (err: any) {
             setError(err.message || 'Failed to update lot');

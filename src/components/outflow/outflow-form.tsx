@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { SubmitButton } from "@/components/ui/submit-button";
 import { addOutflow, type OutflowFormState } from '@/lib/actions';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,14 +17,21 @@ import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
+import { useCustomers } from '@/contexts/customer-context';
+import { useStaticData } from '@/hooks/use-static-data';
 
-// Local SubmitButton removed in favor of shared component
-
-
-export function OutflowForm({ records, customers, crops }: { records: StorageRecord[], customers: Customer[], crops?: any[] }) {
+export function OutflowForm({ records }: { records: StorageRecord[] }) {
     const { toast } = useToast();
     const initialState: OutflowFormState = { message: '', success: false };
     const [state, formAction] = useActionState(addOutflow, initialState);
+
+    // Hooks for data
+    const { customers, isLoading: customersLoading } = useCustomers();
+    const { crops, loading: cropsLoading, refresh } = useStaticData(); 
+    const router = useRouter();
+    
+    // Derived loading state if needed, but we can just show skeletal UI or wait.
+    // For now we render selectors empty until loaded.
 
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [selectedRecordId, setSelectedRecordId] = useState<string>('');
@@ -44,6 +51,11 @@ export function OutflowForm({ records, customers, crops }: { records: StorageRec
         if (state.message) {
             if (state.success) {
                 // Redirect is handled by the action, no toast needed for success
+                const initRefresh = async () => {
+                    await refresh();
+                    router.refresh();
+                };
+                initRefresh();
             } else {
                 toast({
                     title: 'Error',
@@ -52,7 +64,7 @@ export function OutflowForm({ records, customers, crops }: { records: StorageRec
                 });
             }
         }
-    }, [state, toast]);
+    }, [state, toast, refresh, router]);
 
     useEffect(() => {
         if (selectedRecord) {
