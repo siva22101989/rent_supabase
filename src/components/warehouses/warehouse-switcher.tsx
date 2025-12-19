@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown, Plus, Store, UserPlus } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,46 +18,27 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { getUserWarehouses, switchWarehouse, getActiveWarehouseId } from '@/lib/warehouse-actions';
+import { switchWarehouse } from '@/lib/warehouse-actions';
 import { CreateWarehouseDialog } from './create-warehouse-dialog';
 import { ManageAccessDialog } from './manage-access-dialog';
-
-type Warehouse = {
-    id: string;
-    role: string;
-    name: string;
-    location: string;
-};
+import { useRouter } from 'next/navigation';
+import { useWarehouses } from '@/contexts/warehouse-context';
 
 export function WarehouseSwitcher() {
   const [open, setOpen] = React.useState(false);
-  const [warehouses, setWarehouses] = React.useState<Warehouse[]>([]);
-  const [currentWarehouse, setCurrentWarehouse] = React.useState<Warehouse | undefined>(undefined);
-
-  React.useEffect(() => {
-    const init = async () => {
-        try {
-            const [list, activeId] = await Promise.all([
-                getUserWarehouses(),
-                getActiveWarehouseId()
-            ]);
-            setWarehouses(list);
-            if (activeId) {
-                const match = list.find((w: any) => w.id === activeId);
-                setCurrentWarehouse(match);
-            }
-        } catch (err) {
-            console.error("Warehouse Switcher Error:", err);
-        }
-    };
-    init();
-  }, []);
+  const router = useRouter();
+  const { warehouses, currentWarehouse, setCurrentWarehouse, isLoading } = useWarehouses();
 
   const onSelectWarehouse = async (id: string) => {
       setOpen(false);
       const res = await switchWarehouse(id);
       if (res.success) {
-          window.location.reload(); // Hard refresh to update layout data
+          // Update current warehouse immediately
+          const match = warehouses.find(w => w.id === id);
+          setCurrentWarehouse(match);
+          
+          // Refresh the page data
+          router.refresh();
       }
   };
 
@@ -71,7 +52,7 @@ export function WarehouseSwitcher() {
           className="w-[200px] justify-between"
         >
           <Store className="mr-2 h-4 w-4" />
-          {currentWarehouse ? currentWarehouse.name : (warehouses.length > 0 ? "Select Warehouse" : "Loading...")}
+          {currentWarehouse ? currentWarehouse.name : (isLoading ? "Loading..." : "Select Warehouse")}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

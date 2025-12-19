@@ -28,6 +28,8 @@ export const viewport = {
   userScalable: false, // Prevents zooming on inputs, common for "app-like" feel
 };
 
+import { WarehouseProvider } from '@/contexts/warehouse-context';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -37,12 +39,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} font-body antialiased bg-background`}>
         <ThemeProvider>
-          <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
-          {children}
-          <Toaster />
-          <SpeedInsights />
-          <Analytics />
-          <KeyboardShortcuts />
+          <WarehouseProvider>
+            <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
+            {children}
+            <Toaster />
+            <SpeedInsights />
+            <Analytics />
+            <KeyboardShortcuts />
+          </WarehouseProvider>
         </ThemeProvider>
       </body>
     </html>

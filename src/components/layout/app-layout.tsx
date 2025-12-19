@@ -148,9 +148,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             <div className="flex items-center gap-1 md:gap-2">
               {/* <NotificationBell /> */} {/* Disabled for now */}
-              <div className="hidden md:block">
-                  <WarehouseSwitcher />
-              </div>
+              <WarehouseSwitcher />
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
