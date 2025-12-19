@@ -16,6 +16,14 @@ export const metadata: Metadata = {
   keywords: ['warehouse', 'agriculture', 'inventory', 'billing', 'rent', 'management', 'saas'],
 };
 
+export const viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // Prevents zooming on inputs, common for "app-like" feel
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
