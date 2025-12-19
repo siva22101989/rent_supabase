@@ -4,6 +4,9 @@ import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { getCustomers, getStorageRecords, getAvailableLots, getAvailableCrops } from "@/lib/queries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ArrowDownToDot } from "lucide-react";
+
 
 export const dynamic = 'force-dynamic';
 
@@ -61,8 +64,12 @@ export default async function InflowPage() {
                    })}
                  {records.length === 0 && (
                    <TableRow>
-                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        No recent inflows found.
+                     <TableCell colSpan={5} className="h-48">
+                       <EmptyState
+                         icon={ArrowDownToDot}
+                         title="No inflow records yet"
+                         description="Your recent inflows will appear here once you add your first storage record using the form above."
+                       />
                      </TableCell>
                    </TableRow>
                  )}

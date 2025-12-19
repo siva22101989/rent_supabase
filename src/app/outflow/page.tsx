@@ -3,6 +3,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { OutflowForm } from "@/components/outflow/outflow-form";
 import { getCustomers, getStorageRecords, getAvailableCrops } from "@/lib/queries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ArrowUpFromDot } from "lucide-react";
+
 
 export const dynamic = 'force-dynamic';
 
@@ -57,8 +60,12 @@ export default async function OutflowPage() {
                    })}
                  {records.filter(r => r.storageEndDate).length === 0 && (
                    <TableRow>
-                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        No recent withdrawals.
+                     <TableCell colSpan={5} className="h-48">
+                       <EmptyState
+                         icon={ArrowUpFromDot}
+                         title="No withdrawals yet"
+                         description="Your recent withdrawals will appear here once you process your first outflow using the form above."
+                       />
                      </TableCell>
                    </TableRow>
                  )}

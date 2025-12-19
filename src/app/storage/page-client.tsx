@@ -17,6 +17,7 @@ import { FinalizeDryingDialog } from "@/components/storage/finalize-drying-dialo
 import Link from 'next/link';
 import { FileText } from 'lucide-react';
 import { EmptyState } from "@/components/ui/empty-state";
+import { MobileCard } from "@/components/ui/mobile-card";
 
 
 const ITEMS_PER_PAGE = 25;
@@ -131,7 +132,73 @@ export function StoragePageClient({ allRecords }: { allRecords: StorageRecord[] 
             />
           </div>
         </div>
-        <Card>
+        
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+          {paginatedRecords.length === 0 ? (
+            <EmptyState
+              icon={Warehouse}
+              title={searchQuery ? "No results found" : "No active storage records"}
+              description={searchQuery ? `No records match "${searchQuery}". Try a different search term.` : "Get started by adding your first inflow to create storage records."}
+              actionLabel={searchQuery ? undefined : "Add First Inflow"}
+              actionHref={searchQuery ? undefined : "/inflow"}
+            />
+          ) : (
+            paginatedRecords.map((record) => {
+              const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
+              return (
+                <MobileCard key={record.id}>
+                  <MobileCard.Header>
+                    <div className="flex-1">
+                      <MobileCard.Title>{record.commodityDescription}</MobileCard.Title>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        #{record.recordNumber} • {new Date(record.storageStartDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <MobileCard.Badge>{record.location}</MobileCard.Badge>
+                  </MobileCard.Header>
+                  <MobileCard.Content>
+                    <MobileCard.Row label="Bags Stored" value={record.bagsStored} />
+                    <MobileCard.Row label="Rent Due" value={formatCurrency(rent)} className="text-primary font-semibold" />
+                  </MobileCard.Content>
+                  <MobileCard.Actions>
+                    {record.inflowType === 'Plot' && (!record.loadBags || record.loadBags === 0) && (
+                      <FinalizeDryingDialog 
+                        record={{
+                          id: record.id,
+                          plotBags: record.plotBags,
+                          bagsStored: record.bagsStored,
+                          commodityDescription: record.commodityDescription
+                        }}
+                      />
+                    )}
+                    <EditStorageDialog 
+                      record={{
+                        id: record.id,
+                        commodityDescription: record.commodityDescription,
+                        location: record.location,
+                        bagsStored: record.bagsStored,
+                        hamaliPayable: record.hamaliPayable || 0,
+                        storageStartDate: record.storageStartDate,
+                        storageEndDate: record.storageEndDate
+                      }}
+                      size="sm"
+                    />
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href={`/inflow/receipt/${record.id}`}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Receipt
+                      </Link>
+                    </Button>
+                  </MobileCard.Actions>
+                </MobileCard>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <Card className="hidden md:block">
             <CardContent className="p-0">
                 <Table>
                     <TableHeader>

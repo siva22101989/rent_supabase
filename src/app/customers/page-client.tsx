@@ -18,8 +18,9 @@ import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { formatCurrency } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Phone, MapPin } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { MobileCard } from "@/components/ui/mobile-card";
 
 import type { Customer, StorageRecord } from "@/lib/definitions";
 
@@ -83,7 +84,69 @@ export function CustomersPageClient({
         </div>
       </div>
 
-      <Card>
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-4">
+        {paginatedCustomers.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title={searchQuery ? "No customers found" : "No customers yet"}
+            description={searchQuery ? `No customers match "${searchQuery}". Try a different search term.` : "Add your first customer to start tracking storage and payments."}
+            actionLabel={searchQuery ? undefined : "Add First Customer"}
+            onAction={searchQuery ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
+          />
+        ) : (
+          paginatedCustomers.map((customer) => {
+            const customerRecords = records.filter(r => r.customerId === customer.id);
+            const activeBags = customerRecords
+              .filter(r => !r.storageEndDate)
+              .reduce((sum, r) => sum + r.bagsStored, 0);
+            
+            const totalDue = customerRecords.reduce((sum, r) => {
+               const totalBilled = (r.hamaliPayable || 0) + (r.totalRentBilled || 0);
+               const amountPaid = (r.payments || []).reduce((acc: any, p: any) => acc + p.amount, 0);
+               const balance = totalBilled - amountPaid;
+               return sum + (balance > 0 ? balance : 0);
+            }, 0);
+
+            return (
+              <Link key={customer.id} href={`/customers/${customer.id}`} className="block">
+                <MobileCard className="hover:border-primary/50 transition-colors">
+                  <MobileCard.Header>
+                    <div className="flex-1">
+                      <MobileCard.Title>{customer.name}</MobileCard.Title>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {customer.phone}
+                        </span>
+                        {customer.village && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {customer.village}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </MobileCard.Header>
+                  <MobileCard.Content>
+                    <MobileCard.Row 
+                      label="Active Bags" 
+                      value={activeBags > 0 ? <span className="text-green-600 font-semibold">{activeBags}</span> : <span className="text-muted-foreground">-</span>}
+                    />
+                    <MobileCard.Row 
+                      label="Total Due" 
+                      value={totalDue > 0 ? <span className="text-destructive font-bold">{formatCurrency(totalDue)}</span> : <span className="text-muted-foreground">-</span>}
+                    />
+                  </MobileCard.Content>
+                </MobileCard>
+              </Link>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
