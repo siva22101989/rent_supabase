@@ -8,9 +8,10 @@ const nextConfig: NextConfig = {
     //   '*.cloudworkstations.dev',
     // ],
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // TypeScript errors must be fixed before production
+  // typescript: {
+  //   ignoreBuildErrors: true,
+  // },
 
   images: {
     remotePatterns: [

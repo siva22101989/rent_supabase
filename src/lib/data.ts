@@ -2,6 +2,7 @@
 import { createClient } from '@/utils/supabase/server';
 import type { Customer, StorageRecord, Payment, Expense } from '@/lib/definitions';
 import { revalidatePath } from 'next/cache';
+import { logError } from '@/lib/error-logger';
 
 
 
@@ -82,7 +83,7 @@ export async function customers(): Promise<Customer[]> {
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error fetching customers:', error);
+    logError(error, { operation: 'fetch_customers', warehouseId });
     return [];
   }
 
@@ -166,7 +167,7 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error fetching storage records:', error);
+    logError(error, { operation: 'fetch_storage_records', warehouseId });
     return [];
   }
 
@@ -294,7 +295,7 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
     .single();
 
   if (insertError) {
-    console.error('Error inserting storage record:', insertError);
+    logError(insertError, { operation: 'insert_storage_record', warehouseId });
     throw insertError; 
   }
 
@@ -312,7 +313,7 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
       });
 
     if (paymentError) {
-       console.error('Error inserting initial payment:', paymentError);
+       logError(paymentError, { operation: 'insert_initial_payment', metadata: { recordId: insertedRecord.id } });
        // Log the error but don't fail the whole operation since the record is saved
     }
   }
@@ -378,7 +379,7 @@ export async function expenses(): Promise<Expense[]> {
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error fetching expenses:', error);
+    logError(error, { operation: 'fetch_expenses', warehouseId });
     return [];
   }
 
@@ -476,7 +477,7 @@ export const saveWithdrawalTransaction = async (
     });
 
     if (error) {
-        console.error('Error saving withdrawal transaction:', error);
+        logError(error, { operation: 'save_withdrawal_transaction', warehouseId, metadata: { recordId } });
         // We log but don't throw to avoid failing the main transaction if possible, 
         // though strictly it should probably be part of the same transaction.
     }

@@ -12,6 +12,7 @@ import type { StorageRecord, Payment } from './definitions';
 import { expenseCategories } from './definitions';
 import { getNextInvoiceNumber } from '@/lib/sequence-utils';
 import * as Sentry from "@sentry/nextjs";
+import { logError } from '@/lib/error-logger';
 
 const { logger } = Sentry;
 
@@ -156,10 +157,11 @@ export async function updateCustomer(customerId: string, formData: FormData) {
         .single();
 
     if (error) {
-        console.error('Error updating customer:', error);
-        console.error('Customer ID:', customerId);
-        console.error('Warehouse ID:', warehouseId);
-        console.error('Update data:', updateData);
+        logError(error, { 
+            operation: 'update_customer', 
+            warehouseId, 
+            metadata: { customerId, updateData } 
+        });
         return { message: `Failed to update customer: ${error.message}`, success: false };
     }
 
@@ -187,7 +189,7 @@ export async function deleteCustomer(customerId: string) {
         .limit(1);
 
     if (checkError) {
-        console.error('Error checking customer records:', checkError);
+        logError(checkError, { operation: 'check_customer_records', warehouseId, metadata: { customerId } });
         return { message: 'Failed to check customer records', success: false };
     }
 
@@ -206,7 +208,7 @@ export async function deleteCustomer(customerId: string) {
         .eq('warehouse_id', warehouseId);
 
     if (error) {
-        console.error('Error deleting customer:', error);
+        logError(error, { operation: 'delete_customer', warehouseId, metadata: { customerId } });
         return { message: 'Failed to delete customer', success: false };
     }
 
@@ -710,7 +712,7 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
         .eq('warehouse_id', warehouseId);
 
     if (error) {
-        console.error('Error updating storage record:', error);
+        logError(error, { operation: 'update_storage_record', warehouseId, metadata: { recordId } });
         return { message: `Failed to update record: ${error.message}`, success: false };
     }
 
@@ -851,7 +853,7 @@ export async function updatePayment(paymentId: string, formData: FormData) {
         .single();
 
     if (error) {
-        console.error('Error updating payment:', error);
+        logError(error, { operation: 'update_payment', metadata: { paymentId } });
         return { message: `Failed to update payment: ${error.message}`, success: false };
     }
 
@@ -878,7 +880,7 @@ export async function deletePayment(paymentId: string, customerId: string) {
         .eq('id', paymentId);
 
     if (error) {
-        console.error('Error deleting payment:', error);
+        logError(error, { operation: 'delete_payment', metadata: { paymentId } });
         return { message: 'Failed to delete payment', success: false };
     }
 
@@ -1002,7 +1004,7 @@ export async function updateExpenseSimple(expenseId: string, formData: FormData)
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error updating expense:', error);
+    logError(error, { operation: 'update_expense', warehouseId, metadata: { expenseId } });
     return { message: `Failed to update expense: ${error.message}`, success: false };
   }
 
@@ -1029,7 +1031,7 @@ export async function deleteExpenseSimple(expenseId: string) {
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error deleting expense:', error);
+    logError(error, { operation: 'delete_expense', warehouseId, metadata: { expenseId } });
     return { message: 'Failed to delete expense', success: false };
   }
 

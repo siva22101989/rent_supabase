@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
 import type { Customer, StorageRecord, Expense, UserWarehouse } from '@/lib/definitions';
+import { logError } from '@/lib/error-logger';
 
 // Helper to get current user's warehouse
 export const getUserWarehouse = cache(async () => {
@@ -142,7 +143,7 @@ export async function getCustomers(): Promise<Customer[]> {
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error fetching customers:', error);
+    logError(error, { operation: 'fetch_customers', warehouseId });
     return [];
   }
 
@@ -197,7 +198,7 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
     .order('storage_start_date', { ascending: false }); // Ensure newest first
 
   if (error) {
-    console.error('Error fetching storage records:', error);
+    logError(error, { operation: 'fetch_storage_records', warehouseId });
     return [];
   }
 
@@ -221,7 +222,7 @@ export async function getActiveStorageRecords(): Promise<StorageRecord[]> {
     .order('storage_start_date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching active storage records:', error);
+    logError(error, { operation: 'fetch_active_storage_records', warehouseId });
     return [];
   }
 
@@ -368,7 +369,7 @@ export async function getExpenses(): Promise<Expense[]> {
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error fetching expenses:', error);
+    logError(error, { operation: 'fetch_expenses', warehouseId });
     return [];
   }
 
@@ -417,7 +418,7 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
         .order('storage_start_date', { ascending: false });
 
     if (error) {
-        console.error('Error fetching customer records:', error);
+        logError(error, { operation: 'fetch_customer_records', warehouseId, metadata: { customerId } });
         return [];
     }
 
@@ -463,7 +464,7 @@ export async function getTeamMembers() {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching team members:', error);
+        logError(error, { operation: 'fetch_team_members', warehouseId });
         return [];
     }
     
@@ -501,7 +502,7 @@ export async function getRecentInflows(limit = 5) {
     .limit(limit);
 
   if (error) {
-    console.error('Error fetching recent inflows:', error);
+    logError(error, { operation: 'fetch_recent_inflows', warehouseId });
     return [];
   }
 
@@ -542,7 +543,7 @@ export async function getRecentOutflows(limit = 5) {
     .limit(limit);
 
   if (error) {
-    console.error('Error fetching recent outflows:', error);
+    logError(error, { operation: 'fetch_recent_outflows', warehouseId });
     return [];
   }
 

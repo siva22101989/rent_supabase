@@ -1,6 +1,8 @@
 
+
 import { createClient } from '@/utils/supabase/server';
 import { getUserWarehouse } from '@/lib/queries';
+import { logError } from '@/lib/error-logger';
 
 export async function logActivity(
     action: string,
@@ -24,7 +26,7 @@ export async function logActivity(
             details
         });
     } catch (error) {
-        console.error('Failed to log activity:', error);
+        logError(error, { operation: 'log_activity', metadata: { action, entity, entityId } });
         // Don't block the main action loop
     }
 }
@@ -51,6 +53,6 @@ export async function createNotification(
             link
         });
     } catch (error) {
-        console.error('Failed to create notification:', error);
+        logError(error, { operation: 'create_notification', metadata: { title, message } });
     }
 }
