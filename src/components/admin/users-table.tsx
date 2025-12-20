@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useMemo, useCallback } from 'react';
 import {
     Table,
     TableBody,
@@ -24,24 +25,31 @@ import { MoreHorizontal, Shield, User, Building, Mail, Clock, Search, Download }
 import { format } from "date-fns";
 import { updateUserRole } from "@/lib/admin-actions";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { exportToExcel } from "@/lib/export-utils";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 interface AdminUsersTableProps {
     users: any[];
 }
 
-export function AdminUsersTable({ users }: AdminUsersTableProps) {
+function AdminUsersTableComponent({ users }: AdminUsersTableProps) {
     const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState("");
+    
+    // Debounce search query
+    const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
 
-    const filteredUsers = users.filter(u => 
-        (u.full_name && u.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Memoize filtered users
+    const filteredUsers = useMemo(() => {
+        return users.filter(u => 
+            (u.full_name && u.full_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) ||
+            u.email.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+        );
+    }, [users, debouncedSearchQuery]);
 
-    const handleRoleChange = async (userId: string, newRole: string) => {
+    // Memoize role change handler
+    const handleRoleChange = useCallback(async (userId: string, newRole: string) => {
         const result = await updateUserRole(userId, newRole);
         if (result.success) {
             toast({
@@ -55,9 +63,10 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                 variant: "destructive",
             });
         }
-    };
+    }, [toast]);
 
-    const handleExport = () => {
+    // Memoize export handler
+    const handleExport = useCallback(() => {
         const data = filteredUsers.map(u => ({
             'Name': u.full_name || 'N/A',
             'Email': u.email,
@@ -67,9 +76,9 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
         }));
         exportToExcel(data, `users_export_${new Date().getTime()}`, 'Users');
         toast({ title: "Export Started", description: "User data is being downloaded." });
-    };
+    }, [filteredUsers, toast]);
 
-    const getRoleBadgeColor = (role: string) => {
+    const getRoleBadgeColor = useCallback((role: string) => {
         switch (role) {
             case 'super_admin': return 'bg-purple-100 text-purple-800 border-purple-200';
             case 'owner': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
@@ -79,14 +88,14 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
             case 'customer': return 'bg-amber-100 text-amber-800 border-amber-200';
             default: return 'bg-slate-100 text-slate-800 border-slate-200';
         }
-    };
+    }, []);
 
-    const getRoleIcon = (role: string) => {
+    const getRoleIcon = useCallback((role: string) => {
         if (role === 'super_admin' || role === 'owner' || role === 'admin') {
             return <Shield className="h-3 w-3" />;
         }
         return <User className="h-3 w-3" />;
-    };
+    }, []);
 
     return (
         <div className="space-y-4">
@@ -188,7 +197,7 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                         {filteredUsers.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center">
-                                    No users found matching "{searchQuery}"
+                                    No users found matching "{debouncedSearchQuery}"
                                 </TableCell>
                             </TableRow>
                         )}
@@ -273,7 +282,7 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                 {filteredUsers.length === 0 && (
                     <Card>
                         <CardContent className="p-8 text-center text-slate-500">
-                            No users found matching "{searchQuery}"
+                            No users found matching "{debouncedSearchQuery}"
                         </CardContent>
                     </Card>
                 )}
@@ -281,3 +290,13 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
         </div>
     );
 }
+
+// Wrap with React.memo
+export const AdminUsersTable = React.memo(
+    AdminUsersTableComponent,
+    (prevProps, nextProps) => {
+        return prevProps.users === nextProps.users;
+    }
+);
+
+AdminUsersTable.displayName = 'AdminUsersTable';

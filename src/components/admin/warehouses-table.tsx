@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useMemo, useCallback } from 'react';
 import {
     Table,
     TableBody,
@@ -34,24 +35,31 @@ import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { deleteWarehouseAction } from "@/lib/admin-actions";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 interface AdminWarehousesTableProps {
     warehouses: any[];
 }
 
-export function AdminWarehousesTable({ warehouses }: AdminWarehousesTableProps) {
+function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps) {
     const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState("");
+    
+    // Debounce search query to reduce filtering operations
+    const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
 
-    const filteredWarehouses = warehouses.filter(w => 
-        w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (w.location && w.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (w.email && w.email.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    // Memoize filtered warehouses to prevent recalculation on every render
+    const filteredWarehouses = useMemo(() => {
+        return warehouses.filter(w => 
+            w.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+            (w.location && w.location.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) ||
+            (w.email && w.email.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+        );
+    }, [warehouses, debouncedSearchQuery]);
 
-    const handleDelete = async (id: string, name: string) => {
+    // Memoize delete handler to prevent recreation on every render
+    const handleDelete = useCallback(async (id: string, name: string) => {
         if (!confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) return;
         
         const result = await deleteWarehouseAction(id);
@@ -67,10 +75,10 @@ export function AdminWarehousesTable({ warehouses }: AdminWarehousesTableProps) 
                 variant: "destructive",
             });
         }
-    };
+    }, [toast]);
 
-
-    const handleExport = () => {
+    // Memoize export handler
+    const handleExport = useCallback(() => {
         const data = filteredWarehouses.map(w => ({
             'Name': w.name,
             'Location': w.location || 'N/A',
@@ -82,7 +90,7 @@ export function AdminWarehousesTable({ warehouses }: AdminWarehousesTableProps) 
         }));
         exportToExcel(data, `warehouses_export_${new Date().getTime()}`, 'Warehouses');
         toast({ title: "Export Started", description: "Your warehouse data is being downloaded." });
-    };
+    }, [filteredWarehouses, toast]);
 
     return (
         <div className="space-y-4">
@@ -178,7 +186,7 @@ export function AdminWarehousesTable({ warehouses }: AdminWarehousesTableProps) 
                     {filteredWarehouses.length === 0 && (
                         <TableRow>
                             <TableCell colSpan={6} className="h-24 text-center">
-                                No warehouses found matching "{searchQuery}"
+                                No warehouses found matching "{debouncedSearchQuery}"
                             </TableCell>
                         </TableRow>
                     )}
@@ -265,7 +273,7 @@ export function AdminWarehousesTable({ warehouses }: AdminWarehousesTableProps) 
             {filteredWarehouses.length === 0 && (
                 <Card>
                     <CardContent className="p-8 text-center text-slate-500">
-                        No warehouses found matching "{searchQuery}"
+                        No warehouses found matching "{debouncedSearchQuery}"
                     </CardContent>
                 </Card>
             )}
@@ -273,3 +281,15 @@ export function AdminWarehousesTable({ warehouses }: AdminWarehousesTableProps) 
     </div>
     );
 }
+
+// Wrap with React.memo to prevent unnecessary re-renders
+// Custom comparison function to only re-render when warehouses data actually changes
+export const AdminWarehousesTable = React.memo(
+    AdminWarehousesTableComponent,
+    (prevProps, nextProps) => {
+        // Only re-render if warehouses array reference or length changes
+        return prevProps.warehouses === nextProps.warehouses;
+    }
+);
+
+AdminWarehousesTable.displayName = 'AdminWarehousesTable';

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, Wheat, Database, Activity } from "lucide-react";
 
@@ -11,7 +12,7 @@ interface AdminStatsCardsProps {
     };
 }
 
-export function AdminStatsCards({ stats }: AdminStatsCardsProps) {
+function AdminStatsCardsComponent({ stats }: AdminStatsCardsProps) {
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <StatCard 
@@ -49,7 +50,19 @@ export function AdminStatsCards({ stats }: AdminStatsCardsProps) {
     );
 }
 
-function StatCard({ title, value, unit, icon, description }: { 
+// Wrap with React.memo to prevent unnecessary re-renders
+export const AdminStatsCards = React.memo(
+    AdminStatsCardsComponent,
+    (prevProps, nextProps) => {
+        // Only re-render if stats actually change
+        return JSON.stringify(prevProps.stats) === JSON.stringify(nextProps.stats);
+    }
+);
+
+AdminStatsCards.displayName = 'AdminStatsCards';
+
+// Memoize StatCard as well
+const StatCard = React.memo(function StatCard({ title, value, unit, icon, description }: { 
     title: string; 
     value: string | number; 
     unit?: string;
@@ -71,4 +84,4 @@ function StatCard({ title, value, unit, icon, description }: {
             </CardContent>
         </Card>
     );
-}
+});
