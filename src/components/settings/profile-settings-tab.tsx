@@ -74,6 +74,50 @@ export function ProfileSettingsTab({ profile }: ProfileTabProps) {
                     </form>
                 </CardContent>
             </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>Appearance & Layout</CardTitle>
+                    <CardDescription>Customize how the application looks and feels.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div 
+                            className="border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors flex items-start gap-3"
+                            onClick={() => {
+                                localStorage.setItem('bagbill-layout-mode', 'header');
+                                window.location.reload();
+                            }}
+                        >
+                            <div className="h-20 w-32 bg-slate-100 rounded-md border-2 border-slate-200 flex flex-col p-1 gap-1">
+                                <div className="h-3 w-full bg-slate-300 rounded-sm" />
+                                <div className="flex-1 w-full bg-white rounded-sm" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="font-medium text-sm">Top Navigation</h4>
+                                <p className="text-xs text-muted-foreground">Classic top header with centered content. Best for simple workflows.</p>
+                            </div>
+                        </div>
+
+                        <div 
+                            className="border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors flex items-start gap-3"
+                            onClick={() => {
+                                localStorage.setItem('bagbill-layout-mode', 'sidebar');
+                                window.location.reload();
+                            }}
+                        >
+                            <div className="h-20 w-32 bg-slate-100 rounded-md border-2 border-slate-200 flex p-1 gap-1">
+                                <div className="h-full w-8 bg-slate-300 rounded-sm" />
+                                <div className="flex-1 h-full bg-white rounded-sm" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="font-medium text-sm">Sidebar Navigation</h4>
+                                <p className="text-xs text-muted-foreground">Collapsible side menu with maximizing workspace. Best for power users.</p>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

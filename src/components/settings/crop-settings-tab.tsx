@@ -6,6 +6,8 @@ import { EditCropDialog } from '@/components/lots/edit-crop-dialog';
 import { DeleteCropButton } from '@/components/lots/delete-crop-button';
 import { Plus, Wheat } from "lucide-react";
 import { AddCropForm } from "@/components/lots/add-crop-form";
+import { MobileCard } from "@/components/ui/mobile-card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type CropTabProps = {
     crops: any[];
@@ -27,7 +29,51 @@ export function CropSettingsTab({ crops }: CropTabProps) {
                     </div>
                 </CardHeader>
                 <CardContent className="grid gap-6">
-                    <div className="rounded-xl border bg-card">
+                    <div className="md:hidden space-y-4">
+                        {crops.map((crop) => (
+                            <MobileCard key={crop.id}>
+                                <MobileCard.Header>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                                <Wheat className="w-4 h-4" />
+                                            </div>
+                                            <MobileCard.Title>{crop.name}</MobileCard.Title>
+                                        </div>
+                                    </div>
+                                    <MobileCard.Actions>
+                                        <div className="flex items-center gap-1">
+                                            <EditCropDialog 
+                                                crop={{
+                                                    id: crop.id,
+                                                    name: crop.name,
+                                                    rent_price_6m: crop.rent_price_6m,
+                                                    rent_price_1y: crop.rent_price_1y
+                                                }}
+                                            />
+                                            <DeleteCropButton 
+                                                cropId={crop.id}
+                                                cropName={crop.name}
+                                            />
+                                        </div>
+                                    </MobileCard.Actions>
+                                </MobileCard.Header>
+                                <MobileCard.Content>
+                                    <MobileCard.Row label="Rent (6M)" value={`₹${crop.rent_price_6m}`} />
+                                    <MobileCard.Row label="Rent (1Y)" value={`₹${crop.rent_price_1y}`} />
+                                </MobileCard.Content>
+                            </MobileCard>
+                        ))}
+                        {(!crops || crops.length === 0) && (
+                            <EmptyState
+                                icon={Wheat}
+                                title="No crops configured"
+                                description="Add one below to get started."
+                            />
+                        )}
+                    </div>
+
+                    <div className="rounded-xl border bg-card hidden md:block">
                         <Table>
                             <TableHeader>
                                 <TableRow>

@@ -27,7 +27,8 @@ export function AddLotDialog() {
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setLoading(true);
-        const formData = new FormData(e.currentTarget);
+        const form = e.currentTarget;
+        const formData = new FormData(form);
         
         try {
             await addLot(formData);
@@ -35,7 +36,7 @@ export function AddLotDialog() {
             refresh();
             router.refresh();
             setOpen(false);
-            e.currentTarget.reset();
+            form.reset();
         } catch (error: any) {
             toast({ title: "Error", description: error.message || "Failed to add lot", variant: "destructive" });
         } finally {

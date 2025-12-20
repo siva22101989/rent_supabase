@@ -12,6 +12,7 @@ import { approveJoinRequest, rejectJoinRequest } from '@/lib/warehouse-actions';
 import { Badge } from '@/components/ui/badge';
 import { Check, X } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft } from "lucide-react";
 
 interface TeamManagerProps {
   initialMembers: TeamMember[]; 
@@ -77,7 +78,7 @@ export function TeamManager({ initialMembers, pendingRequests = [], currentUserR
     <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] lg:grid-cols-[350px_1fr] gap-0 border rounded-xl overflow-hidden shadow-sm bg-card min-h-[600px]">
       
       {/* Left Column: List */}
-      <div className="flex flex-col h-full border-r">
+      <div className={`flex flex-col h-full border-r ${selectedId || isAdding ? 'hidden md:flex' : 'flex'}`}>
          {/* Pending Requests Section */}
          {pendingRequests.length > 0 && (
              <div className="p-4 bg-yellow-50 border-b space-y-3">
@@ -120,7 +121,16 @@ export function TeamManager({ initialMembers, pendingRequests = [], currentUserR
       </div>
 
       {/* Right Column: Content */}
-      <div className="bg-background/50 h-full overflow-y-auto">
+      <div className={`bg-background/50 h-full overflow-y-auto ${!selectedId && !isAdding ? 'hidden md:block' : 'block'}`}>
+        {/* Mobile Back Button */}
+        {(selectedId || isAdding) && (
+             <div className="md:hidden p-4 border-b flex items-center gap-2">
+                 <Button variant="ghost" size="sm" onClick={() => { setSelectedId(null); setIsAdding(false); }}>
+                     <ArrowLeft className="w-4 h-4 mr-1" /> Back to Team
+                 </Button>
+             </div>
+        )}
+
         {isAdding ? (
             <div className="p-8 max-w-lg mx-auto">
                  <div className="mb-6">
