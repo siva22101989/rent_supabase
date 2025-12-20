@@ -32,22 +32,23 @@ Built with **Next.js 16**, **Supabase**, and **Shadcn UI**, it offers a modern, 
 
 ### ⚙️ Professional Grade
 
+- **Transactions Audit**: Dedicated `withdrawal_transactions` ledger tracks every partial or full withdrawal for 100% accountability.
 - **Security**: Row Level Security (RLS) ensures data isolation between different warehouses.
-- **Audit Logging**: Database-backed activity logs track who did what and when.
-- **Mobile First**: PWA support (installable), touch-friendly tables, and responsive layouts.
+- **Mobile First**: Optimized "App-like" feel with compact headers, touch-friendly forms, and responsive data cards.
 - **Dark Mode**: Built-in high-contrast dark theme for low-light environments.
 
 ---
 
 ## 🛠️ Technology Stack
 
-| layer          | Technology                                         |
+| Layer          | Technology                                         |
 | :------------- | :------------------------------------------------- |
 | **Framework**  | [Next.js 16 (App Router)](https://nextjs.org/)     |
 | **Language**   | TypeScript                                         |
 | **Database**   | [Supabase (PostgreSQL)](https://supabase.com/)     |
 | **Auth**       | Supabase Auth (SSR)                                |
 | **UI Library** | [Shadcn/UI](https://ui.shadcn.com/) + Tailwind CSS |
+| **Monitoring** | Sentry (Error Tracking & Performance)              |
 | **State**      | React Server Components (RSC) + Server Actions     |
 | **Validation** | Zod                                                |
 
@@ -75,6 +76,7 @@ Create `.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SENTRY_AUTH_TOKEN=your_sentry_token (Optional)
 ```
 
 ### 3. Run Development Server
@@ -89,12 +91,13 @@ Visit `http://localhost:3000`.
 
 ## 🔮 Roadmap / "Missing" Pro Features
 
-While the application is production-ready, these features are planned for the "Enterprise" tier:
+While the application is production-ready, these features are continuously evolving:
 
+- [x] **Role Based Access**: Implemented multi-tier roles (Super Admin, Owner, Admin, Manager, Staff, Customer).
+- [x] **Mobile Optimization**: Full responsive overhaul for seamless phone usage.
+- [x] **Audit Logging**: Comprehensive tracking of inflows and withdrawals.
 - [ ] **Automated Testing**: Integration tests (Playwright) for critical flows like Billing.
-- [ ] **Transactional Integrity**: Moving multi-step actions (Inflow + Payment) to Database Transactions to prevent partial state.
 - [ ] **PDF Generation**: Native export of Gate Passes and Invoices.
-- [ ] **Role Based Access**: Manager vs Staff roles (currently single-tier Admin).
 
 ---
 

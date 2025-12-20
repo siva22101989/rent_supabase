@@ -183,6 +183,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <Link href="/portal">My Customer Portal</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/guide" className="flex items-center">
+                        <span className="mr-2">Help & Guide</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>

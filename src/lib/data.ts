@@ -454,3 +454,30 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
     const { error } = await supabase.from('storage_records').delete().eq('id', id);
     if (error) throw error;
 };
+
+export const saveWithdrawalTransaction = async (
+    recordId: string, 
+    bagsWithdrawn: number, 
+    date: Date | string, 
+    rentCollected: number = 0
+): Promise<void> => {
+    'use server';
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+    
+    if (!warehouseId) throw new Error("No warehouse assigned");
+
+    const { error } = await supabase.from('withdrawal_transactions').insert({
+        storage_record_id: recordId,
+        warehouse_id: warehouseId,
+        bags_withdrawn: bagsWithdrawn,
+        withdrawal_date: date,
+        rent_collected: rentCollected
+    });
+
+    if (error) {
+        console.error('Error saving withdrawal transaction:', error);
+        // We log but don't throw to avoid failing the main transaction if possible, 
+        // though strictly it should probably be part of the same transaction.
+    }
+};

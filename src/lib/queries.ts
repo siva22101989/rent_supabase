@@ -473,18 +473,22 @@ export async function getRecentOutflows(limit = 5) {
   if (!warehouseId) return [];
 
   const { data, error } = await supabase
-    .from('storage_records')
+    .from('withdrawal_transactions')
     .select(`
       id,
-      outflow_invoice_no,
-      storage_end_date,
-      commodity_description,
-      bags_stored,
-      customer:customers ( name )
+      withdrawal_date,
+      bags_withdrawn,
+      storage_record:storage_records (
+        id,
+        outflow_invoice_no,
+        record_number,
+        commodity_description,
+        customer:customers ( name )
+      )
     `)
     .eq('warehouse_id', warehouseId)
-    .not('storage_end_date', 'is', null)
-    .order('storage_end_date', { ascending: false })
+    .order('withdrawal_date', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(limit);
 
   if (error) {
@@ -493,11 +497,11 @@ export async function getRecentOutflows(limit = 5) {
   }
 
   return data.map((r: any) => ({
-    id: r.id,
-    invoiceNo: r.outflow_invoice_no || r.id,
-    date: new Date(r.storage_end_date),
-    customerName: r.customer?.name || 'Unknown',
-    commodity: r.commodity_description,
-    bags: r.bags_stored
+    id: r.id, // Transaction ID
+    invoiceNo: r.storage_record?.outflow_invoice_no || r.storage_record?.record_number || r.storage_record?.id.slice(0,8),
+    date: new Date(r.withdrawal_date),
+    customerName: r.storage_record?.customer?.name || 'Unknown',
+    commodity: r.storage_record?.commodity_description,
+    bags: r.bags_withdrawn // Show amount withdrawn in this transaction
   }));
 }

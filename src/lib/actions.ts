@@ -596,6 +596,10 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                     }
                 }
 
+                // Save Withdrawal Transaction Audit
+                const { saveWithdrawalTransaction } = await import('@/lib/data');
+                await saveWithdrawalTransaction(recordId, bagsToWithdraw, new Date(withdrawalDate), finalRent);
+
                 const { createNotification } = await import('@/lib/logger');
                 
                 // Fetch customer for notification readability
