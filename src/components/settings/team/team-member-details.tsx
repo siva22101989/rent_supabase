@@ -17,15 +17,35 @@ import { useTeamMembers } from '@/hooks/use-team-members';
 
 interface TeamMemberDetailsProps {
     member: TeamMember;
+    currentUserRole?: string;
 }
 
-export function TeamMemberDetails({ member }: TeamMemberDetailsProps) {
+const roleHierarchy: Record<string, number> = {
+    'super_admin': 100,
+    'owner': 90,
+    'admin': 80,
+    'manager': 50,
+    'staff': 10,
+    'customer': 0
+};
+
+export function TeamMemberDetails({ member, currentUserRole = 'staff' }: TeamMemberDetailsProps) {
     const [isEditing, setIsEditing] = useState(false);
     const { toast } = useToast();
     const { refreshMembers } = useTeamMembers();
 
+    const currentRank = roleHierarchy[currentUserRole] || 0;
+    const targetRank = roleHierarchy[member.role] || 0;
+
+    // Rule: Can only edit if my rank > target rank OR (I am owner/super_admin and target is anything). 
+    // Strict hierarchy: My Rank MUST be greater than Target Rank to edit.
+    // Exception: Self-edit? Usually handeled by Settings > Profile, not Team Manager.
+    // Let's allow editing if Rank > Target.
+    // AND: Admin cannot edit other Admins (Rank 80 vs 80 -> false). Good.
+    const canEdit = currentRank > targetRank;
+
     if (isEditing) {
-        return <EditMemberForm member={member} onCancel={() => setIsEditing(false)} onSuccess={refreshMembers} />;
+        return <EditMemberForm member={member} currentUserRole={currentUserRole} onCancel={() => setIsEditing(false)} onSuccess={refreshMembers} />;
     }
 
     return (
@@ -42,7 +62,7 @@ export function TeamMemberDetails({ member }: TeamMemberDetailsProps) {
                         <h2 className="text-2xl font-bold">{member.fullName}</h2>
                         <div className="flex items-center gap-2 mt-1">
                             <Badge variant="outline" className="capitalize">
-                                {member.role}
+                                {member.role === 'super_admin' ? 'Super Admin' : member.role}
                             </Badge>
                             {member.role !== 'suspended' && (
                                 <Badge variant="default" className="bg-green-500 hover:bg-green-600">Active</Badge>
@@ -51,10 +71,12 @@ export function TeamMemberDetails({ member }: TeamMemberDetailsProps) {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                        <PenBox className="w-4 h-4 mr-2" />
-                        Edit Profile
-                    </Button>
+                    {canEdit && (
+                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                            <PenBox className="w-4 h-4 mr-2" />
+                            Edit Profile
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -89,34 +111,34 @@ export function TeamMemberDetails({ member }: TeamMemberDetailsProps) {
                 </Card>
             </div>
 
-            {/* Danger Zone */}
-            <div className="pt-6 border-t">
-                <h3 className="text-sm font-medium text-destructive mb-4">Danger Zone</h3>
-                <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/5">
-                    <div>
-                        <p className="font-medium text-destructive">Deactivate User Account</p>
-                        <p className="text-sm text-muted-foreground">They will no longer be able to log in.</p>
+            {/* Danger Zone - Only if can edit */}
+            {canEdit && (
+                <div className="pt-6 border-t">
+                    <h3 className="text-sm font-medium text-destructive mb-4">Danger Zone</h3>
+                    <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/5">
+                        <div>
+                            <p className="font-medium text-destructive">Deactivate User Account</p>
+                            <p className="text-sm text-muted-foreground">They will no longer be able to log in.</p>
+                        </div>
+                        <form action={async () => {
+                             if(!confirm('Are you sure?')) return;
+                             await deactivateTeamMember(member.id);
+                             toast({ title: 'User Deactivated', variant: 'destructive' });
+                             refreshMembers();
+                        }}>
+                            <Button variant="destructive" size="sm">
+                                <UserX className="w-4 h-4 mr-2" />
+                                Deactivate
+                            </Button>
+                        </form>
                     </div>
-                    <form action={async () => {
-                         if(!confirm('Are you sure?')) return;
-                         await deactivateTeamMember(member.id);
-                         toast({ title: 'User Deactivated', variant: 'destructive' });
-                         await deactivateTeamMember(member.id);
-                         toast({ title: 'User Deactivated', variant: 'destructive' });
-                         refreshMembers();
-                    }}>
-                        <Button variant="destructive" size="sm">
-                            <UserX className="w-4 h-4 mr-2" />
-                            Deactivate
-                        </Button>
-                    </form>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
 
-function EditMemberForm({ member, onCancel, onSuccess }: { member: TeamMember, onCancel: () => void, onSuccess: () => void }) {
+function EditMemberForm({ member, currentUserRole, onCancel, onSuccess }: { member: TeamMember, currentUserRole: string, onCancel: () => void, onSuccess: () => void }) {
     const { toast } = useToast();
     
     async function handleSubmit(formData: FormData) {
@@ -129,6 +151,9 @@ function EditMemberForm({ member, onCancel, onSuccess }: { member: TeamMember, o
             toast({ title: 'Error', description: res.message, variant: 'destructive' });
         }
     }
+    
+    // Determine selectable roles based on currentUserRole
+    const showAdminOption = currentUserRole === 'owner' || currentUserRole === 'super_admin';
 
     return (
         <div className="p-6 space-y-6">
@@ -152,7 +177,7 @@ function EditMemberForm({ member, onCancel, onSuccess }: { member: TeamMember, o
                         <SelectContent>
                              <SelectItem value="staff">Staff</SelectItem>
                              <SelectItem value="manager">Manager</SelectItem>
-                             <SelectItem value="admin">Admin</SelectItem>
+                             {showAdminOption && <SelectItem value="admin">Admin</SelectItem>}
                         </SelectContent>
                     </Select>
                 </div>

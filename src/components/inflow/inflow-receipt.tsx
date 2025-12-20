@@ -113,7 +113,7 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                     
                     <div class="serial-date">
                         <div><span class="label">Receipt #</span> ${record.id}</div>
-                        <div><span class="label">Ref ID:</span> ${record.id.substring(0, 8)}</div>
+                        <div><span class="label">Ref ID:</span> ${record.id.length > 20 ? record.id.substring(0, 8) : record.id}</div>
                         <div><span class="label">Date:</span> ${formattedDate}</div>
                     </div>
                     
@@ -205,7 +205,7 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
 
                 <div className="flex justify-between items-baseline mb-4">
                     <div><span className="font-bold">Receipt #</span> {record.id}</div>
-                    <div><span className="font-bold">Ref ID:</span> {record.id.substring(0, 8)}</div>
+                    <div><span className="font-bold">Ref ID:</span> {record.id.length > 20 ? record.id.substring(0, 8) : record.id}</div>
                     <div><span className="font-bold">Date:</span> {formattedDate}</div>
                 </div>
 

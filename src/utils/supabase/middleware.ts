@@ -54,7 +54,20 @@ export const updateSession = async (request: NextRequest) => {
   
   // If user IS signed in and trying to access /login or /signup, redirect to /dashboard (or root)
   if (user && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup'))) {
+      const role = user.user_metadata?.role;
+      if (role === 'customer') {
+          return NextResponse.redirect(new URL('/portal', request.url));
+      }
       return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // Optimize Customer Redirection (Zero Flicker)
+  // If a customer tries to visit the Dashboard ('/'), send them straight to Portal
+  if (user && request.nextUrl.pathname === '/') {
+       const role = user.user_metadata?.role;
+       if (role === 'customer') {
+           return NextResponse.redirect(new URL('/portal', request.url));
+       }
   }
 
   return response;

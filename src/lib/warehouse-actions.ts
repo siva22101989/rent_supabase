@@ -56,7 +56,10 @@ export async function switchWarehouse(warehouseId: string): Promise<ActionState>
     // Update Profile
     const { error } = await supabase
         .from('profiles')
-        .update({ warehouse_id: warehouseId })
+        .update({ 
+            warehouse_id: warehouseId,
+            role: access.role // Sync role
+        })
         .eq('id', user.id);
 
     if (error) return { message: 'Failed to switch: ' + error.message, success: false };
@@ -168,9 +171,106 @@ export async function leaveWarehouse(warehouseId: string): Promise<ActionState> 
     if (error) return { message: 'Failed to leave', success: false };
     
     // Select another warehouse or set null?
-    // ... logic to pick partial, or set to null
     await supabase.from('profiles').update({ warehouse_id: null }).eq('id', user.id);
 
     revalidatePath('/', 'layout');
     return { message: 'Left warehouse', success: true };
+}
+
+// Request Access Flow
+export async function requestJoinWarehouse(adminEmail: string): Promise<ActionState> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { message: 'Unauthorized', success: false };
+
+    // 1. Find Admin User
+    const { data: adminProfile } = await supabase
+        .from('profiles')
+        .select('id, warehouse_id')
+        .eq('email', adminEmail)
+        .eq('role', 'admin') // Ensure they are admin
+        .single();
+    
+    if (!adminProfile || !adminProfile.warehouse_id) {
+        return { message: 'Admin not found or has no warehouse.', success: false };
+    }
+
+    // 2. Check if already requesting or assigned?
+    // We can skip this check and rely on Admin to ignore duplicates, or check notifications table.
+    // Let's just insert.
+
+    // 3. Create Notification
+    const { error } = await supabase
+        .from('notifications')
+        .insert({
+            user_id: adminProfile.id, // Target the Admin
+            warehouse_id: adminProfile.warehouse_id,
+            type: 'join_request',
+            title: 'Staff Join Request',
+            message: `User ${user.user_metadata?.full_name || 'Staff'} (${user.email}) requested to join.`,
+            link: `/settings/team?approve_user=${user.id}&name=${encodeURIComponent(user.user_metadata?.full_name || '')}`,
+            is_read: false
+        });
+
+    if (error) return { message: 'Failed to send request: ' + error.message, success: false };
+
+    return { message: 'Request sent successfully', success: true };
+}
+
+export async function approveJoinRequest(notificationId: string, requesterId: string): Promise<ActionState> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { message: 'Unauthorized', success: false };
+
+    // 1. Verify Admin Access (ensure the notification belongs to this admin)
+    const { data: notification } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('id', notificationId)
+        .eq('user_id', user.id)
+        .single();
+    
+    if (!notification) return { message: 'Request not found or unauthorized', success: false };
+
+    // 2. Assign User to Warehouse
+    const warehouseId = notification.warehouse_id;
+    
+    const { error: assignError } = await supabase
+        .from('warehouse_assignments')
+        .insert({
+            user_id: requesterId,
+            warehouse_id: warehouseId,
+            role: 'staff' // Default role for joiners
+        });
+
+    if (assignError) return { message: 'Failed to assign user: ' + assignError.message, success: false };
+
+    // 3. Update User Profile (Set Active Warehouse & Role)
+    await supabase.from('profiles').update({ 
+        warehouse_id: warehouseId,
+        role: 'staff' // Set role to staff as they are joining
+    }).eq('id', requesterId);
+
+    // 4. Delete Notification
+    await supabase.from('notifications').delete().eq('id', notificationId);
+
+    revalidatePath('/', 'layout');
+    return { message: 'User approved successfully', success: true };
+}
+
+export async function rejectJoinRequest(notificationId: string): Promise<ActionState> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { message: 'Unauthorized', success: false };
+
+    const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
+
+    if (error) return { message: 'Failed to delete request', success: false };
+
+    revalidatePath('/settings/team');
+    return { message: 'Request rejected', success: true };
 }

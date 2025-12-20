@@ -2,7 +2,9 @@
 import { getCustomerPortfolio } from '@/lib/portal-queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, MapPin, Calendar, ArrowRight, Wheat } from 'lucide-react';
+import { Package, MapPin, Calendar, ArrowRight, Wheat, ArrowLeft } from 'lucide-react';
+import { createClient } from '@/utils/supabase/server';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +29,26 @@ export default async function PortalPage() {
 
     const totalBagsAllWarehouses = portfolio.reduce((acc, curr) => acc + curr.totalBags, 0);
 
+    // Check Role for Back Button
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    let showDashboardLink = false;
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (profile && (profile.role === 'admin' || profile.role === 'manager')) {
+            showDashboardLink = true;
+        }
+    }
+
     return (
-        <div className="space-y-6 max-w-md mx-auto md:max-w-4xl">
+        <div className="space-y-6 max-w-md mx-auto md:max-w-4xl relative">
+             {showDashboardLink && (
+                <div className="absolute top-0 right-0 md:-top-12 md:right-auto md:left-0">
+                    <Link href="/" className="inline-flex items-center text-sm text-slate-500 hover:text-blue-600 transition-colors">
+                        <ArrowLeft className="mr-1 h-4 w-4" /> Back to Dashboard
+                    </Link>
+                </div>
+            )}
             {/* Mobile-App Header */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-6 text-white shadow-lg shadow-blue-200">
                 <div className="flex items-start justify-between">

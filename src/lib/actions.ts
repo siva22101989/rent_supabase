@@ -307,126 +307,137 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         }
     }
 
-    let inflowBags = 0;
-    if (inflowType === 'Plot') {
-        if (!plotBags || plotBags <= 0) {
-            return { message: "Plot Bags must be a positive number for 'Plot' inflow.", success: false };
+    try {
+        let inflowBags = 0;
+        if (inflowType === 'Plot') {
+            if (!plotBags || plotBags <= 0) {
+                return { message: "Plot Bags must be a positive number for 'Plot' inflow.", success: false };
+            }
+            inflowBags = plotBags;
+        } else { // 'Direct'
+            if (!bagsStored || bagsStored <= 0) {
+                return { message: "Number of Bags must be a positive number for 'Direct' inflow.", success: false };
+            }
+            inflowBags = bagsStored;
         }
-        inflowBags = plotBags;
-    } else { // 'Direct'
-        if (!bagsStored || bagsStored <= 0) {
-            return { message: "Number of Bags must be a positive number for 'Direct' inflow.", success: false };
-        }
-        inflowBags = bagsStored;
-    }
 
-    // Capacity Check
-    if (rest.lotId) {
-        const supabase = await createClient();
-        const { data: lot } = await supabase.from('warehouse_lots').select('capacity, current_stock').eq('id', rest.lotId).single();
-        
-        if (lot) {
-            const capacity = lot.capacity || 1000;
-            const current = lot.current_stock || 0;
-            const available = capacity - current;
+        // Capacity Check
+        if (rest.lotId) {
+            const supabase = await createClient();
+            const { data: lot } = await supabase.from('warehouse_lots').select('capacity, current_stock').eq('id', rest.lotId).single();
             
-            if (inflowBags > available) {
-                return { 
-                    message: `Lot is full! Available: ${available} bags. You tried to add ${inflowBags}.`, 
-                    success: false 
-                };
+            if (lot) {
+                const capacity = lot.capacity || 1000;
+                const current = lot.current_stock || 0;
+                const available = capacity - current;
+                
+                if (inflowBags > available) {
+                    return { 
+                        message: `Lot is full! Available: ${available} bags. You tried to add ${inflowBags}.`, 
+                        success: false 
+                    };
+                }
             }
         }
-    }
 
 
-    const hamaliPayable = inflowBags * (hamaliRate || 0);
-    const payments: Payment[] = [];
-    if (hamaliPaid && hamaliPaid > 0) {
-        payments.push({ amount: hamaliPaid, date: new Date(storageStartDate), type: 'hamali' });
-    }
-    
-    
-    // Generate Invoice Number (ID)
-    const newRecordId = await getNextInvoiceNumber('inflow');
-
-    const newRecord: StorageRecord = {
-        ...rest,
-        id: newRecordId,
-        bagsIn: inflowBags,
-        bagsOut: 0,
-        bagsStored: inflowBags,
-        storageStartDate: new Date(storageStartDate),
-        storageEndDate: null,
-        billingCycle: '6-Month Initial',
-        payments: payments,
-        hamaliPayable: hamaliPayable,
-        totalRentBilled: 0,
-        lorryTractorNo: rest.lorryTractorNo ?? '',
-        inflowType: inflowType ?? 'Direct',
-        plotBags: plotBags ?? undefined,
-        loadBags: loadBags ?? undefined,
-        location: rest.location ?? '',
-        khataAmount: rest.khataAmount ?? 0,
-        lotId: rest.lotId,
-        cropId: rest.cropId,
-    };
-
-    const savedRecord = await saveStorageRecord(newRecord);
-
-    const { logActivity, createNotification } = await import('@/lib/logger');
-    await logActivity('CREATE', 'StorageRecord', savedRecord.id, { 
-        customerId: rest.customerId, 
-        bags: inflowBags, 
-        commodity: rest.commodityDescription 
-    });
-
-    // Update Lot Capacity (Increment Stock)
-    if (rest.lotId) {
-        const supabase = await createClient();
-        const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', rest.lotId).single();
-        if (lot) {
-            const newStock = (lot.current_stock || 0) + inflowBags;
-            await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', rest.lotId);
+        const hamaliPayable = inflowBags * (hamaliRate || 0);
+        const payments: Payment[] = [];
+        if (hamaliPaid && hamaliPaid > 0) {
+            payments.push({ amount: hamaliPaid, date: new Date(storageStartDate), type: 'hamali' });
         }
-    }
-    
-    // Check for Low Capacity Warning (>90%)
-    if (rest.lotId) {
-        // Re-init supabase if needed or reuse if available in wider scope (it wasn't)
-        const supabase = await createClient();
-        // Fetch fresh lot data to be accurate
-        const { data: currentLot } = await supabase.from('warehouse_lots').select('id, name, capacity, current_stock').eq('id', rest.lotId).single();
         
-        if (currentLot && currentLot.capacity && currentLot.capacity > 0) {
-             const stock = currentLot.current_stock || 0;
-             const percentage = (stock / currentLot.capacity) * 100;
-             
-             if (percentage >= 90) {
-                 await createNotification(
-                    'High Utilization Alert',
-                    `Lot ${currentLot.name || currentLot.id} is ${percentage.toFixed(1)}% full (${stock}/${currentLot.capacity} bags). Consider using a new lot soon.`,
-                    'warning',
-                    undefined,
-                    '/settings/lots'
-                 );
-             }
+        
+        // Generate Invoice Number (ID)
+        const newRecordId = await getNextInvoiceNumber('inflow');
+
+        // Ensure 0 is treated as undefined for optional DB fields if they prefer NULL
+        const finalPlotBags = (plotBags && plotBags > 0) ? plotBags : undefined;
+        const finalLoadBags = (loadBags && loadBags > 0) ? loadBags : undefined;
+
+        const newRecord: StorageRecord = {
+            ...rest,
+            id: newRecordId,
+            bagsIn: inflowBags,
+            bagsOut: 0,
+            bagsStored: inflowBags,
+            storageStartDate: new Date(storageStartDate),
+            storageEndDate: null,
+            billingCycle: '6-Month Initial',
+            payments: payments,
+            hamaliPayable: hamaliPayable,
+            totalRentBilled: 0,
+            lorryTractorNo: rest.lorryTractorNo ?? '',
+            inflowType: inflowType ?? 'Direct',
+            plotBags: finalPlotBags,
+            loadBags: finalLoadBags,
+            location: rest.location ?? '',
+            khataAmount: rest.khataAmount ?? 0,
+            lotId: rest.lotId,
+            cropId: rest.cropId,
+        };
+
+        const savedRecord = await saveStorageRecord(newRecord);
+
+        const { logActivity, createNotification } = await import('@/lib/logger');
+        await logActivity('CREATE', 'StorageRecord', savedRecord.id, { 
+            customerId: rest.customerId, 
+            bags: inflowBags, 
+            commodity: rest.commodityDescription 
+        });
+
+        // Update Lot Capacity (Increment Stock)
+        if (rest.lotId) {
+            const supabase = await createClient();
+            const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', rest.lotId).single();
+            if (lot) {
+                const newStock = (lot.current_stock || 0) + inflowBags;
+                await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', rest.lotId);
+            }
         }
+        
+        // Check for Low Capacity Warning (>90%)
+        if (rest.lotId) {
+            // Re-init supabase if needed or reuse if available in wider scope (it wasn't)
+            const supabase = await createClient();
+            // Fetch fresh lot data to be accurate
+            const { data: currentLot } = await supabase.from('warehouse_lots').select('id, name, capacity, current_stock').eq('id', rest.lotId).single();
+            
+            if (currentLot && currentLot.capacity && currentLot.capacity > 0) {
+                 const stock = currentLot.current_stock || 0;
+                 const percentage = (stock / currentLot.capacity) * 100;
+                 
+                 if (percentage >= 90) {
+                     await createNotification(
+                        'High Utilization Alert',
+                        `Lot ${currentLot.name || currentLot.id} is ${percentage.toFixed(1)}% full (${stock}/${currentLot.capacity} bags). Consider using a new lot soon.`,
+                        'warning',
+                        undefined,
+                        '/settings/lots'
+                     );
+                 }
+            }
+        }
+        const customerForNotif = await getCustomer(rest.customerId);
+        const customerName = customerForNotif?.name || "Unknown Customer";
+
+        await createNotification(
+            'Inflow Recorded', 
+            `Received ${inflowBags} bags of ${rest.commodityDescription} from ${customerName}`, 
+            'success',
+            undefined, // Warehouse-wide
+            `/inflow/receipt/${savedRecord.id}`
+        );
+
+        revalidatePath('/storage');
+        redirect(`/inflow/receipt/${savedRecord.id}`);
+    } catch (error: any) {
+        if (error.message === 'NEXT_REDIRECT') throw error;
+        console.error('Add Inflow Error:', error);
+        return { message: `Failed to create record: ${error.message || 'Unknown error'}`, success: false };
     }
-    const customerForNotif = await getCustomer(rest.customerId);
-    const customerName = customerForNotif?.name || "Unknown Customer";
-
-    await createNotification(
-        'Inflow Recorded', 
-        `Received ${inflowBags} bags of ${rest.commodityDescription} from ${customerName}`, 
-        'success',
-        undefined, // Warehouse-wide
-        `/inflow/receipt/${savedRecord.id}`
-    );
-
-    revalidatePath('/storage');
-    redirect(`/inflow/receipt/${savedRecord.id}`);
 }
+
 
 const OutflowSchema = z.object({
     recordId: z.string().min(1, 'A storage record must be selected.'),
@@ -1037,16 +1048,58 @@ export async function updateUserProfile(prevState: FormState, formData: FormData
     return { message: "Profile updated successfully", success: true };
 }
 
+const roleHierarchy: Record<string, number> = {
+    'super_admin': 100,
+    'owner': 90,
+    'admin': 80,
+    'manager': 50,
+    'staff': 10,
+    'suspended': 0,
+    'customer': 0
+};
+
 export async function updateTeamMember(userId: string, formData: FormData) {
-    const role = formData.get('role');
+    const role = formData.get('role') as string;
     const fullName = formData.get('fullName');
-    // We might not be able to update email easily if it's the auth email without admin API
     
     const supabase = await createClient();
-    
-    // Check permissions (must be admin/manager ideally)
-    const warehouseId = await getUserWarehouse();
-    if (!warehouseId) return { message: "Unauthorized", success: false };
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return { message: "Unauthorized", success: false };
+
+    // 1. Get Current User Role
+    const { data: currentProfile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', currentUser.id).single();
+    if (!currentProfile) return { message: "Profile not found", success: false };
+
+    const currentRank = roleHierarchy[currentProfile.role] || 0;
+
+    // 2. Get Target User Role
+    const { data: targetProfile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', userId).single();
+    if (!targetProfile) return { message: "Target user not found", success: false };
+
+    const targetRank = roleHierarchy[targetProfile.role] || 0;
+
+    // 3. Check Permissions
+    // Must be in same warehouse (unless Super Admin)
+    if (currentProfile.role !== 'super_admin' && currentProfile.warehouse_id !== targetProfile.warehouse_id) {
+        return { message: "Unauthorized: Different warehouse", success: false };
+    }
+
+    // Must have higher rank to edit (or be Owner/SuperAdmin editing anyone below)
+    // Rule: You can only edit people BELOW you.
+    // Exception: You can edit yourself? (Usually different action, but let's allow if logic matches)
+    // If strict: currentRank > targetRank.
+    if (currentRank <= targetRank) {
+        return { message: "Unauthorized: Insufficient privileges to edit this user.", success: false };
+    }
+
+    // 4. Check Promoted Role Rank
+    // Cannot promote someone to a rank >= your own.
+    if (role) {
+        const newRoleRank = roleHierarchy[role] || 0;
+        if (newRoleRank >= currentRank) {
+             return { message: "Unauthorized: Cannot assign a role equal to or higher than your own.", success: false };
+        }
+    }
 
     const updateData: any = {};
     if (role) updateData.role = role;
@@ -1055,8 +1108,7 @@ export async function updateTeamMember(userId: string, formData: FormData) {
     const { error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', userId)
-        .eq('warehouse_id', warehouseId);
+        .eq('id', userId);
 
     if (error) {
         return { message: `Failed to update member: ${error.message}`, success: false };
@@ -1068,16 +1120,30 @@ export async function updateTeamMember(userId: string, formData: FormData) {
 
 export async function deactivateTeamMember(userId: string) {
     const supabase = await createClient();
-    const warehouseId = await getUserWarehouse();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return { message: "Unauthorized", success: false };
+
+    // 1. Get Current User Role
+    const { data: currentProfile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', currentUser.id).single();
+    if (!currentProfile) return { message: "Profile not found", success: false };
     
-    // Since we don't have a soft delete column confirmed, we'll try to set role to 'inactive' or similar
-    // Or if we have is_active. Let's assume we can remove them from the warehouse or set a flag.
-    // For now, let's assume we are just unlinking them or setting role to 'suspended' if schema supports it.
-    // Given the risk of schema mismatch, I'll use a safer approach:
-    // We will assume a 'is_active' or similar column exists OR we will just delete the profile (which might cascade?)
-    // Actually, createTeamMember uses supabaseAdmin to create user.
-    // To deactivate, we should probably disable the user in Auth.
+    const currentRank = roleHierarchy[currentProfile.role] || 0;
+
+    // 2. Get Target User Role
+    const { data: targetProfile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', userId).single();
+    if (!targetProfile) return { message: "Target user not found", success: false };
     
+    const targetRank = roleHierarchy[targetProfile.role] || 0;
+
+    // 3. Permission Check
+    if (currentProfile.role !== 'super_admin' && currentProfile.warehouse_id !== targetProfile.warehouse_id) {
+         return { message: "Unauthorized: Different warehouse", success: false };
+    }
+
+    if (currentRank <= targetRank) {
+         return { message: "Unauthorized: Insufficient privileges to deactivate this user.", success: false };
+    }
+
     try {
         const { createAdminClient } = await import('@/utils/supabase/admin');
         const supabaseAdmin = createAdminClient();

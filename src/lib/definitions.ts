@@ -44,7 +44,7 @@ export type StorageRecord = {
   plotBags?: number;
   loadBags?: number;
   khataAmount?: number;
-  recordNumber?: number;
+  recordNumber?: string;
   outflowInvoiceNo?: string;
   updatedAt?: Date | string;
 };
@@ -66,7 +66,7 @@ export type TeamMember = {
   id: string;
   email: string;
   fullName: string;
-  role: 'admin' | 'manager' | 'staff' | 'suspended';
+  role: 'super_admin' | 'owner' | 'admin' | 'manager' | 'staff' | 'suspended' | 'customer';
   createdAt: Date | string;
   lastSignInAt?: Date | string;
 };

@@ -25,7 +25,8 @@ export function WelcomeOnboarding() {
         const result = await createWarehouse(name, location, capacity, email, phone);
         if (result.success) {
             toast({ title: "Welcome aboard!", description: "Your warehouse is ready." });
-             // Redirect or refresh is handled by the server action revalidate
+            // Force reload to update Layout/TopBar contexts which depend on the new profile state
+            window.location.reload();
         } else {
             toast({ title: "Error", description: result.message, variant: "destructive" });
         }

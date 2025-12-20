@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 import { redirect } from 'next/navigation';
 import { getCustomerPortfolio } from '@/lib/portal-queries'; 
+import { createClient } from '@/utils/supabase/server';
 
 type NavItem = {
   href: string;
@@ -59,16 +60,40 @@ function NavCard({ item }: { item: NavItem }) {
   );
 }
 
+import { JoinWarehouseForm } from '@/components/onboarding/join-warehouse-form';
+
 export default async function DashboardPage() {
   const metrics = await getDashboardMetrics();
   
   // If no warehouse metrics, this user might be a Customer or New User
   if (!metrics) {
-      // Check if they are a Portal User
-      const portfolio = await getCustomerPortfolio();
-      if (portfolio && portfolio.length > 0) {
-          redirect('/portal');
+      // FIX: Check if they are an Admin/Manager first.
+      // If they are Admin/Manager but have no warehouse, they should see "Create Warehouse" UI, not Portal.
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      let role = 'customer';
+      if (user) {
+          const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+          if (profile) role = profile.role;
       }
+
+      // 1. Customer -> Portal
+      if (role === 'customer') {
+        redirect('/portal');
+      }
+
+      // 2. Staff -> Join Warehouse Screen
+      if (role === 'staff') {
+          return (
+              <AppLayout>
+                  <JoinWarehouseForm />
+              </AppLayout>
+          );
+      }
+      
+      // 3. Admin/Manager -> Falls through to AppLayout which handles Onboarding (Create Warehouse)
+      // or renders empty dashboard if Onboarding logic fails (but AppLayout logic is robust now).
   }
 
   const lots = await getAvailableLots();

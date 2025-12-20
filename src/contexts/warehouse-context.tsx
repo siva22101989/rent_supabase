@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getUserWarehouses, getActiveWarehouseId } from '@/lib/warehouse-actions';
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { createClient } from '@/utils/supabase/client';
 
 type Warehouse = {
   id: string;
@@ -58,6 +59,7 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // 1. Initial Load from Cache
   useEffect(() => {
     const init = async () => {
       // Try to load from cache first
@@ -86,7 +88,28 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
     };
 
     init();
-  }, [warehouseCache]); // Depend on cache to trigger specific logic if needed, but mostly on mount logic really.
+  }, [warehouseCache]); // Keep dependency on cache for init, logic is fine as long as we don't loop.
+
+  // 2. Auth Listener
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_IN') {
+             // Force refresh on login
+             refreshWarehouses(); 
+        } else if (event === 'SIGNED_OUT') {
+             // Clear state and cache on logout
+             setWarehouses([]);
+             setCurrentWarehouse(undefined);
+             setWarehouseCache(null);
+        }
+    });
+
+    return () => {
+        subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run ONCE
 
   return (
     <WarehouseContext.Provider value={{ 

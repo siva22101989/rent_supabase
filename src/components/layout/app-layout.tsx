@@ -62,12 +62,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     async function checkProfile(userId: string) {
        const supabase = createClient();
        try {
-           const { data } = await supabase.from('profiles').select('warehouse_id').eq('id', userId).single();
+           const { data } = await supabase.from('profiles').select('warehouse_id, role').eq('id', userId).single();
            if (data && !data.warehouse_id) {
-               // Double check if they have any assignments (edge case where active is null but they have access)
-               const { count } = await supabase.from('warehouse_assignments').select('*', { count: 'exact', head: true }).eq('user_id', userId);
-               if (!count || count === 0) {
-                   setShowOnboarding(true);
+               // Only Admins/Managers should be prompted to create a warehouse
+               // Customers/Staff should wait for assignment
+               if (data.role === 'admin' || data.role === 'manager') {
+                   // Double check assignments
+                   const { count } = await supabase.from('warehouse_assignments').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+                   if (!count || count === 0) {
+                       setShowOnboarding(true);
+                   }
+               } else {
+                   setShowOnboarding(false);
                }
            } else {
                setShowOnboarding(false);
@@ -172,6 +178,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/portal">My Customer Portal</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>

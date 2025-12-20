@@ -5,6 +5,7 @@ import { fetchCustomers } from '@/lib/actions';
 import { type Customer } from '@/lib/definitions';
 import { toast } from '@/hooks/use-toast';
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { createClient } from '@/utils/supabase/client';
 
 type CustomerContextType = {
   customers: Customer[];
@@ -66,10 +67,89 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [customerCache, setCustomerCache]);
 
-  // Initial load
+  // 1. Initial load
   useEffect(() => {
      refreshCustomers();
   }, [refreshCustomers]);
+
+  // 2. Auth Listener
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        refreshCustomers(true);
+      } else if (event === 'SIGNED_OUT') {
+        setCustomers([]);
+        setCustomerCache(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
+
+  // 3. Realtime Subscription
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel('realtime-customers')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'customers' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newCustomer = payload.new as any; // Cast 'new' to any or specific DB type
+            setCustomers((prev) => {
+                if (prev.find(c => c.id === newCustomer.id)) return prev;
+                const mapped: Customer = {
+                    id: newCustomer.id,
+                    name: newCustomer.name,
+                    email: newCustomer.email || '',
+                    phone: newCustomer.phone,
+                    address: newCustomer.address,
+                    fatherName: newCustomer.father_name || '',
+                    village: newCustomer.village || '',
+                    updatedAt: newCustomer.updated_at
+                };
+                const updated = [...prev, mapped].sort((a,b) => a.name.localeCompare(b.name));
+                return updated;
+            });
+            
+          } else if (payload.eventType === 'UPDATE') {
+             const updatedRaw = payload.new as any;
+             setCustomers((prev) => prev.map(c => {
+                 if (c.id === updatedRaw.id) {
+                     return {
+                        ...c,
+                        name: updatedRaw.name,
+                        email: updatedRaw.email || '',
+                        phone: updatedRaw.phone,
+                        address: updatedRaw.address,
+                        fatherName: updatedRaw.father_name || '',
+                        village: updatedRaw.village || '',
+                        updatedAt: updatedRaw.updated_at
+                     };
+                 }
+                 return c;
+             }));
+          } else if (payload.eventType === 'DELETE') {
+             // payload.old has 'id' only for delete if replica identity is set, 
+             // but usually ID is available if 'old' is present.
+             const oldRecord = payload.old as any;
+             if (oldRecord && oldRecord.id) {
+                 setCustomers((prev) => prev.filter(c => c.id !== oldRecord.id));
+             }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []); // Run once on mount, relies on RLS for security.
   
   return (
     <CustomerContext.Provider value={{ customers, refreshCustomers, isLoading }}>
