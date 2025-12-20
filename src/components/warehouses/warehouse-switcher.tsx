@@ -87,7 +87,7 @@ export function WarehouseSwitcher() {
                       Actually better to separate them from CommandItem to avoid click conflicts.
                   */}
                   <CreateWarehouseDialog />
-                  {currentWarehouse && (currentWarehouse.role === 'owner' || currentWarehouse.role === 'admin') && (
+                  {currentWarehouse && (currentWarehouse.role === 'owner' || currentWarehouse.role === 'admin' || currentWarehouse.role === 'super_admin') && (
                       <ManageAccessDialog />
                   )}
                </div>

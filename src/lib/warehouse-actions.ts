@@ -107,7 +107,7 @@ export async function getActiveWarehouseId() {
 
 // --- Invitations (Magic Links) ---
 
-export async function generateInviteLink(role: 'admin' | 'staff' = 'staff'): Promise<ActionState> {
+export async function generateInviteLink(role: 'owner' | 'admin' | 'manager' | 'staff' = 'staff'): Promise<ActionState> {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return { message: 'No active warehouse', success: false };
@@ -183,12 +183,12 @@ export async function requestJoinWarehouse(adminEmail: string): Promise<ActionSt
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { message: 'Unauthorized', success: false };
 
-    // 1. Find Admin User
+    // 1. Find Admin/Owner User
     const { data: adminProfile } = await supabase
         .from('profiles')
         .select('id, warehouse_id')
         .eq('email', adminEmail)
-        .eq('role', 'admin') // Ensure they are admin
+        .in('role', ['admin', 'owner', 'super_admin']) // Allow owners and super admins too
         .single();
     
     if (!adminProfile || !adminProfile.warehouse_id) {

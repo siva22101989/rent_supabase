@@ -16,6 +16,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Check, Copy, Link as LinkIcon, Loader2, UserPlus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export function ManageAccessDialog() {
   const { toast } = useToast();
@@ -23,11 +30,12 @@ export function ManageAccessDialog() {
   
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
+  const [inviteRole, setInviteRole] = useState<'owner' | 'admin' | 'manager' | 'staff'>('staff');
   const [copied, setCopied] = useState(false);
 
   const handleGenerateLink = async () => {
       setInviteLoading(true);
-      const res = await generateInviteLink('staff'); // Default to staff
+      const res = await generateInviteLink(inviteRole);
       setInviteLoading(false);
       
       if (res.success && res.data) {
@@ -76,10 +84,28 @@ export function ManageAccessDialog() {
                         <p className="text-sm text-muted-foreground">Share this link to let anyone join as Staff.</p>
                     </div>
                     
+                    <div className="w-full text-left space-y-2">
+                        <Label>Member Role</Label>
+                        <Select value={inviteRole} onValueChange={(val: any) => {
+                            setInviteRole(val);
+                            setInviteLink(''); // Clear link if role changes
+                        }}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="staff">Staff (Can manage records)</SelectItem>
+                                <SelectItem value="manager">Manager (Can manage team)</SelectItem>
+                                <SelectItem value="admin">Admin (Full Access)</SelectItem>
+                                <SelectItem value="owner">Owner (Full Warehouse Access)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
                     {!inviteLink ? (
-                        <Button onClick={handleGenerateLink} disabled={inviteLoading}>
+                        <Button className="w-full" onClick={handleGenerateLink} disabled={inviteLoading}>
                             {inviteLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            Generate New Link
+                            Generate Invite Link
                         </Button>
                     ) : (
                         <div className="flex w-full max-w-sm items-center space-x-2">
