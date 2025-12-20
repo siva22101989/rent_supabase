@@ -1,9 +1,23 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Users, Wheat, Database } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Building2, Users, Wheat, Database, Activity, LayoutDashboard, BarChart3, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+    getAdminDashboardStats, 
+    getAllWarehousesAdmin, 
+    getAllUsersAdmin, 
+    getGlobalActivityLogs,
+    getPlatformAnalytics
+} from '@/lib/queries';
+
+import { AdminStatsCards } from '@/components/admin/stats-cards';
+import { AdminWarehousesTable } from '@/components/admin/warehouses-table';
+import { AdminUsersTable } from '@/components/admin/users-table';
+import { GlobalActivityFeed } from '@/components/admin/activity-feed';
+import { PlatformAnalyticsCharts } from '@/components/admin/analytics-charts';
 
 export default async function SuperAdminDashboard() {
   const supabase = await createClient();
@@ -32,26 +46,33 @@ export default async function SuperAdminDashboard() {
       );
   }
 
-  // 2. Fetch Platform Stats (Allowed by 'Super Admin All' RLS)
-  const { count: warehouseCount } = await supabase.from('warehouses').select('*', { count: 'exact', head: true });
-  const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-  const { count: customersCount } = await supabase.from('customers').select('*', { count: 'exact', head: true });
-  
-  // Storage usage?
-  const { data: lots } = await supabase.from('warehouse_lots').select('current_stock');
-  const totalStock = lots?.reduce((sum, lot) => sum + (lot.current_stock || 0), 0) || 0;
+  // 2. Fetch Initial Platform Data
+  const stats = await getAdminDashboardStats();
+  const warehouses = await getAllWarehousesAdmin();
+  const users = await getAllUsersAdmin();
+  const activityLogs = await getGlobalActivityLogs(20);
+  const analyticsData = await getPlatformAnalytics();
+
+  if (!stats) return <div>Failed to load stats</div>;
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
+    <div className="min-h-screen bg-slate-50/50 font-sans text-slate-900">
         {/* Header */}
-        <header className="sticky top-0 z-20 w-full border-b bg-white/80 backdrop-blur">
-            <div className="container flex h-16 items-center justify-between px-4">
-                 <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-indigo-700">
-                    <Database className="h-6 w-6" />
-                    <span>MAINFRAME</span>
+        <header className="sticky top-0 z-30 w-full border-b bg-white/80 backdrop-blur-md">
+            <div className="container flex h-16 items-center justify-between px-4 md:px-8">
+                 <div className="flex items-center gap-3">
+                    <div className="bg-indigo-600 p-2 rounded-lg text-white">
+                        <Database className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h1 className="font-bold text-lg tracking-tight">MAINFRAME</h1>
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold leading-none">Super Admin Console</p>
+                    </div>
                  </div>
-                 <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium text-slate-500">Super Admin Mode</span>
+                 <div className="flex items-center gap-3">
+                    <Button size="sm" variant="outline" className="hidden md:flex gap-2">
+                        <Settings className="h-4 w-4" /> System Settings
+                    </Button>
                     <Button size="sm" variant="ghost" asChild>
                         <Link href="/">Exit to App</Link>
                     </Button>
@@ -59,86 +80,75 @@ export default async function SuperAdminDashboard() {
             </div>
         </header>
 
-        <main className="container py-8 px-4 space-y-8">
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>
-                <p className="text-slate-500">Global statistics across all tenants.</p>
+        <main className="container py-6 px-4 md:px-8 space-y-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-800">Platform Overview</h2>
+                    <p className="text-slate-500">Managing {stats.warehouseCount} warehouses with {stats.usersCount} active users.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button className="bg-indigo-600 hover:bg-indigo-700">Create New Warehouse</Button>
+                </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCard 
-                    title="Total Warehouses" 
-                    value={warehouseCount || 0} 
-                    icon={<Building2 className="h-4 w-4 text-indigo-600" />}
-                />
-                <StatCard 
-                    title="Registered Users" 
-                    value={usersCount || 0} 
-                    icon={<Users className="h-4 w-4 text-blue-600" />}
-                />
-                <StatCard 
-                    title="Farmers Served" 
-                    value={customersCount || 0} 
-                    icon={<Users className="h-4 w-4 text-green-600" />}
-                />
-                <StatCard 
-                    title="Total Stock (Bags)" 
-                    value={totalStock.toLocaleString()} 
-                    icon={<Wheat className="h-4 w-4 text-amber-600" />}
-                />
-            </div>
+            <AdminStatsCards stats={stats} />
 
-            {/* Recent Warehouses List */}
-             <Card>
-                <CardHeader>
-                    <CardTitle>Recent Warehouses</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <RecentWarehousesList />
-                </CardContent>
-             </Card>
+            <Tabs defaultValue="warehouses" className="space-y-6">
+                <div className="flex items-center justify-between overflow-x-auto pb-2 border-b">
+                    <TabsList className="bg-transparent h-auto p-0 gap-6">
+                        <TabsTrigger value="warehouses" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-2 py-3 h-auto font-semibold">
+                            <Building2 className="mr-2 h-4 w-4" /> Warehouses
+                        </TabsTrigger>
+                        <TabsTrigger value="users" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-2 py-3 h-auto font-semibold">
+                            <Users className="mr-2 h-4 w-4" /> Users
+                        </TabsTrigger>
+                        <TabsTrigger value="activity" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-2 py-3 h-auto font-semibold">
+                            <Activity className="mr-2 h-4 w-4" /> Activity Feed
+                        </TabsTrigger>
+                        <TabsTrigger value="analytics" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-2 py-3 h-auto font-semibold">
+                            <BarChart3 className="mr-2 h-4 w-4" /> Analytics
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
+
+                <TabsContent value="warehouses" className="mt-0 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Platform Warehouses</h3>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm">Download CSV</Button>
+                        </div>
+                    </div>
+                    <AdminWarehousesTable warehouses={warehouses} />
+                </TabsContent>
+
+                <TabsContent value="users" className="mt-0 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">User Directory</h3>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm">Export Users</Button>
+                        </div>
+                    </div>
+                    <AdminUsersTable users={users} />
+                </TabsContent>
+
+                <TabsContent value="activity" className="mt-0">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Global Audit Log</CardTitle>
+                            <CardDescription>Latest actions from all users across the platform.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <GlobalActivityFeed logs={activityLogs} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="analytics" className="mt-0">
+                    <PlatformAnalyticsCharts data={analyticsData} />
+                </TabsContent>
+            </Tabs>
         </main>
     </div>
   );
 }
 
-function StatCard({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) {
-    return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                {icon}
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
-            </CardContent>
-        </Card>
-    );
-}
-
-async function RecentWarehousesList() {
-    const supabase = await createClient();
-    const { data: warehouses } = await supabase
-        .from('warehouses')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-    if (!warehouses || warehouses.length === 0) return <p className="text-sm text-muted-foreground">No warehouses found.</p>;
-
-    return (
-        <div className="space-y-4">
-            {warehouses.map(w => (
-                <div key={w.id} className="flex items-center justify-between border-b last:border-0 pb-2 last:pb-0">
-                    <div>
-                        <p className="font-medium text-sm">{w.name}</p>
-                        <p className="text-xs text-muted-foreground">{w.location}</p>
-                    </div>
-                    <div className="text-xs text-slate-500">
-                        Cap: {w.capacity_bags}
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-}

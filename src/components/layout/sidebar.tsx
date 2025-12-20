@@ -24,10 +24,21 @@ import { navItems, bottomItems } from '@/config/nav';
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  userRole?: string;
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, userRole }: SidebarProps) {
   const pathname = usePathname();
+
+  const filteredNavItems = navItems.filter(item => {
+    if (!item.roles) return true;
+    return item.roles.includes(userRole as any);
+  });
+
+  const filteredBottomItems = bottomItems.filter(item => {
+    if ((item as any).roles) return (item as any).roles.includes(userRole);
+    return true;
+  });
 
 
   const NavLink = ({ item }: { item: typeof navItems[0] }) => {
@@ -72,11 +83,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto py-4 px-2">
-         {navItems.map((item) => <NavLink key={item.href} item={item} />)}
+         {filteredNavItems.map((item) => <NavLink key={item.href} item={item} />)}
       </div>
 
       <div className="p-2 border-t space-y-1">
-         {bottomItems.map((item) => <NavLink key={item.href} item={item} />)}
+         {filteredBottomItems.map((item) => <NavLink key={item.href} item={item} />)}
          
          {collapsed && (
              <Button variant="ghost" size="icon" onClick={onToggle} className="w-full mt-2">

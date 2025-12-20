@@ -8,11 +8,13 @@ import {
     HelpCircle,
     Package,
     IndianRupee,
-    CreditCard
+    CreditCard,
+    Shield
 } from 'lucide-react';
 
 export const navItems = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { label: 'Admin Panel', href: '/admin', icon: Shield, roles: ['super_admin'] },
     { label: 'Inflow', href: '/inflow', icon: Truck },
     { label: 'Outflow', href: '/outflow', icon: ArrowRight },
     { label: 'Storage', href: '/storage', icon: Package },

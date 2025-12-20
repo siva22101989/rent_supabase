@@ -10,9 +10,23 @@ import { Menu } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { navItems, bottomItems } from '@/config/nav';
 
-export function MobileNav() {
+interface MobileNavProps {
+  userRole?: string;
+}
+
+export function MobileNav({ userRole }: MobileNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
+
+  const filteredNavItems = navItems.filter(item => {
+    if (!item.roles) return true;
+    return item.roles.includes(userRole as any);
+  });
+
+  const filteredBottomItems = bottomItems.filter(item => {
+    if ((item as any).roles) return (item as any).roles.includes(userRole);
+    return true;
+  });
 
   const NavLink = ({ item }: { item: typeof navItems[0] }) => {
       const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
@@ -51,11 +65,11 @@ export function MobileNav() {
         </div>
         
         <div className="flex-1 overflow-y-auto py-6 px-4">
-           {navItems.map((item) => <NavLink key={item.href} item={item} />)}
+           {filteredNavItems.map((item) => <NavLink key={item.href} item={item} />)}
         </div>
 
         <div className="p-4 border-t space-y-1 bg-muted/20">
-           {bottomItems.map((item) => <NavLink key={item.href} item={item} />)}
+           {filteredBottomItems.map((item) => <NavLink key={item.href} item={item} />)}
         </div>
       </SheetContent>
     </Sheet>

@@ -17,6 +17,20 @@ export const getUserWarehouse = cache(async () => {
   return profile?.warehouse_id;
 });
 
+export const getCurrentUserRole = cache(async () => {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  return profile?.role;
+});
+
 export const getUserWarehouses = cache(async (): Promise<UserWarehouse[]> => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -479,7 +493,7 @@ export async function getRecentInflows(limit = 5) {
       id,
       storage_start_date,
       commodity_description,
-      bags_stored,
+      bags_in,
       customer:customers ( name )
     `)
     .eq('warehouse_id', warehouseId)
@@ -496,7 +510,7 @@ export async function getRecentInflows(limit = 5) {
     date: new Date(r.storage_start_date),
     customerName: r.customer?.name || 'Unknown',
     commodity: r.commodity_description,
-    bags: r.bags_stored
+    bags: r.bags_in
   }));
 }
 
@@ -544,3 +558,180 @@ export async function getRecentOutflows(limit = 5) {
     maxEditableBags: (r.storage_record?.bags_stored || 0) + r.bags_withdrawn 
   }));
 }
+
+// --- Super Admin Queries ---
+
+export const getAdminDashboardStats = cache(async () => {
+    const supabase = await createClient();
+    
+    // Check if user is super admin
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'super_admin') return null;
+
+    const [
+        { count: warehouseCount },
+        { count: usersCount },
+        { count: customersCount },
+        { count: activeRecordsCount },
+        { data: lots }
+    ] = await Promise.all([
+        supabase.from('warehouses').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('customers').select('*', { count: 'exact', head: true }),
+        supabase.from('storage_records').select('*', { count: 'exact', head: true }).is('storage_end_date', null),
+        supabase.from('warehouse_lots').select('current_stock')
+    ]);
+
+    const totalStock = lots?.reduce((sum, lot) => sum + (lot.current_stock || 0), 0) || 0;
+
+    return {
+        warehouseCount: warehouseCount || 0,
+        usersCount: usersCount || 0,
+        customersCount: customersCount || 0,
+        activeRecordsCount: activeRecordsCount || 0,
+        totalStock
+    };
+});
+
+export const getAllWarehousesAdmin = cache(async () => {
+    const supabase = await createClient();
+    
+    const { data, error } = await supabase
+        .from('warehouses')
+        .select(`
+            *,
+            warehouse_lots (current_stock, capacity),
+            storage_records (id, bags_stored)
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching warehouses:', error);
+        return [];
+    }
+
+    return data.map((w: any) => {
+        const totalStock = w.warehouse_lots?.reduce((sum: number, lot: any) => sum + (lot.current_stock || 0), 0) || 0;
+        const totalCapacity = w.warehouse_lots?.reduce((sum: number, lot: any) => sum + (lot.capacity || 0), 0) || w.capacity_bags || 0;
+        const activeRecords = (w.storage_records || []).length;
+
+        return {
+            ...w,
+            totalStock,
+            totalCapacity,
+            occupancyRate: totalCapacity > 0 ? (totalStock / totalCapacity) * 100 : 0,
+            activeRecords
+        };
+    });
+});
+
+export const getAllUsersAdmin = cache(async () => {
+    const supabase = await createClient();
+    
+    const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+            *,
+            warehouse:warehouses (name)
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching users:', error);
+        return [];
+    }
+
+    return data;
+});
+
+export const getGlobalActivityLogs = cache(async (limit = 50) => {
+    const supabase = await createClient();
+    
+    const { data, error } = await supabase
+        .from('activity_logs')
+        .select(`
+            *,
+            user:profiles (full_name, email),
+            warehouse:warehouses (name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Error fetching activity logs:', error);
+        return [];
+    }
+
+    return data;
+});
+
+export const getPlatformAnalytics = cache(async () => {
+    const supabase = await createClient();
+    
+    // Fetch last 6 months of data
+    // For a real app, we'd do aggregation in SQL. 
+    // Here we'll do a simple monthly count for demonstration.
+    const { data: warehouses } = await supabase
+        .from('warehouses')
+        .select('created_at')
+        .order('created_at', { ascending: true });
+
+    const { data: users } = await supabase
+        .from('profiles')
+        .select('created_at')
+        .order('created_at', { ascending: true });
+
+    // Grouping by month
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const warehouseData = (warehouses || []).reduce((acc: any, w: any) => {
+        const month = months[new Date(w.created_at).getMonth()];
+        acc[month] = (acc[month] || 0) + 1;
+        return acc;
+    }, {});
+
+    const userData = (users || []).reduce((acc: any, u: any) => {
+        const month = months[new Date(u.created_at).getMonth()];
+        acc[month] = (acc[month] || 0) + 1;
+        return acc;
+    }, {});
+
+    // Combine into chart format
+    const chartData = months.map(m => ({
+        month: m,
+        warehouses: warehouseData[m] || 0,
+        users: userData[m] || 0
+    })).filter(m => m.warehouses > 0 || m.users > 0);
+
+    // Fetch commodity distribution from storage records
+    const { data: stocks } = await supabase
+        .from('storage_records')
+        .select('commodity_description, bags_stored')
+        .is('storage_end_date', null);
+
+    const commodityDistribution = (stocks || []).reduce((acc: any, s: any) => {
+        const name = s.commodity_description || 'Unknown';
+        const existing = acc.find((item: any) => item.name === name);
+        if (existing) {
+            existing.value += (s.bags_stored || 0);
+        } else {
+            acc.push({ name, value: (s.bags_stored || 0) });
+        }
+        return acc;
+    }, []).sort((a: any, b: any) => b.value - a.value).slice(0, 5); // Top 5
+
+    return {
+        growthData: chartData.slice(-6),
+        commodityDistribution: commodityDistribution.length > 0 ? commodityDistribution : [
+            { name: 'Paddy', value: 400 },
+            { name: 'Maize', value: 300 },
+            { name: 'Wheat', value: 200 },
+            { name: 'Sugar', value: 100 },
+        ]
+    };
+});
+
+

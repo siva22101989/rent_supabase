@@ -36,9 +36,10 @@ interface AppLayoutProps {
     children: React.ReactNode;
     warehouses?: UserWarehouse[];
     currentWarehouseId?: string;
+    userRole?: string;
 }
 
-export function AppLayout({ children, warehouses = [], currentWarehouseId = '' }: AppLayoutProps) {
+export function AppLayout({ children, warehouses = [], currentWarehouseId = '', userRole = '' }: AppLayoutProps) {
   const pathname = usePathname();
   const isDashboard = pathname === '/';
   const router = useRouter();
@@ -136,7 +137,11 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '' }
     <div className="flex min-h-screen w-full">
        {/* Conditional Sidebar */}
        {isSidebarMode && (
-           <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+           <Sidebar 
+                collapsed={sidebarCollapsed} 
+                onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+                userRole={userRole}
+            />
        )}
 
        <div className="flex-1 flex flex-col min-h-screen transition-all duration-300">
@@ -160,13 +165,13 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '' }
 
                   {(!isSidebarMode) && (
                       <div className="md:hidden">
-                          <MobileNav />
+                          <MobileNav userRole={userRole} />
                       </div>
                   )}
                   
                   {isSidebarMode && (
                       <div className="md:hidden">
-                          <MobileNav />
+                          <MobileNav userRole={userRole} />
                       </div>
                   )}
 
