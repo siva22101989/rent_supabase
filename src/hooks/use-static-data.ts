@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { toast } from "@/hooks/use-toast";
 import { fetchCrops, fetchLots } from '@/lib/actions';
@@ -58,32 +58,54 @@ export function useStaticData() {
     load();
   }, [cropsCache, lotsCache, setCropsCache, setLotsCache]);
 
-  // 2. Auth Listener (Runs once)
+  // Manual Refresh - Wrapped in useCallback for stability
+  const refresh = useCallback(async (showToast = true) => {
+    setLoading(true);
+    try {
+        const [newCrops, newLots] = await Promise.all([
+            fetchCrops(),
+            fetchLots()
+        ]);
+        
+        setCropsCache({ data: newCrops, timestamp: Date.now() });
+        setLotsCache({ data: newLots, timestamp: Date.now() });
+        
+        setCrops(newCrops);
+        setLots(newLots);
+        if (showToast) {
+            toast({ title: "Data Refreshed", description: "Static data updated successfully." });
+        }
+    } catch (e) {
+        console.error("Error refreshing static data", e);
+        if (showToast) {
+            toast({ title: "Error", description: "Failed to refresh static data.", variant: "destructive" });
+        }
+    } finally {
+        setLoading(false);
+    }
+  }, [setCropsCache, setLotsCache]);
+
+  const refreshRef = useRef(refresh);
   useEffect(() => {
-    // Listen for auth changes to auto-sync
+    refreshRef.current = refresh;
+  }, [refresh]);
+
+  // 2. Auth Listener
+  useEffect(() => {
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-        if (event === 'SIGNED_IN') {
-             // Force reload on login
-             // We call refresh() which is defined below. 
-             // Note: We need to be careful about closure, but refresh ref should be stable enough or we use a ref if needed.
-             // Actually, since refresh is recreated on every render, and this effect runs once...
-             // Wait, if refresh changes, we might have stale closure issues if we don't include it in deps.
-             // But if we include refresh in deps, and refresh causes re-render... LOOP again?
-             // No, refresh IS causing re-render.
-             // Best to just call fetch directly here or wrap refresh in useCallback?
-             // Let's just trigger a re-fetch logic here which is independent.
-             
-             // Or better yet, define 'refresh' with useCallback so it's stable?
-             // But refresh uses setLoading etc.
-             
-             // Simpler: Just rely on the fact that if this runs once, it captures the 'refresh' from the first render.
-             // But calling it will trigger state update -> re-render -> refresh function is RECREATED.
-             // But the effect doesn't run again, so it holds onto the OLD refresh function.
-             // Is the old refresh function still valid? Yes, it uses state setters which are stable.
-             // So calling the 'stale' refresh is fine.
-             refresh(); 
+    let lastSessionId: string | null = null;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const currentSessionId = session?.user?.id || null;
+        
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+             // Only refresh if session changed or data is missing
+             if (currentSessionId !== lastSessionId) {
+                lastSessionId = currentSessionId;
+                refreshRef.current(false); // Silent refresh
+             }
         } else if (event === 'SIGNED_OUT') {
+             lastSessionId = null;
              setCropsCache(null);
              setLotsCache(null);
              setCrops([]);
@@ -94,8 +116,7 @@ export function useStaticData() {
     return () => {
         subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run ONCE on mount
+  }, [setCropsCache, setLotsCache]);
 
   // 3. Realtime Subscriptions
   useEffect(() => {
@@ -159,29 +180,6 @@ export function useStaticData() {
         supabase.removeChannel(cropsChannel);
     };
   }, []);
-
-  // Manual Refresh
-  const refresh = async () => {
-    setLoading(true);
-    try {
-        const [newCrops, newLots] = await Promise.all([
-            fetchCrops(),
-            fetchLots()
-        ]);
-        
-        setCropsCache({ data: newCrops, timestamp: Date.now() });
-        setLotsCache({ data: newLots, timestamp: Date.now() });
-        
-        setCrops(newCrops);
-        setLots(newLots);
-        toast({ title: "Data Refreshed", description: "Static data updated successfully." });
-    } catch (e) {
-        console.error("Error refreshing static data", e);
-        toast({ title: "Error", description: "Failed to refresh static data.", variant: "destructive" });
-    } finally {
-        setLoading(false);
-    }
-  };
 
   return { crops, lots, loading, refresh };
 }

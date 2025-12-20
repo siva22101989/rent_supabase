@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useState, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -29,6 +29,7 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
     const { customers, isLoading: customersLoading } = useCustomers();
     const { crops, loading: cropsLoading, refresh } = useStaticData(); 
     const router = useRouter();
+    const lastHandledRef = useRef<any>(null);
     
     // Derived loading state if needed, but we can just show skeletal UI or wait.
     // For now we render selectors empty until loaded.
@@ -48,7 +49,8 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
     const totalPayable = finalRent + hamaliPending;
 
     useEffect(() => {
-        if (state.message) {
+        if (state.message && state !== lastHandledRef.current) {
+            lastHandledRef.current = state;
             if (state.success) {
                 // Redirect is handled by the action, no toast needed for success
                 const initRefresh = async () => {

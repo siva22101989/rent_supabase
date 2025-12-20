@@ -22,13 +22,21 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const [customerCache, setCustomerCache] = useLocalStorage<any>(CACHE_KEY, null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Use a ref to access the latest cache value without triggering useCallback recreations
+  const cacheRef = React.useRef(customerCache);
+  useEffect(() => {
+    cacheRef.current = customerCache;
+  }, [customerCache]);
   
   const refreshCustomers = useCallback(async (force = false) => {
+    const currentCache = cacheRef.current;
+    
     // If not forced and cache is fresh, don't fetch
     if (!force) {
-        if (customerCache) {
+        if (currentCache) {
             try {
-                const { data, timestamp } = customerCache;
+                const { data, timestamp } = currentCache;
                 const age = Date.now() - timestamp;
                 if (age < CACHE_DURATION) {
                      // Check if valid array
@@ -65,20 +73,33 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [customerCache, setCustomerCache]);
+  }, [setCustomerCache]);
 
   // 1. Initial load
   useEffect(() => {
      refreshCustomers();
   }, [refreshCustomers]);
 
+  const refreshRef = React.useRef(refreshCustomers);
+  useEffect(() => {
+    refreshRef.current = refreshCustomers;
+  }, [refreshCustomers]);
+
   // 2. Auth Listener
   useEffect(() => {
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        refreshCustomers(true);
+    let lastSessionId: string | null = null;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const currentSessionId = session?.user?.id || null;
+      
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (currentSessionId !== lastSessionId) {
+          lastSessionId = currentSessionId;
+          refreshRef.current(true);
+        }
       } else if (event === 'SIGNED_OUT') {
+        lastSessionId = null;
         setCustomers([]);
         setCustomerCache(null);
       }
@@ -87,8 +108,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, [setCustomerCache]); 
 
   // 3. Realtime Subscription
   useEffect(() => {

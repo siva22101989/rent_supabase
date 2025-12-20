@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect, useState, Suspense } from 'react';
+import { useActionState, useEffect, useState, useRef, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -34,6 +34,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
     const { crops, lots, loading: staticLoading, refresh } = useStaticData();
     const router = useRouter();
     const isLoading = customersLoading || staticLoading;
+    const lastHandledRef = useRef<any>(null);
 
     const initialState: InflowFormState = { message: '', success: false };
     const [state, formAction] = useActionState(addInflow, initialState);
@@ -68,7 +69,8 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
     // Let's make Weight controlled slightly or just defaultValue logic.
 
     useEffect(() => {
-        if (state.message) {
+        if (state.message && state !== lastHandledRef.current) {
+            lastHandledRef.current = state;
             if (state.success) {
                 toast({
                     title: 'Success!',

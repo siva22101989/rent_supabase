@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useEffect } from 'react';
+import { useState, useActionState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2, Plus, Warehouse } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 export function CreateWarehouseDialog() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const lastHandledRef = useRef<any>(null);
   const initialState: ActionState = { message: '', success: false };
   const [state, formAction] = useActionState(async (prev: ActionState, formData: FormData) => {
       return createWarehouse(
@@ -36,14 +37,16 @@ export function CreateWarehouseDialog() {
   }, initialState);
 
   useEffect(() => {
-    if (!state.message) return;
-    if (state.success) {
-      toast({ title: 'Success', description: state.message });
-      setIsOpen(false);
-      // Optional: Force reload or update state context
-      window.location.reload(); // Hard reload to ensure context switch propagates fully if revalidatePath misses anything
-    } else {
-      toast({ title: 'Error', description: state.message, variant: 'destructive' });
+    if (state.message && state !== lastHandledRef.current) {
+      lastHandledRef.current = state;
+      if (state.success) {
+        toast({ title: 'Success', description: state.message });
+        setIsOpen(false);
+        // Optional: Force reload or update state context
+        window.location.reload(); // Hard reload to ensure context switch propagates fully if revalidatePath misses anything
+      } else {
+        toast({ title: 'Error', description: state.message, variant: 'destructive' });
+      }
     }
   }, [state, toast]);
 

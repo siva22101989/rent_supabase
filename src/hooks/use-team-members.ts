@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { fetchTeamMembers } from '@/lib/actions';
+import { createClient } from '@/utils/supabase/client';
 
 const CACHE_KEY = 'bagbill_team_members';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 Hours
@@ -10,12 +11,40 @@ export function useTeamMembers() {
     const [members, setMembers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const cacheRef = useRef(teamCache);
+    useEffect(() => {
+        cacheRef.current = teamCache;
+    }, [teamCache]);
+
+    const refreshMembers = useCallback(async () => {
+        setLoading(true);
+        try {
+            const teamData = await fetchTeamMembers();
+            setTeamCache({ 
+                data: teamData, 
+                timestamp: Date.now() 
+            });
+            setMembers(teamData || []);
+        } catch(e) {
+             console.error("Error refreshing team members", e);
+        } finally {
+            setLoading(false);
+        }
+    }, [setTeamCache]);
+
+    const refreshRef = useRef(refreshMembers);
+    useEffect(() => {
+        refreshRef.current = refreshMembers;
+    }, [refreshMembers]);
+
+    // 1. Initial Load from Cache
     useEffect(() => {
         async function load() {
             try {
+                const currentCache = cacheRef.current;
                 let teamData = null;
-                if (teamCache) {
-                    const { data, timestamp } = teamCache;
+                if (currentCache) {
+                    const { data, timestamp } = currentCache;
                     if (data && timestamp && (Date.now() - timestamp < CACHE_DURATION)) {
                         teamData = data;
                     }
@@ -36,24 +65,32 @@ export function useTeamMembers() {
             }
         }
         load();
-    }, [teamCache, setTeamCache]);
+    }, [setTeamCache]);
 
-    // Function to manually refresh cache (e.g. after adding member)
-    const refreshMembers = async () => {
-        setLoading(true);
-        try {
-            const teamData = await fetchTeamMembers();
-            setTeamCache({ 
-                data: teamData, 
-                timestamp: Date.now() 
-            });
-            setMembers(teamData || []);
-        } catch(e) {
-             console.error("Error refreshing team members", e);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // 2. Auth Listener
+    useEffect(() => {
+        const supabase = createClient();
+        let lastSessionId: string | null = null;
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            const currentSessionId = session?.user?.id || null;
+            
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                if (currentSessionId !== lastSessionId) {
+                    lastSessionId = currentSessionId;
+                    refreshRef.current();
+                }
+            } else if (event === 'SIGNED_OUT') {
+                lastSessionId = null;
+                setMembers([]);
+                setTeamCache(null);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [setTeamCache]);
 
     return { members, loading, refreshMembers };
 }

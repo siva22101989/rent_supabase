@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2, PlusCircle } from 'lucide-react';
@@ -29,25 +29,27 @@ export function AddCustomerDialog() {
   const { toast } = useToast();
   const { refreshCustomers } = useCustomers();
   const [isOpen, setIsOpen] = useState(false);
+  const lastHandledRef = useRef<any>(null);
   
   const initialState: FormState = { message: '', success: false };
   const [state, formAction] = useActionState(addCustomer, initialState);
 
   useEffect(() => {
-    if (!state.message) return;
-    
-    if (state.success) {
-      toast({ title: 'Success', description: state.message });
-      refreshCustomers(true);
-      setIsOpen(false); 
-    } else {
-      toast({
-        title: 'Error',
-        description: state.message,
-        variant: 'destructive',
-      });
+    if (state.message && state !== lastHandledRef.current) {
+      lastHandledRef.current = state;
+      if (state.success) {
+        toast({ title: 'Success', description: state.message });
+        refreshCustomers(true);
+        setIsOpen(false); 
+      } else {
+        toast({
+          title: 'Error',
+          description: state.message,
+          variant: 'destructive',
+        });
+      }
     }
-  }, [state, toast]);
+  }, [state, toast, refreshCustomers]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

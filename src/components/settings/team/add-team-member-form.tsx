@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 import { createTeamMember, type FormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useTeamMembers } from '@/hooks/use-team-members';
@@ -23,9 +22,11 @@ export function AddTeamMemberForm({ onSuccess }: { onSuccess?: () => void }) {
     const [state, formAction, isPending] = useActionState(createTeamMember, initialState);
     const { toast } = useToast();
     const { refreshMembers } = useTeamMembers();
+    const lastHandledRef = useRef<any>(null);
 
     useEffect(() => {
-        if (state.message) {
+        if (state.message && state !== lastHandledRef.current) {
+            lastHandledRef.current = state;
             toast({
                 title: state.success ? 'Success' : 'Error',
                 description: state.message,
@@ -39,7 +40,7 @@ export function AddTeamMemberForm({ onSuccess }: { onSuccess?: () => void }) {
                 refreshMembers();
             }
         }
-    }, [state, toast, onSuccess]);
+    }, [state, toast, onSuccess, refreshMembers]);
 
     return (
         <form action={formAction} className="grid gap-4 py-4">

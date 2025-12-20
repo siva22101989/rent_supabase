@@ -1,16 +1,13 @@
 'use client';
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { updateUserProfile, type FormState } from "@/lib/actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Shield, Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { User, Mail, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFormStatus } from "react-dom";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 type ProfileTabProps = {
@@ -22,14 +19,14 @@ const initialState: FormState = {
   success: false
 };
 
-// Local SubmitButton removed in favor of shared component
-
 export function ProfileSettingsTab({ profile }: ProfileTabProps) {
     const [state, formAction] = useActionState(updateUserProfile, initialState);
     const { toast } = useToast();
+    const lastHandledRef = useRef<any>(null);
 
     useEffect(() => {
-        if (state.message) {
+        if (state.message && state !== lastHandledRef.current) {
+             lastHandledRef.current = state;
              toast({
                 title: state.success ? "Success" : "Error",
                 description: state.message,

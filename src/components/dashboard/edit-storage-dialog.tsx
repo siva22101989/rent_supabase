@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
@@ -30,22 +30,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 export function EditStorageDialog({ record, customers, children }: { record: StorageRecord, customers: Customer[], children: React.ReactNode }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const lastHandledRef = useRef<any>(null);
   
   const initialState: InflowFormState = { message: '', success: false };
   const updateAction = updateStorageRecordAction.bind(null, record.id);
   const [state, formAction] = useActionState(updateAction, initialState);
 
   useEffect(() => {
-    if (!state.message) return;
-    if (state.success) {
-      toast({ title: 'Success', description: state.message });
-      setIsOpen(false);
-    } else {
-      toast({
-        title: 'Error',
-        description: state.message,
-        variant: 'destructive',
-      });
+    if (state.message && state !== lastHandledRef.current) {
+      lastHandledRef.current = state;
+      if (state.success) {
+        toast({ title: 'Success', description: state.message });
+        setIsOpen(false);
+      } else {
+        toast({
+          title: 'Error',
+          description: state.message,
+          variant: 'destructive',
+        });
+      }
     }
   }, [state, toast]);
 

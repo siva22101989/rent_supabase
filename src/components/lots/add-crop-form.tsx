@@ -34,9 +34,11 @@ export function AddCropForm() {
     const { refresh } = useStaticData();
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
+    const lastHandledRef = useRef<any>(null);
 
     useEffect(() => {
-        if (state.message) {
+        if (state.message && state !== lastHandledRef.current) {
+            lastHandledRef.current = state;
             if (state.success) {
                 toast({ title: 'Success', description: state.message });
                 refresh();

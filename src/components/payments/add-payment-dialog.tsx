@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
@@ -34,25 +34,28 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [paymentType, setPaymentType] = useState<'Rent/Other' | 'Hamali'>('Rent/Other');
+  const lastHandledRef = useRef<any>(null);
   
   const initialState: PaymentFormState = { message: '', success: false };
   const [state, formAction] = useActionState(addPayment, initialState);
 
   useEffect(() => {
-    if (!state.message) return;
-    if (state.success) {
-      toast({ title: 'Success', description: state.message });
-      setIsOpen(false);
-      router.refresh();
-    } else {
-      router.refresh();
-      toast({
-        title: 'Error',
-        description: state.message,
-        variant: 'destructive',
-      });
+    if (state.message && state !== lastHandledRef.current) {
+      lastHandledRef.current = state;
+      if (state.success) {
+        toast({ title: 'Success', description: state.message });
+        setIsOpen(false);
+        router.refresh();
+      } else {
+        router.refresh();
+        toast({
+          title: 'Error',
+          description: state.message,
+          variant: 'destructive',
+        });
+      }
     }
-  }, [state, toast]);
+  }, [state, toast, router]);
   
   const title = paymentType === 'Hamali' ? 'Add Extra Hamali Charges' : 'Add Payment to Record';
   const description = paymentType === 'Hamali'
