@@ -307,20 +307,13 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
         storage_record_id: insertedRecord.id,
         amount: p.amount,
         payment_date: p.date,
-        type: p.type || 'other',
-        notes: p.notes,
-        warehouse_id: warehouseId // Assuming payments table might have this too? Or trigger handles it? 
-        // Based on addPaymentToRecord, it doesn't pass warehouseId? 
-        // Checking addPaymentToRecord in this file (line 329): It does NOT pass warehouseId.
-        // So I'll omit it to be safe.
+        type: p.type || 'hamali',
+        notes: p.notes
       });
 
     if (paymentError) {
        console.error('Error inserting initial payment:', paymentError);
-       // We don't rollback the record, but we should probably warn or throw?
-       // Ideally transactions, but client-side transaction support in Supabase JS is basically RPC.
-       // Since we are moving away from RPC, we accept this risk.
-       // Log it, but maybe don't fail the whole request?
+       // Log the error but don't fail the whole operation since the record is saved
     }
   }
 

@@ -245,7 +245,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                     )}
 
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="cropId">Product / Crop <span className="text-destructive">*</span></Label>
                             <Select name="cropId" required onValueChange={val => {

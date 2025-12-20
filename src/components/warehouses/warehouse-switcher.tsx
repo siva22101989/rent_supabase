@@ -49,14 +49,25 @@ export function WarehouseSwitcher() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between"
+          aria-label="Switch warehouse"
+          className="w-9 h-9 p-0 md:w-[200px] md:h-auto md:px-3 md:py-2 md:justify-between"
         >
-          <Store className="mr-2 h-4 w-4" />
-          {currentWarehouse ? currentWarehouse.name : (isLoading ? "Loading..." : "Select Warehouse")}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          {/* Mobile: Show warehouse initial in a circle */}
+          <div className="flex md:hidden items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary font-semibold text-xs">
+            {currentWarehouse?.name?.[0]?.toUpperCase() || 'W'}
+          </div>
+          
+          {/* Desktop: Show full warehouse selector */}
+          <div className="hidden md:flex items-center w-full">
+            <Store className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate flex-1 text-left">
+              {currentWarehouse ? currentWarehouse.name : (isLoading ? "Loading..." : "Select Warehouse")}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0">
+      <PopoverContent className="w-[200px] p-0" align="end" sideOffset={8}>
         <Command>
           <CommandInput placeholder="Search warehouse..." />
           <CommandList>

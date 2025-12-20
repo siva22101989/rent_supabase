@@ -181,7 +181,7 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
                                 <SelectContent>
                                     {filteredRecords.length > 0 ? filteredRecords.map(record => (
                                         <SelectItem key={record.id} value={record.id}>
-                                            {record.id} - ({record.commodityDescription})
+                                            #{record.recordNumber || record.id.slice(0, 8)} - ({record.commodityDescription})
                                         </SelectItem>
                                     )) : (
                                         <SelectItem value="none" disabled>No active records for this customer</SelectItem>

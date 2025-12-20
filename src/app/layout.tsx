@@ -43,12 +43,14 @@ export default function RootLayout({
         <ThemeProvider>
           <WarehouseProvider>
             <StaticDataProvider>
+              <CustomerProvider>
                 <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
                 {children}
                 <Toaster />
                 <SpeedInsights />
                 <Analytics />
                 <KeyboardShortcuts />
+              </CustomerProvider>
             </StaticDataProvider>
           </WarehouseProvider>
         </ThemeProvider>
