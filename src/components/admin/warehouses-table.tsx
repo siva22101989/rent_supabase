@@ -30,6 +30,7 @@ import { exportToExcel } from "@/lib/export-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { deleteWarehouseAction } from "@/lib/admin-actions";
 import { useToast } from "@/hooks/use-toast";
@@ -85,8 +86,8 @@ export function AdminWarehousesTable({ warehouses }: AdminWarehousesTableProps) 
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <div className="relative max-w-sm flex-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-between">
+                <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search warehouses..."
@@ -95,11 +96,13 @@ export function AdminWarehousesTable({ warehouses }: AdminWarehousesTableProps) 
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
+                <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto" onClick={handleExport}>
                     <Download className="h-4 w-4" /> Export CSV
                 </Button>
             </div>
-            <div className="rounded-md border bg-white">
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border bg-white overflow-x-auto">
                 <Table>
                 <TableHeader>
                     <TableRow className="bg-slate-50/50">
@@ -181,6 +184,91 @@ export function AdminWarehousesTable({ warehouses }: AdminWarehousesTableProps) 
                     )}
                 </TableBody>
             </Table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-3">
+            {filteredWarehouses.map((w) => (
+                <Card key={w.id} className="overflow-hidden">
+                    <CardContent className="p-4 space-y-3">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className="bg-indigo-100 p-2 rounded-lg shrink-0">
+                                    <Building2 className="h-4 w-4 text-indigo-600" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="font-semibold text-sm truncate">{w.name}</h3>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                        {w.email || w.phone || 'No contact'}
+                                    </p>
+                                </div>
+                            </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem asChild>
+                                        <Link href={`/#warehouse-${w.id}`} className="flex items-center">
+                                            <ExternalLink className="mr-2 h-4 w-4" /> View Dashboard
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                        className="text-rose-600 focus:text-rose-600" 
+                                        onClick={() => handleDelete(w.id, w.name)}
+                                    >
+                                        Delete Warehouse
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+
+                        {/* Location */}
+                        <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                            <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                            <span>{w.location || 'N/A'}</span>
+                        </div>
+
+                        {/* Utilization */}
+                        <div className="space-y-1.5">
+                            <div className="flex justify-between text-xs">
+                                <span className="text-slate-600">Utilization</span>
+                                <span className={`font-semibold ${w.occupancyRate > 90 ? "text-rose-600" : "text-slate-900"}`}>
+                                    {w.occupancyRate.toFixed(1)}%
+                                </span>
+                            </div>
+                            <Progress value={w.occupancyRate} className="h-2" />
+                            <div className="flex justify-between text-xs text-slate-500">
+                                <span>{w.totalStock.toLocaleString()} bags</span>
+                                <span>{w.totalCapacity.toLocaleString()} capacity</span>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between pt-2 border-t">
+                            <Badge variant="secondary" className="gap-1">
+                                <Package className="h-3 w-3" />
+                                {w.activeRecords} active
+                            </Badge>
+                            <span className="text-xs text-slate-500">
+                                {format(new Date(w.created_at), 'MMM d, yyyy')}
+                            </span>
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+            {filteredWarehouses.length === 0 && (
+                <Card>
+                    <CardContent className="p-8 text-center text-slate-500">
+                        No warehouses found matching "{searchQuery}"
+                    </CardContent>
+                </Card>
+            )}
         </div>
     </div>
     );
