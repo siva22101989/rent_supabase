@@ -11,7 +11,8 @@ import { ArrowLeft, LogOut } from 'lucide-react';
 // import { NotificationBell } from './notification-bell';
 import { CommandSearch } from './command-search';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { WarehouseSwitcher } from '@/components/warehouses/warehouse-switcher';
+import { WarehouseSwitcher } from '@/components/layout/warehouse-switcher';
+import { UserWarehouse } from '@/lib/definitions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +31,14 @@ import { MobileNav } from './mobile-nav';
 import { Sidebar } from './sidebar';
 import { LayoutDashboard, Menu } from 'lucide-react';
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+
+interface AppLayoutProps {
+    children: React.ReactNode;
+    warehouses?: UserWarehouse[];
+    currentWarehouseId?: string;
+}
+
+export function AppLayout({ children, warehouses = [], currentWarehouseId = '' }: AppLayoutProps) {
   const pathname = usePathname();
   const isDashboard = pathname === '/';
   const router = useRouter();
@@ -133,7 +141,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
        <div className="flex-1 flex flex-col min-h-screen transition-all duration-300">
            {/* Header */}
-           <header className="sticky top-0 z-50 flex h-16 items-center justify-between gap-2 md:gap-4 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 px-3 md:px-6">
+           <header className="sticky top-0 z-50 flex h-16 items-center justify-between gap-2 md:gap-4 border-b bg-gradient-to-r from-primary/10 via-background to-primary/5 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 md:px-6">
                 <div className="flex items-center gap-2 md:gap-4">
                   {/* If in Sidebar Mode, Hide Logo in Header unless on mobile */}
                   {(!isSidebarMode) && (
@@ -180,7 +188,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <div className="flex items-center gap-1 md:gap-2">
-                  <WarehouseSwitcher />
+                  {warehouses.length > 0 && (
+                      <WarehouseSwitcher warehouses={warehouses} currentWarehouseId={currentWarehouseId} />
+                  )}
                   <ThemeToggle />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

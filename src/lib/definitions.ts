@@ -70,3 +70,19 @@ export type TeamMember = {
   createdAt: Date | string;
   lastSignInAt?: Date | string;
 };
+
+export type Warehouse = {
+    id: string;
+    name: string;
+    location: string;
+    capacity_bags: number;
+    created_at: Date | string;
+};
+
+export type UserWarehouse = {
+    id: string;
+    userId: string;
+    warehouseId: string;
+    role: string;
+    warehouse?: Warehouse;
+};

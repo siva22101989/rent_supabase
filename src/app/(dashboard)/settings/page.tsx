@@ -64,22 +64,35 @@ export default async function SettingsPage() {
       <Separator />
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="w-full justify-start h-auto p-1 bg-muted/50 rounded-xl mb-6 flex-wrap">
-            <TabsTrigger value="profile" className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+        {/* Segmented Control Style Tabs */}
+        <TabsList className="w-full flex h-auto p-1 bg-muted/40 rounded-xl mb-8 border items-stretch justify-start overflow-x-auto no-scrollbar">
+            <TabsTrigger 
+                value="profile" 
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary"
+            >
                 <User className="w-4 h-4" />
-                Profile & Account
+                Profile
             </TabsTrigger>
-            <TabsTrigger value="warehouse" className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger 
+                value="warehouse" 
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary"
+            >
                 <Warehouse className="w-4 h-4" />
-                Warehouse Details
+                Warehouse
             </TabsTrigger>
-            <TabsTrigger value="crops" className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger 
+                value="crops" 
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary"
+            >
                 <Wheat className="w-4 h-4" />
                 Crops & Rates
             </TabsTrigger>
-            <TabsTrigger value="data" className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger 
+                value="data" 
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary"
+            >
                 <Database className="w-4 h-4" />
-                Data Management
+                Data
             </TabsTrigger>
         </TabsList>
         

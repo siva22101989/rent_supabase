@@ -32,9 +32,7 @@ function NavCard({ item }: { item: NavItem }) {
                      dark:border-border/30 dark:shadow-lg dark:shadow-primary/5
                      hover:shadow-md dark:hover:shadow-xl dark:hover:shadow-primary/10">
       {/* Gradient overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent
-                      dark:from-primary/10 dark:to-transparent
-                      opacity-0 group-hover:opacity-100 transition-opacity" />
+      
       
       <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
         <CardTitle className="text-base md:text-lg font-medium">{item.label}</CardTitle>

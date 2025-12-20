@@ -58,7 +58,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     >
       <div className="h-16 flex items-center px-4 border-b justify-between">
          {!collapsed && <Logo />}
-         {collapsed && <div className="mx-auto font-bold text-xl text-primary">B</div>}
+         {collapsed && (
+            <Button variant="ghost" size="icon" onClick={onToggle} className="mx-auto h-8 w-8 rounded-full">
+                <ArrowRight className="h-4 w-4" />
+            </Button>
+         )}
          
          {!collapsed && (
             <Button variant="ghost" size="icon" onClick={onToggle} className="h-6 w-6 rounded-full">

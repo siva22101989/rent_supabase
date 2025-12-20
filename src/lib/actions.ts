@@ -437,15 +437,8 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                     commodity: rest.commodityDescription 
                 });
 
-                // Update Lot Capacity (Increment Stock)
-                if (rest.lotId) {
-                    const supabase = await createClient();
-                    const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', rest.lotId).single();
-                    if (lot) {
-                        const newStock = (lot.current_stock || 0) + inflowBags;
-                        await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', rest.lotId);
-                    }
-                }
+                // Update Lot Capacity handled by DB Trigger
+
                 
                 // Check for Low Capacity Warning (>90%)
                 if (rest.lotId) {
@@ -586,15 +579,8 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                 
                 await updateStorageRecord(recordId, recordUpdate);
 
-                // Update Lot Capacity (Release Space)
-                if (originalRecord.lotId) {
-                    const supabase = await createClient();
-                    const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', originalRecord.lotId).single();
-                    if (lot) {
-                        const newStock = Math.max(0, (lot.current_stock || 0) - bagsToWithdraw);
-                        await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', originalRecord.lotId);
-                    }
-                }
+                // Update Lot Capacity handled by DB Trigger
+
 
                 // Save Withdrawal Transaction Audit
                 const { saveWithdrawalTransaction } = await import('@/lib/data');
@@ -1309,4 +1295,195 @@ export async function fetchTeamMembers() {
 
 export async function fetchDashboardMetrics() {
     return await getDashboardMetrics();
+}
+
+export async function switchWarehouse(warehouseId: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, message: 'Unauthorized' };
+    }
+
+    // Verify access
+    const { data: membership } = await supabase
+        .from('user_warehouses')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('warehouse_id', warehouseId)
+        .single();
+
+    if (!membership) {
+        return { success: false, message: 'You do not have access to this warehouse.' };
+    }
+
+    // Update profile's active warehouse
+    const { error } = await supabase
+        .from('profiles')
+        .update({ 
+            warehouse_id: warehouseId,
+            role: membership.role 
+        })
+        .eq('id', user.id);
+
+    if (error) {
+        console.error('Switch Warehouse Error:', error);
+        return { success: false, message: 'Failed to switch warehouse.' };
+    }
+
+    revalidatePath('/', 'layout');
+    return { success: true, message: 'Switched warehouse successfully' };
+}
+
+export async function deleteOutflow(transactionId: string) {
+    const supabase = await createClient();
+    
+    // 1. Get Transaction with explicit storage record join
+    const { data: transaction, error: txError } = await supabase
+        .from('withdrawal_transactions')
+        .select('*, storage_record:storage_records(*)')
+        .eq('id', transactionId)
+        .single();
+    
+    if (txError || !transaction) {
+        return { success: false, message: 'Transaction not found' };
+    }
+
+    const record = transaction.storage_record;
+    if (!record) {
+         return { success: false, message: 'Associated storage record not found' };
+    }
+
+    // 2. Prepare Updates
+    const bagsRestored = transaction.bags_withdrawn;
+    const rentReversed = transaction.rent_collected || 0;
+
+    // Use snake_case for direct DB update
+    const currentBagsStored = record.bags_stored;
+    const currentBagsOut = record.bags_out;
+    const currentTotalRent = record.total_rent_billed;
+
+    const directUpdates: any = {
+        bags_stored: currentBagsStored + bagsRestored,
+        bags_out: Math.max(0, (currentBagsOut || 0) - bagsRestored),
+        total_rent_billed: Math.max(0, (currentTotalRent || 0) - rentReversed)
+    };
+    
+    // Re-open record if it was closed
+    if (record.storage_end_date && directUpdates.bags_stored > 0) {
+        directUpdates.storage_end_date = null;
+        directUpdates.billing_cycle = 'Active';
+    }
+
+    const { error: updateError } = await supabase
+        .from('storage_records')
+        .update(directUpdates)
+        .eq('id', record.id);
+
+    if (updateError) {
+        console.error('Failed to update storage record during revert:', updateError);
+        return { success: false, message: 'Failed to update storage record' };
+    }
+
+    // 4. Delete Transaction
+    const { error: delError } = await supabase
+        .from('withdrawal_transactions')
+        .delete()
+        .eq('id', transactionId);
+
+    if (delError) {
+         return { success: false, message: 'Failed to delete transaction log' };
+    }
+
+    revalidatePath('/outflow');
+    revalidatePath('/storage');
+    // Try to revalidate customer page if possible, but we don't have the ID easily in path format without more work.
+    // However, Dashboard/Customer list should be covered by revalidating queries if they use tags, but here we use paths.
+    // Ideally we should revalidate `/customers/${record.customer_id}` but we need to ensure path is correct.
+    if (record.customer_id) {
+        revalidatePath(`/customers/${record.customer_id}`);
+    }
+    
+    return { success: true, message: 'Outflow reverted successfully.' };
+}
+
+export async function updateOutflow(transactionId: string, formData: FormData) {
+    const supabase = await createClient();
+    
+    // Parse Input
+    const bags = parseInt(formData.get('bags') as string);
+    const date = formData.get('date') as string;
+    const rent = parseFloat(formData.get('rent') as string);
+
+    if (isNaN(bags) || bags <= 0) return { success: false, message: 'Invalid bags quantity' };
+    if (isNaN(rent) || rent < 0) return { success: false, message: 'Invalid rent amount' };
+    
+    // 1. Get Transaction & Record
+    const { data: transaction, error: txError } = await supabase
+        .from('withdrawal_transactions')
+        .select('*, storage_record:storage_records(*)')
+        .eq('id', transactionId)
+        .single();
+    
+    if (txError || !transaction) return { success: false, message: 'Transaction not found' };
+    
+    const record = transaction.storage_record;
+    if (!record) return { success: false, message: 'Storage record not found' };
+
+    // 2. Calculate Differences (New - Old)
+    // If difference is Positive, we are withdrawing MORE.
+    // If difference is Negative, we are putting bags BACK.
+    const bagsDiff = bags - transaction.bags_withdrawn;
+    const rentDiff = rent - (transaction.rent_collected || 0);
+
+    // Validate Stock Availability only if withdrawing MORE
+    if (bagsDiff > 0 && record.bags_stored < bagsDiff) {
+        return { success: false, message: `Cannot increase withdrawal by ${bagsDiff} bags. Only ${record.bags_stored} bags available.` };
+    }
+
+    // 3. Prepare Updates
+    const currentBagsStored = record.bags_stored;
+    const currentBagsOut = record.bags_out;
+    const currentTotalRent = record.total_rent_billed;
+
+    const recordUpdates: any = {
+        bags_stored: currentBagsStored - bagsDiff,
+        bags_out: (currentBagsOut || 0) + bagsDiff,
+        total_rent_billed: Math.max(0, (currentTotalRent || 0) + rentDiff)
+    };
+
+    // Handle Status
+    if (recordUpdates.bags_stored === 0) {
+        // Closed
+        recordUpdates.storage_end_date = new Date(date);
+        recordUpdates.billing_cycle = 'Completed';
+    } else {
+        // Open
+        if (record.storage_end_date) {
+            recordUpdates.storage_end_date = null;
+            recordUpdates.billing_cycle = 'Active';
+        }
+    }
+
+    // 4. Apply Updates
+    // A. Update Storage Record
+    const { error: recError } = await supabase.from('storage_records').update(recordUpdates).eq('id', record.id);
+    if (recError) return { success: false, message: 'Failed to update storage record' };
+
+    // B. Update Lot Capacity - Handled by Trigger
+
+
+    // C. Update Transaction Log
+    const { error: txUpdateError } = await supabase.from('withdrawal_transactions').update({
+        bags_withdrawn: bags,
+        rent_collected: rent,
+        withdrawal_date: new Date(date)
+    }).eq('id', transactionId);
+
+    if (txUpdateError) return { success: false, message: 'Failed to update transaction' };
+
+    revalidatePath('/outflow');
+    revalidatePath('/storage');
+
+    return { success: true, message: 'Outflow updated successfully' };
 }

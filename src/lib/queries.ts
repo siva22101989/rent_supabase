@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
-import type { Customer, StorageRecord, Expense } from '@/lib/definitions';
+import type { Customer, StorageRecord, Expense, UserWarehouse } from '@/lib/definitions';
 
 // Helper to get current user's warehouse
 export const getUserWarehouse = cache(async () => {
@@ -15,6 +15,40 @@ export const getUserWarehouse = cache(async () => {
     .single();
 
   return profile?.warehouse_id;
+});
+
+export const getUserWarehouses = cache(async (): Promise<UserWarehouse[]> => {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data } = await supabase
+        .from('user_warehouses')
+        .select(`
+            id,
+            user_id,
+            warehouse_id,
+            role,
+            warehouse:warehouses (
+                id,
+                name,
+                location,
+                capacity_bags,
+                created_at
+            )
+        `)
+        .eq('user_id', user.id);
+        
+    if (!data) return [];
+
+    return data.map((item: any) => ({
+        id: item.id,
+        userId: item.user_id,
+        warehouseId: item.warehouse_id,
+        role: item.role,
+        // Supabase might return array for relation, handle both cases
+        warehouse: Array.isArray(item.warehouse) ? item.warehouse[0] : item.warehouse
+    }));
 });
 
 // Helper to get warehouse details
@@ -478,11 +512,13 @@ export async function getRecentOutflows(limit = 5) {
       id,
       withdrawal_date,
       bags_withdrawn,
+      rent_collected,
       storage_record:storage_records (
         id,
         outflow_invoice_no,
         record_number,
         commodity_description,
+        bags_stored,
         customer:customers ( name )
       )
     `)
@@ -502,6 +538,9 @@ export async function getRecentOutflows(limit = 5) {
     date: new Date(r.withdrawal_date),
     customerName: r.storage_record?.customer?.name || 'Unknown',
     commodity: r.storage_record?.commodity_description,
-    bags: r.bags_withdrawn // Show amount withdrawn in this transaction
+    bags: r.bags_withdrawn, // Show amount withdrawn in this transaction
+    rentCollected: r.rent_collected || 0,
+    // Max available to withdraw = what's currently there + what we took out in this transaction
+    maxEditableBags: (r.storage_record?.bags_stored || 0) + r.bags_withdrawn 
   }));
 }

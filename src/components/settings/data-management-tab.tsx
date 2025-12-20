@@ -48,71 +48,93 @@ export function DataManagementTab() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Data Synchronization</CardTitle>
-        <CardDescription>
-          Manually refresh locally cached data. Use this if you suspect data is out of sync.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center gap-4">
-                <div className="p-2 bg-primary/10 rounded-full">
-                    <Users className="w-5 h-5 text-primary" />
+    <div className="grid gap-6">
+        <Card>
+        <CardHeader>
+            <CardTitle>Data Synchronization</CardTitle>
+            <CardDescription>
+            Manually refresh locally cached data. Use this if you suspect data is out of sync.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-4">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                        <Users className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                        <p className="font-medium">Customer Database</p>
+                        <p className="text-sm text-muted-foreground">Cached for 24 hours</p>
+                    </div>
                 </div>
-                <div>
-                    <p className="font-medium">Customer Database</p>
-                    <p className="text-sm text-muted-foreground">Cached for 24 hours</p>
-                </div>
+                <Button variant="outline" size="sm" onClick={handleRefreshCustomers} disabled={!!loading}>
+                    {loading === 'customers' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <RefreshCw className="w-4 h-4 mr-2"/>}
+                    Sync
+                </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={handleRefreshCustomers} disabled={!!loading}>
-                {loading === 'customers' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <RefreshCw className="w-4 h-4 mr-2"/>}
-                Sync
-            </Button>
-        </div>
 
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center gap-4">
-                <div className="p-2 bg-primary/10 rounded-full">
-                    <Users className="w-5 h-5 text-primary" />
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-4">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                        <Users className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                        <p className="font-medium">Team Members</p>
+                        <p className="text-sm text-muted-foreground">Cached for 24 hours</p>
+                    </div>
                 </div>
-                <div>
-                    <p className="font-medium">Team Members</p>
-                    <p className="text-sm text-muted-foreground">Cached for 24 hours</p>
-                </div>
+                <Button variant="outline" size="sm" onClick={handleRefreshTeam} disabled={!!loading}>
+                    {loading === 'team' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <RefreshCw className="w-4 h-4 mr-2"/>}
+                    Sync
+                </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={handleRefreshTeam} disabled={!!loading}>
-                 {loading === 'team' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <RefreshCw className="w-4 h-4 mr-2"/>}
-                Sync
-            </Button>
-        </div>
 
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center gap-4">
-                <div className="p-2 bg-primary/10 rounded-full">
-                    <Wheat className="w-5 h-5 text-primary" />
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-4">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                        <Wheat className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                        <p className="font-medium">Crops & Lots</p>
+                        <p className="text-sm text-muted-foreground">Cached for 24 hours</p>
+                    </div>
                 </div>
-                <div>
-                    <p className="font-medium">Crops & Lots</p>
-                    <p className="text-sm text-muted-foreground">Cached for 24 hours</p>
-                </div>
+                <Button variant="outline" size="sm" onClick={handleRefreshStatic} disabled={!!loading}>
+                    {loading === 'static' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <RefreshCw className="w-4 h-4 mr-2"/>}
+                    Sync
+                </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={handleRefreshStatic} disabled={!!loading}>
-                 {loading === 'static' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <RefreshCw className="w-4 h-4 mr-2"/>}
-                Sync
-            </Button>
-        </div>
-        
-        <div className="pt-4 flex justify-end">
-            <Button onClick={handleRefreshAll} disabled={!!loading} className="w-full sm:w-auto">
-                 {loading === 'all' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <Database className="w-4 h-4 mr-2"/>}
-                Sync All Data
-            </Button>
-        </div>
+            
+            <div className="pt-4 flex justify-end">
+                <Button onClick={handleRefreshAll} disabled={!!loading} className="w-full sm:w-auto">
+                    {loading === 'all' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <Database className="w-4 h-4 mr-2"/>}
+                    Sync All Data
+                </Button>
+            </div>
 
-      </CardContent>
-    </Card>
+        </CardContent>
+        </Card>
+
+        <Card className="border-red-200 shadow-sm">
+            <CardHeader>
+                <CardTitle className="text-red-600">Danger Zone</CardTitle>
+                <CardDescription>
+                    Irreversible and destructive actions. Please be careful.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center justify-between p-4 border border-red-100 bg-red-50 rounded-lg">
+                    <div>
+                        <p className="font-medium text-red-900">Leave Warehouse</p>
+                        <p className="text-sm text-red-700">Remove yourself from this warehouse. You will lose access.</p>
+                    </div>
+                    <Button variant="destructive" size="sm">
+                        Leave Warehouse
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
   );
 }

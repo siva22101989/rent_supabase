@@ -42,7 +42,7 @@ export default async function OutflowReceiptPage({
       >
         <PrintButton />
         <Button asChild variant="outline" size="sm" className="print:hidden gap-2">
-            <Link href={`/customers/${customer.id}`}>
+            <Link href="/outflow">
                 <X className="h-4 w-4" /> Close
             </Link>
         </Button>

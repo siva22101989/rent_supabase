@@ -179,7 +179,55 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
                     </TabsContent>
 
                     <TabsContent value="payments" className="mt-4">
-                        <div className="rounded-md border overflow-x-auto">
+                        {/* Mobile View (Cards) */}
+                        <div className="grid gap-4 md:hidden">
+                            {records.flatMap(r => 
+                                (r.payments || []).map((p: any, idx: number) => ({
+                                    ...p,
+                                    recordId: r.id,
+                                    recordNumber: r.recordNumber,
+                                    paymentId: `${r.id}-${idx}`
+                                }))
+                            ).map((payment: any) => (
+                                <div key={payment.paymentId} className="border rounded-lg p-4 bg-card shadow-sm space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="text-sm text-muted-foreground">{new Date(payment.date).toLocaleDateString()}</div>
+                                            <div className="font-semibold text-lg">{formatCurrency(payment.amount)}</div>
+                                        </div>
+                                        <Badge variant="secondary" className="font-mono">#{payment.recordNumber}</Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="capitalize bg-muted px-2 py-0.5 rounded text-muted-foreground">{payment.type || 'other'}</span>
+                                        {payment.notes && <span className="text-muted-foreground truncate max-w-[150px]">{payment.notes}</span>}
+                                    </div>
+                                    <div className="flex justify-end gap-2 pt-2 border-t">
+                                        <EditPaymentDialog 
+                                            payment={{
+                                                id: payment.paymentId,
+                                                recordId: payment.recordId,
+                                                amount: payment.amount,
+                                                date: typeof payment.date === 'string' ? payment.date : payment.date.toISOString(),
+                                                type: payment.type || 'other',
+                                                notes: payment.notes
+                                            }}
+                                            customerId={customer.id}
+                                        />
+                                        <DeletePaymentButton 
+                                            paymentId={payment.paymentId}
+                                            customerId={customer.id}
+                                            amount={payment.amount}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                             {records.flatMap(r => r.payments || []).length === 0 && (
+                                <div className="text-center py-8 text-muted-foreground">No payments recorded.</div>
+                             )}
+                        </div>
+
+                        {/* Desktop View (Table) */}
+                        <div className="hidden md:block rounded-md border overflow-hidden">
                             <table className="w-full text-sm">
                                 <thead className="bg-muted/50 border-b">
                                     <tr className="text-left">
@@ -197,7 +245,7 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
                                             ...p,
                                             recordId: r.id,
                                             recordNumber: r.recordNumber,
-                                            paymentId: `${r.id}-${idx}` // Generate unique ID
+                                            paymentId: `${r.id}-${idx}` 
                                         }))
                                     ).map((payment: any) => (
                                         <tr key={payment.paymentId} className="border-b last:border-0 hover:bg-muted/50">
@@ -239,7 +287,33 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
                     </TabsContent>
 
                     <TabsContent value="history" className="mt-4">
-                         <div className="rounded-md border overflow-x-auto">
+                        {/* Mobile View (Cards) */}
+                        <div className="grid gap-4 md:hidden">
+                            {historyRecords.map((r) => (
+                                <div key={r.id} className="border rounded-lg p-4 bg-card shadow-sm space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h4 className="font-semibold text-foreground">{r.commodityDescription}</h4>
+                                            <div className="text-xs text-muted-foreground mt-1 flex gap-2">
+                                                <span className="flex items-center gap-1"><ArrowDownToDot className="h-3 w-3" /> {new Date(r.storageStartDate).toLocaleDateString()}</span>
+                                                <span className="flex items-center gap-1"><ArrowUpFromDot className="h-3 w-3" /> {r.storageEndDate ? new Date(r.storageEndDate).toLocaleDateString() : 'Partial'}</span>
+                                            </div>
+                                        </div>
+                                        <Badge variant="outline" className="font-mono">#{r.recordNumber}</Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t">
+                                        <span className="text-sm text-muted-foreground">Bags Out</span>
+                                        <span className="font-bold">{r.bagsOut}</span>
+                                    </div>
+                                </div>
+                            ))}
+                            {historyRecords.length === 0 && (
+                                <div className="text-center py-8 text-muted-foreground">No history available.</div>
+                            )}
+                        </div>
+
+                        {/* Desktop View (Table) */}
+                         <div className="hidden md:block rounded-md border overflow-hidden">
                             <table className="w-full text-sm">
                                 <thead className="bg-muted/50 border-b">
                                     <tr className="text-left">
