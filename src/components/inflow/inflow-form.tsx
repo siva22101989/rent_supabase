@@ -4,6 +4,7 @@
 import { useActionState, useEffect, useState, useRef, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useSearchParams, useRouter } from 'next/navigation';
+import * as Sentry from "@sentry/nextjs";
 import { SubmitButton } from '@/components/ui/submit-button';
 import { addInflow, type InflowFormState } from '@/lib/actions';
 // ... (rest of imports unchanged)
@@ -73,23 +74,34 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
     useEffect(() => {
         if (state.message && state !== lastHandledRef.current) {
             lastHandledRef.current = state;
-            if (state.success) {
-                toast({
-                    title: 'Success!',
-                    description: state.message,
-                });
-                const initRefresh = async () => {
-                   await refresh();
-                   router.refresh();
-                };
-                initRefresh();
-            } else {
-                toast({
-                    title: 'Error',
-                    description: state.message,
-                    variant: 'destructive',
-                });
-            }
+            
+            Sentry.withScope((scope) => {
+                scope.setTag("form", "inflow");
+                scope.setExtra("success", state.success);
+                
+                if (state.success) {
+                    toast({
+                        title: 'Success!',
+                        description: state.message,
+                    });
+                    const initRefresh = async () => {
+                        await Sentry.startSpan(
+                            { name: "inflow-success-refresh", op: "ui.action.refresh" },
+                            async () => {
+                                await refresh();
+                                router.refresh();
+                            }
+                        );
+                    };
+                    initRefresh();
+                } else {
+                    toast({
+                        title: 'Error',
+                        description: state.message,
+                        variant: 'destructive',
+                    });
+                }
+            });
         }
     }, [state, toast, refresh, router]);
 

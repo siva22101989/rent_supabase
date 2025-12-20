@@ -4,6 +4,9 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getUserWarehouse } from './data';
+import * as Sentry from "@sentry/nextjs";
+
+const { logger } = Sentry;
 
 export type ActionState = {
   message: string;
@@ -14,30 +17,48 @@ export type ActionState = {
 // --- Warehouse Management ---
 
 export async function createWarehouse(name: string, location: string, capacity: number, email?: string, phone?: string): Promise<ActionState> {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { message: 'Unauthorized', success: false };
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "createWarehouse",
+        },
+        async (span) => {
+            const supabase = await createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                logger.warn("Unauthorized warehouse creation attempt");
+                return { message: 'Unauthorized', success: false };
+            }
 
-    // 1. Create Warehouse via Secure RPC
-    const { data: warehouseId, error } = await supabase.rpc('create_new_warehouse', {
-        p_name: name,
-        p_location: location,
-        p_capacity: capacity,
-        p_email: email,
-        p_phone: phone
-    });
+            span.setAttribute("warehouseName", name);
 
-    if (error) return { 
-        message: 'Failed to create warehouse: ' + error.message, 
-        success: false,
-        data: { name, location, capacity, email, phone }
-    };
+            // 1. Create Warehouse via Secure RPC
+            const { data: warehouseId, error } = await supabase.rpc('create_new_warehouse', {
+                p_name: name,
+                p_location: location,
+                p_capacity: capacity,
+                p_email: email,
+                p_phone: phone
+            });
 
-    // 2. Switch Context
-    await switchWarehouse(warehouseId);
+            if (error) {
+                Sentry.captureException(error);
+                logger.error("Failed to create warehouse", { error: error.message, warehouseName: name });
+                return { 
+                    message: 'Failed to create warehouse: ' + error.message, 
+                    success: false,
+                    data: { name, location, capacity, email, phone }
+                };
+            }
 
-    revalidatePath('/', 'layout');
-    return { message: 'Warehouse created!', success: true, data: { id: warehouseId } };
+            // 2. Switch Context
+            await switchWarehouse(warehouseId);
+
+            logger.info("Warehouse created successfully", { warehouseId, warehouseName: name });
+            revalidatePath('/', 'layout');
+            return { message: 'Warehouse created!', success: true, data: { id: warehouseId } };
+        }
+    );
 }
 
 
@@ -137,28 +158,43 @@ export async function generateInviteLink(role: 'owner' | 'admin' | 'manager' | '
 }
 
 export async function joinWarehouse(token: string): Promise<ActionState> {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { message: 'Please login to join', success: false };
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "joinWarehouse",
+        },
+        async (span) => {
+            const supabase = await createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                logger.warn("Unauthorized join warehouse attempt");
+                return { message: 'Please login to join', success: false };
+            }
 
-    // 1. Verify Token & Get Details (Security Definer logic simulated here via privileged client or RLS check)
-    // Since we didn't open SELECT RLS for everyone, we might need a specific RPC or temporarilly use admin to read.
-    // However, since we are accepting it, we can just try to "Claim" it via a Transaction/RPC.
-    
-    // Better approach: RPC 'claim_invite'
-    const { data, error } = await supabase.rpc('claim_warehouse_invite', {
-        p_token: token,
-        p_user_id: user.id
-    });
+            span.setAttribute("token", token);
 
-    if (error) return { message: error.message, success: false };
+            // 1. Verify Token & Get Details
+            // RPC 'claim_invite'
+            const { data, error } = await supabase.rpc('claim_warehouse_invite', {
+                p_token: token,
+                p_user_id: user.id
+            });
 
-    // Switch to new warehouse immediately
-    // The RPC returns warehouse_id
-    await switchWarehouse(data); 
+            if (error) {
+                Sentry.captureException(error);
+                logger.error("Failed to join warehouse", { error: error.message, token });
+                return { message: error.message, success: false };
+            }
 
-    revalidatePath('/', 'layout');
-    return { message: 'Joined successfully!', success: true };
+            // Switch to new warehouse immediately
+            // The RPC returns warehouse_id
+            await switchWarehouse(data); 
+
+            logger.info("Joined warehouse successfully", { warehouseId: data });
+            revalidatePath('/', 'layout');
+            return { message: 'Joined successfully!', success: true };
+        }
+    );
 }
 
 export async function leaveWarehouse(warehouseId: string): Promise<ActionState> {
@@ -183,42 +219,57 @@ export async function leaveWarehouse(warehouseId: string): Promise<ActionState> 
 
 // Request Access Flow
 export async function requestJoinWarehouse(adminEmail: string): Promise<ActionState> {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { message: 'Unauthorized', success: false };
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "requestJoinWarehouse",
+        },
+        async (span) => {
+            const supabase = await createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                logger.warn("Unauthorized join warehouse request");
+                return { message: 'Unauthorized', success: false };
+            }
 
-    // 1. Find Admin/Owner User
-    const { data: adminProfile } = await supabase
-        .from('profiles')
-        .select('id, warehouse_id')
-        .eq('email', adminEmail)
-        .in('role', ['admin', 'owner', 'super_admin']) // Allow owners and super admins too
-        .single();
-    
-    if (!adminProfile || !adminProfile.warehouse_id) {
-        return { message: 'Admin not found or has no warehouse.', success: false };
-    }
+            span.setAttribute("adminEmail", adminEmail);
 
-    // 2. Check if already requesting or assigned?
-    // We can skip this check and rely on Admin to ignore duplicates, or check notifications table.
-    // Let's just insert.
+            // 1. Find Admin/Owner User
+            const { data: adminProfile } = await supabase
+                .from('profiles')
+                .select('id, warehouse_id')
+                .eq('email', adminEmail)
+                .in('role', ['admin', 'owner', 'super_admin']) // Allow owners and super admins too
+                .single();
+            
+            if (!adminProfile || !adminProfile.warehouse_id) {
+                logger.warn("Admin not found for join request", { adminEmail });
+                return { message: 'Admin not found or has no warehouse.', success: false };
+            }
 
-    // 3. Create Notification
-    const { error } = await supabase
-        .from('notifications')
-        .insert({
-            user_id: adminProfile.id, // Target the Admin
-            warehouse_id: adminProfile.warehouse_id,
-            type: 'join_request',
-            title: 'Staff Join Request',
-            message: `User ${user.user_metadata?.full_name || 'Staff'} (${user.email}) requested to join.`,
-            link: `/settings/team?approve_user=${user.id}&name=${encodeURIComponent(user.user_metadata?.full_name || '')}`,
-            is_read: false
-        });
+            // 3. Create Notification
+            const { error } = await supabase
+                .from('notifications')
+                .insert({
+                    user_id: adminProfile.id, // Target the Admin
+                    warehouse_id: adminProfile.warehouse_id,
+                    type: 'join_request',
+                    title: 'Staff Join Request',
+                    message: `User ${user.user_metadata?.full_name || 'Staff'} (${user.email}) requested to join.`,
+                    link: `/settings/team?approve_user=${user.id}&name=${encodeURIComponent(user.user_metadata?.full_name || '')}`,
+                    is_read: false
+                });
 
-    if (error) return { message: 'Failed to send request: ' + error.message, success: false };
+            if (error) {
+                Sentry.captureException(error);
+                logger.error("Failed to send join request", { error: error.message, adminEmail });
+                return { message: 'Failed to send request: ' + error.message, success: false };
+            }
 
-    return { message: 'Request sent successfully', success: true };
+            logger.info("Join request sent successfully", { adminEmail, requesterId: user.id });
+            return { message: 'Request sent successfully', success: true };
+        }
+    );
 }
 
 export async function approveJoinRequest(notificationId: string, requesterId: string): Promise<ActionState> {

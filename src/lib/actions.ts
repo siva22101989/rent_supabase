@@ -11,6 +11,9 @@ import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows
 import type { StorageRecord, Payment } from './definitions';
 import { expenseCategories } from './definitions';
 import { getNextInvoiceNumber } from '@/lib/sequence-utils';
+import * as Sentry from "@sentry/nextjs";
+
+const { logger } = Sentry;
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -28,51 +31,75 @@ export type FormState = {
 };
 
 export async function getAnomalyDetection() {
-  try {
-    const records = await getStorageRecords();
-    const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(records) });
-    return { success: true, anomalies: result.anomalies };
-  } catch (error) {
-    return { success: false, anomalies: 'An error occurred while analyzing records.' };
-  }
+  return Sentry.startSpan(
+    {
+      op: "function",
+      name: "getAnomalyDetection",
+    },
+    async () => {
+      try {
+        const records = await getStorageRecords();
+        const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(records) });
+        logger.info("Anomaly detection completed", { count: result.anomalies.length });
+        return { success: true, anomalies: result.anomalies };
+      } catch (error: any) {
+        Sentry.captureException(error);
+        logger.error("Anomaly detection failed", { error: error.message });
+        return { success: false, anomalies: 'An error occurred while analyzing records.' };
+      }
+    }
+  );
 }
 
 export async function addCustomer(prevState: FormState, formData: FormData): Promise<FormState> {
-    const rawData = {
-        name: formData.get('name'),
-        email: formData.get('email'),
-        phone: formData.get('phone'),
-        address: formData.get('address'),
-        fatherName: formData.get('fatherName'),
-        village: formData.get('village'),
-    };
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "addCustomer",
+        },
+        async (span) => {
+            const rawData = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                address: formData.get('address'),
+                fatherName: formData.get('fatherName'),
+                village: formData.get('village'),
+            };
+            span.setAttribute("customerName", rawData.name as string);
 
-    const validatedFields = NewCustomerSchema.safeParse(rawData);
+            const validatedFields = NewCustomerSchema.safeParse(rawData);
 
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false, data: rawData };
-    }
+            if (!validatedFields.success) {
+                const error = validatedFields.error.flatten().fieldErrors;
+                const message = Object.values(error).flat().join(', ');
+                logger.warn("Customer validation failed", { errors: error });
+                return { message: `Invalid data: ${message}`, success: false, data: rawData };
+            }
 
-    const { email, fatherName, village, ...rest } = validatedFields.data;
+            const { email, fatherName, village, ...rest } = validatedFields.data;
 
-    const newCustomer = {
-        ...rest,
-        id: `CUST-${Date.now()}`,
-        email: email ?? '',
-        fatherName: fatherName ?? '',
-        village: village ?? '',
-    };
-    
-    try {
-        await saveCustomer(newCustomer);
-        revalidatePath('/customers');
-        revalidatePath('/inflow');
-        return { message: 'Customer added successfully.', success: true };
-    } catch (error: any) {
-        return { message: `Failed to add customer: ${error.message}`, success: false, data: rawData };
-    }
+            const newCustomer = {
+                ...rest,
+                id: `CUST-${Date.now()}`,
+                email: email ?? '',
+                fatherName: fatherName ?? '',
+                village: village ?? '',
+            };
+            
+            try {
+                await saveCustomer(newCustomer);
+                revalidatePath('/customers');
+                revalidatePath('/inflow');
+                logger.info("Customer added successfully", { customerId: newCustomer.id });
+                return { message: 'Customer added successfully.', success: true };
+            } catch (error: any) {
+                Sentry.captureException(error);
+                logger.error("Failed to add customer", { error: error.message });
+                return { message: `Failed to add customer: ${error.message}`, success: false, data: rawData };
+            }
+        }
+    );
 }
 
 const CustomerSchema = z.object({
@@ -273,179 +300,198 @@ export type InflowFormState = {
 };
 
 export async function addInflow(prevState: InflowFormState, formData: FormData): Promise<InflowFormState> {
-    const rawData = {
-        customerId: formData.get('customerId'),
-        commodityDescription: formData.get('commodityDescription'),
-        location: formData.get('location'),
-        storageStartDate: formData.get('storageStartDate'),
-        bagsStored: formData.get('bagsStored'),
-        hamaliRate: formData.get('hamaliRate'),
-        hamaliPaid: formData.get('hamaliPaid'),
-        lorryTractorNo: formData.get('lorryTractorNo'),
-        fatherName: formData.get('fatherName'),
-        village: formData.get('village'),
-        inflowType: formData.get('inflowType'),
-        plotBags: formData.get('plotBags'),
-        loadBags: formData.get('loadBags'),
-        khataAmount: formData.get('khataAmount'),
-        lotId: formData.get('lotId'),
-        cropId: formData.get('cropId'),
-    };
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "addInflow",
+        },
+        async (span) => {
+            const rawData = {
+                customerId: formData.get('customerId'),
+                commodityDescription: formData.get('commodityDescription'),
+                location: formData.get('location'),
+                storageStartDate: formData.get('storageStartDate'),
+                bagsStored: formData.get('bagsStored'),
+                hamaliRate: formData.get('hamaliRate'),
+                hamaliPaid: formData.get('hamaliPaid'),
+                lorryTractorNo: formData.get('lorryTractorNo'),
+                fatherName: formData.get('fatherName'),
+                village: formData.get('village'),
+                inflowType: formData.get('inflowType'),
+                plotBags: formData.get('plotBags'),
+                loadBags: formData.get('loadBags'),
+                khataAmount: formData.get('khataAmount'),
+                lotId: formData.get('lotId'),
+                cropId: formData.get('cropId'),
+            };
+            span.setAttribute("customerId", rawData.customerId as string);
+            span.setAttribute("lotId", rawData.lotId as string);
 
-    const validatedFields = InflowSchema.safeParse(rawData);
+            const validatedFields = InflowSchema.safeParse(rawData);
 
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false, data: rawData };
-    }
-
-    let { bagsStored, hamaliRate, hamaliPaid, storageStartDate, fatherName, village, plotBags, loadBags, inflowType, ...rest } = validatedFields.data;
-
-    // Update customer if father's name or village was changed
-    if (fatherName || village) {
-        const customer = await getCustomer(rest.customerId);
-        if (customer) {
-            const customerUpdate: Partial<typeof customer> = {};
-            if (fatherName && customer.fatherName !== fatherName) customerUpdate.fatherName = fatherName;
-            if (village && customer.village !== village) customerUpdate.village = village;
-            if (Object.keys(customerUpdate).length > 0) {
-                // This assumes an `updateCustomer` function exists in data.ts
-                // await updateCustomer(rest.customerId, customerUpdate);
+            if (!validatedFields.success) {
+                const error = validatedFields.error.flatten().fieldErrors;
+                const message = Object.values(error).flat().join(', ');
+                logger.warn("Inflow validation failed", { errors: error });
+                return { message: `Invalid data: ${message}`, success: false, data: rawData };
             }
-        }
-    }
 
-    try {
-        let inflowBags = 0;
-        if (inflowType === 'Plot') {
-            if (!plotBags || plotBags <= 0) {
-                return { message: "Plot Bags must be a positive number for 'Plot' inflow.", success: false };
-            }
-            inflowBags = plotBags;
-        } else { // 'Direct'
-            if (!bagsStored || bagsStored <= 0) {
-                return { message: "Number of Bags must be a positive number for 'Direct' inflow.", success: false };
-            }
-            inflowBags = bagsStored;
-        }
+            let { bagsStored, hamaliRate, hamaliPaid, storageStartDate, fatherName, village, plotBags, loadBags, inflowType, ...rest } = validatedFields.data;
 
-        // Capacity Check
-        if (rest.lotId) {
-            const supabase = await createClient();
-            const { data: lot } = await supabase.from('warehouse_lots').select('capacity, current_stock').eq('id', rest.lotId).single();
-            
-            if (lot) {
-                const capacity = lot.capacity || 1000;
-                const current = lot.current_stock || 0;
-                const available = capacity - current;
-                
-                if (inflowBags > available) {
-                    return { 
-                        message: `Lot is full! Available: ${available} bags. You tried to add ${inflowBags}.`, 
-                        success: false,
-                        data: rawData
-                    };
+            // Update customer if father's name or village was changed
+            if (fatherName || village) {
+                const customer = await getCustomer(rest.customerId);
+                if (customer) {
+                    const customerUpdate: Partial<typeof customer> = {};
+                    if (fatherName && customer.fatherName !== fatherName) customerUpdate.fatherName = fatherName;
+                    if (village && customer.village !== village) customerUpdate.village = village;
+                    if (Object.keys(customerUpdate).length > 0) {
+                        logger.debug("Plan to update customer details during inflow", { customerId: rest.customerId, updates: customerUpdate });
+                        // This assumes an `updateCustomer` function exists in data.ts
+                        // await updateCustomer(rest.customerId, customerUpdate);
+                    }
                 }
             }
-        }
+
+            try {
+                let inflowBags = 0;
+                if (inflowType === 'Plot') {
+                    if (!plotBags || plotBags <= 0) {
+                        logger.warn("Invalid plot bags for plot inflow", { customerId: rest.customerId });
+                        return { message: "Plot Bags must be a positive number for 'Plot' inflow.", success: false };
+                    }
+                    inflowBags = plotBags;
+                } else { // 'Direct'
+                    if (!bagsStored || bagsStored <= 0) {
+                        logger.warn("Invalid bags stored for direct inflow", { customerId: rest.customerId });
+                        return { message: "Number of Bags must be a positive number for 'Direct' inflow.", success: false };
+                    }
+                    inflowBags = bagsStored;
+                }
+                span.setAttribute("inflowBags", inflowBags);
+
+                // Capacity Check
+                if (rest.lotId) {
+                    const supabase = await createClient();
+                    const { data: lot } = await supabase.from('warehouse_lots').select('capacity, current_stock').eq('id', rest.lotId).single();
+                    
+                    if (lot) {
+                        const capacity = lot.capacity || 1000;
+                        const current = lot.current_stock || 0;
+                        const available = capacity - current;
+                        
+                        if (inflowBags > available) {
+                            logger.warn("Lot capacity exceeded during inflow", { lotId: rest.lotId, requested: inflowBags, available });
+                            return { 
+                                message: `Lot is full! Available: ${available} bags. You tried to add ${inflowBags}.`, 
+                                success: false,
+                                data: rawData
+                            };
+                        }
+                    }
+                }
 
 
-        const hamaliPayable = inflowBags * (hamaliRate || 0);
-        const payments: Payment[] = [];
-        if (hamaliPaid && hamaliPaid > 0) {
-            payments.push({ amount: hamaliPaid, date: new Date(storageStartDate), type: 'hamali' });
-        }
-        
-        
-        // Generate Invoice Number (ID)
-        const newRecordId = await getNextInvoiceNumber('inflow');
+                const hamaliPayable = inflowBags * (hamaliRate || 0);
+                const payments: Payment[] = [];
+                if (hamaliPaid && hamaliPaid > 0) {
+                    payments.push({ amount: hamaliPaid, date: new Date(storageStartDate), type: 'hamali' });
+                }
+                
+                
+                // Generate Invoice Number (ID)
+                const newRecordId = await getNextInvoiceNumber('inflow');
 
-        // Ensure 0 is treated as undefined for optional DB fields if they prefer NULL
-        const finalPlotBags = (plotBags && plotBags > 0) ? plotBags : undefined;
-        const finalLoadBags = (loadBags && loadBags > 0) ? loadBags : undefined;
+                // Ensure 0 is treated as undefined for optional DB fields if they prefer NULL
+                const finalPlotBags = (plotBags && plotBags > 0) ? plotBags : undefined;
+                const finalLoadBags = (loadBags && loadBags > 0) ? loadBags : undefined;
 
-        const newRecord: StorageRecord = {
-            ...rest,
-            id: newRecordId,
-            bagsIn: inflowBags,
-            bagsOut: 0,
-            bagsStored: inflowBags,
-            storageStartDate: new Date(storageStartDate),
-            storageEndDate: null,
-            billingCycle: '6-Month Initial',
-            payments: payments,
-            hamaliPayable: hamaliPayable,
-            totalRentBilled: 0,
-            lorryTractorNo: rest.lorryTractorNo ?? '',
-            inflowType: inflowType ?? 'Direct',
-            plotBags: finalPlotBags,
-            loadBags: finalLoadBags,
-            location: rest.location ?? '',
-            khataAmount: rest.khataAmount ?? 0,
-            lotId: rest.lotId,
-            cropId: rest.cropId,
-        };
+                const newRecord: StorageRecord = {
+                    ...rest,
+                    id: newRecordId,
+                    bagsIn: inflowBags,
+                    bagsOut: 0,
+                    bagsStored: inflowBags,
+                    storageStartDate: new Date(storageStartDate),
+                    storageEndDate: null,
+                    billingCycle: '6-Month Initial',
+                    payments: payments,
+                    hamaliPayable: hamaliPayable,
+                    totalRentBilled: 0,
+                    lorryTractorNo: rest.lorryTractorNo ?? '',
+                    inflowType: inflowType ?? 'Direct',
+                    plotBags: finalPlotBags,
+                    loadBags: finalLoadBags,
+                    location: rest.location ?? '',
+                    khataAmount: rest.khataAmount ?? 0,
+                    lotId: rest.lotId,
+                    cropId: rest.cropId,
+                };
 
-        const savedRecord = await saveStorageRecord(newRecord);
+                const savedRecord = await saveStorageRecord(newRecord);
 
-        const { logActivity, createNotification } = await import('@/lib/logger');
-        await logActivity('CREATE', 'StorageRecord', savedRecord.id, { 
-            customerId: rest.customerId, 
-            bags: inflowBags, 
-            commodity: rest.commodityDescription 
-        });
+                const { logActivity, createNotification } = await import('@/lib/logger');
+                await logActivity('CREATE', 'StorageRecord', savedRecord.id, { 
+                    customerId: rest.customerId, 
+                    bags: inflowBags, 
+                    commodity: rest.commodityDescription 
+                });
 
-        // Update Lot Capacity (Increment Stock)
-        if (rest.lotId) {
-            const supabase = await createClient();
-            const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', rest.lotId).single();
-            if (lot) {
-                const newStock = (lot.current_stock || 0) + inflowBags;
-                await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', rest.lotId);
+                // Update Lot Capacity (Increment Stock)
+                if (rest.lotId) {
+                    const supabase = await createClient();
+                    const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', rest.lotId).single();
+                    if (lot) {
+                        const newStock = (lot.current_stock || 0) + inflowBags;
+                        await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', rest.lotId);
+                    }
+                }
+                
+                // Check for Low Capacity Warning (>90%)
+                if (rest.lotId) {
+                    // Re-init supabase if needed or reuse if available in wider scope (it wasn't)
+                    const supabase = await createClient();
+                    // Fetch fresh lot data to be accurate
+                    const { data: currentLot } = await supabase.from('warehouse_lots').select('id, name, capacity, current_stock').eq('id', rest.lotId).single();
+                    
+                    if (currentLot && currentLot.capacity && currentLot.capacity > 0) {
+                         const stock = currentLot.current_stock || 0;
+                         const percentage = (stock / currentLot.capacity) * 100;
+                         
+                         if (percentage >= 90) {
+                             logger.info("High lot utilization detected", { lotId: rest.lotId, percentage });
+                             await createNotification(
+                                'High Utilization Alert',
+                                `Lot ${currentLot.name || currentLot.id} is ${percentage.toFixed(1)}% full (${stock}/${currentLot.capacity} bags). Consider using a new lot soon.`,
+                                'warning',
+                                undefined,
+                                '/settings/lots'
+                             );
+                         }
+                    }
+                }
+                const customerForNotif = await getCustomer(rest.customerId);
+                const customerName = customerForNotif?.name || "Unknown Customer";
+
+                await createNotification(
+                    'Inflow Recorded', 
+                    `Received ${inflowBags} bags of ${rest.commodityDescription} from ${customerName}`, 
+                    'success',
+                    undefined, // Warehouse-wide
+                    `/inflow/receipt/${savedRecord.id}`
+                );
+
+                logger.info("Inflow record created successfully", { recordId: savedRecord.id });
+                revalidatePath('/storage');
+                redirect(`/inflow/receipt/${savedRecord.id}`);
+            } catch (error: any) {
+                if (error.message === 'NEXT_REDIRECT') throw error;
+                Sentry.captureException(error);
+                logger.error('Add Inflow Error:', { error: error.message, customerId: rest.customerId });
+                return { message: `Failed to create record: ${error.message || 'Unknown error'}`, success: false, data: rawData };
             }
         }
-        
-        // Check for Low Capacity Warning (>90%)
-        if (rest.lotId) {
-            // Re-init supabase if needed or reuse if available in wider scope (it wasn't)
-            const supabase = await createClient();
-            // Fetch fresh lot data to be accurate
-            const { data: currentLot } = await supabase.from('warehouse_lots').select('id, name, capacity, current_stock').eq('id', rest.lotId).single();
-            
-            if (currentLot && currentLot.capacity && currentLot.capacity > 0) {
-                 const stock = currentLot.current_stock || 0;
-                 const percentage = (stock / currentLot.capacity) * 100;
-                 
-                 if (percentage >= 90) {
-                     await createNotification(
-                        'High Utilization Alert',
-                        `Lot ${currentLot.name || currentLot.id} is ${percentage.toFixed(1)}% full (${stock}/${currentLot.capacity} bags). Consider using a new lot soon.`,
-                        'warning',
-                        undefined,
-                        '/settings/lots'
-                     );
-                 }
-            }
-        }
-        const customerForNotif = await getCustomer(rest.customerId);
-        const customerName = customerForNotif?.name || "Unknown Customer";
-
-        await createNotification(
-            'Inflow Recorded', 
-            `Received ${inflowBags} bags of ${rest.commodityDescription} from ${customerName}`, 
-            'success',
-            undefined, // Warehouse-wide
-            `/inflow/receipt/${savedRecord.id}`
-        );
-
-        revalidatePath('/storage');
-        redirect(`/inflow/receipt/${savedRecord.id}`);
-    } catch (error: any) {
-        if (error.message === 'NEXT_REDIRECT') throw error;
-        console.error('Add Inflow Error:', error);
-        return { message: `Failed to create record: ${error.message || 'Unknown error'}`, success: false, data: rawData };
-    }
+    );
 }
 
 
@@ -464,96 +510,118 @@ export type OutflowFormState = {
 };
 
 export async function addOutflow(prevState: OutflowFormState, formData: FormData): Promise<OutflowFormState> {
-    const rawData = {
-        recordId: formData.get('recordId'),
-        bagsToWithdraw: formData.get('bagsToWithdraw'),
-        withdrawalDate: formData.get('withdrawalDate'),
-        finalRent: formData.get('finalRent'),
-        amountPaidNow: formData.get('amountPaidNow'),
-    };
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "addOutflow",
+        },
+        async (span) => {
+            const rawData = {
+                recordId: formData.get('recordId'),
+                bagsToWithdraw: formData.get('bagsToWithdraw'),
+                withdrawalDate: formData.get('withdrawalDate'),
+                finalRent: formData.get('finalRent'),
+                amountPaidNow: formData.get('amountPaidNow'),
+            };
+            span.setAttribute("recordId", rawData.recordId as string);
 
-    const validatedFields = OutflowSchema.safeParse(rawData);
+            const validatedFields = OutflowSchema.safeParse(rawData);
 
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false, data: rawData };
-    }
-    
-    const { recordId, bagsToWithdraw, withdrawalDate, finalRent, amountPaidNow } = validatedFields.data;
-    
-    const originalRecord = await getStorageRecord(recordId);
+            if (!validatedFields.success) {
+                const error = validatedFields.error.flatten().fieldErrors;
+                const message = Object.values(error).flat().join(', ');
+                logger.warn("Outflow validation failed", { errors: error });
+                return { message: `Invalid data: ${message}`, success: false, data: rawData };
+            }
+            
+            const { recordId, bagsToWithdraw, withdrawalDate, finalRent, amountPaidNow } = validatedFields.data;
+            span.setAttribute("bagsToWithdraw", bagsToWithdraw);
+            
+            const originalRecord = await getStorageRecord(recordId);
 
-    if (!originalRecord) {
-        return { message: 'Record not found.', success: false, data: rawData };
-    }
+            if (!originalRecord) {
+                logger.error("Storage record not found for outflow", { recordId });
+                return { message: 'Record not found.', success: false, data: rawData };
+            }
 
-    if (bagsToWithdraw > originalRecord.bagsStored) {
-        return { message: 'Cannot withdraw more bags than are in storage.', success: false, data: rawData };
-    }
+            if (bagsToWithdraw > originalRecord.bagsStored) {
+                logger.warn("Attempted to withdraw more bags than available", { recordId, available: originalRecord.bagsStored, requested: bagsToWithdraw });
+                return { message: 'Cannot withdraw more bags than are in storage.', success: false, data: rawData };
+            }
 
-    const isFullWithdrawal = bagsToWithdraw === originalRecord.bagsStored;
-    const paymentMade = amountPaidNow || 0;
-    
-    const recordUpdate: Partial<StorageRecord> = {
-        bagsStored: originalRecord.bagsStored - bagsToWithdraw,
-        bagsOut: (originalRecord.bagsOut || 0) + bagsToWithdraw,
+            const isFullWithdrawal = bagsToWithdraw === originalRecord.bagsStored;
+            const paymentMade = amountPaidNow || 0;
+            
+            const recordUpdate: Partial<StorageRecord> = {
+                bagsStored: originalRecord.bagsStored - bagsToWithdraw,
+                bagsOut: (originalRecord.bagsOut || 0) + bagsToWithdraw,
 
-    };
+            };
 
-    if (paymentMade > 0) {
-        // Explicitly save the payment as updateStorageRecord doesn't handle relation updates
-        const { addPaymentToRecord } = await import('@/lib/data');
-        await addPaymentToRecord(recordId, { 
-            amount: paymentMade, 
-            date: new Date(withdrawalDate), 
-            type: 'rent',
-            notes: 'Rent paid during outflow' 
-        });
-    }
+            try {
+                if (paymentMade > 0) {
+                    // Explicitly save the payment as updateStorageRecord doesn't handle relation updates
+                    const { addPaymentToRecord } = await import('@/lib/data');
+                    await addPaymentToRecord(recordId, { 
+                        amount: paymentMade, 
+                        date: new Date(withdrawalDate), 
+                        type: 'rent',
+                        notes: 'Rent paid during outflow' 
+                    });
+                    logger.info("Payment added during outflow", { recordId, amount: paymentMade });
+                }
 
-    // Generate Outflow Invoice Number if not present (First Outflow)
-    if (!originalRecord.outflowInvoiceNo) {
-        // @ts-ignore - Field exists in DB
-        recordUpdate.outflow_invoice_no = await getNextInvoiceNumber('outflow'); 
-    }
+                // Generate Outflow Invoice Number if not present (First Outflow)
+                if (!originalRecord.outflowInvoiceNo) {
+                    // @ts-ignore - Field exists in DB
+                    recordUpdate.outflow_invoice_no = await getNextInvoiceNumber('outflow'); 
+                }
 
-    if (isFullWithdrawal) {
-        recordUpdate.storageEndDate = new Date(withdrawalDate);
-        recordUpdate.billingCycle = 'Completed';
-    }
+                if (isFullWithdrawal) {
+                    recordUpdate.storageEndDate = new Date(withdrawalDate);
+                    recordUpdate.billingCycle = 'Completed';
+                }
 
-    recordUpdate.totalRentBilled = (originalRecord.totalRentBilled || 0) + finalRent;
-    
-    await updateStorageRecord(recordId, recordUpdate);
+                recordUpdate.totalRentBilled = (originalRecord.totalRentBilled || 0) + finalRent;
+                
+                await updateStorageRecord(recordId, recordUpdate);
 
-    // Update Lot Capacity (Release Space)
-    if (originalRecord.lotId) {
-        const supabase = await createClient();
-        const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', originalRecord.lotId).single();
-        if (lot) {
-            const newStock = Math.max(0, (lot.current_stock || 0) - bagsToWithdraw);
-            await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', originalRecord.lotId);
+                // Update Lot Capacity (Release Space)
+                if (originalRecord.lotId) {
+                    const supabase = await createClient();
+                    const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', originalRecord.lotId).single();
+                    if (lot) {
+                        const newStock = Math.max(0, (lot.current_stock || 0) - bagsToWithdraw);
+                        await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', originalRecord.lotId);
+                    }
+                }
+
+                const { createNotification } = await import('@/lib/logger');
+                
+                // Fetch customer for notification readability
+                const customer = await getCustomer(originalRecord.customerId);
+                const customerName = customer?.name || 'Unknown';
+
+                await createNotification(
+                    'Outflow Recorded', 
+                    `Withdrawn ${bagsToWithdraw} bags (${originalRecord.commodityDescription}) for ${customerName}`, 
+                    'info',
+                    undefined, 
+                    `/outflow/receipt/${recordId}`
+                );
+
+                logger.info("Outflow recorded successfully", { recordId, bagsOut: bagsToWithdraw });
+                revalidatePath('/storage');
+                revalidatePath('/reports');
+                redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
+            } catch (error: any) {
+                if (error.message === 'NEXT_REDIRECT') throw error;
+                Sentry.captureException(error);
+                logger.error("Failed to record outflow", { error: error.message, recordId });
+                throw error; // Or return error state
+            }
         }
-    }
-
-    const { createNotification } = await import('@/lib/logger');
-    
-    // Fetch customer for notification readability
-    const customer = await getCustomer(originalRecord.customerId);
-    const customerName = customer?.name || 'Unknown';
-
-    await createNotification(
-        'Outflow Recorded', 
-        `Withdrawn ${bagsToWithdraw} bags (${originalRecord.commodityDescription}) for ${customerName}`, 
-        'info',
-        undefined, 
-        `/outflow/receipt/${recordId}`
     );
-
-    revalidatePath('/storage');
-    revalidatePath('/reports');
-    redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
 }
 
 const StorageRecordUpdateSchema = z.object({
@@ -677,64 +745,83 @@ export type PaymentFormState = {
 };
 
 export async function addPayment(prevState: PaymentFormState, formData: FormData): Promise<PaymentFormState> {
-    const rawData = {
-        recordId: formData.get('recordId'),
-        paymentAmount: formData.get('paymentAmount'),
-        paymentDate: formData.get('paymentDate'),
-        paymentType: formData.get('paymentType'),
-    };
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "addPayment",
+        },
+        async (span) => {
+            const rawData = {
+                recordId: formData.get('recordId'),
+                paymentAmount: formData.get('paymentAmount'),
+                paymentDate: formData.get('paymentDate'),
+                paymentType: formData.get('paymentType'),
+            };
+            span.setAttribute("recordId", rawData.recordId as string);
 
-    const validatedFields = PaymentSchema.safeParse(rawData);
+            const validatedFields = PaymentSchema.safeParse(rawData);
 
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false, data: rawData };
-    }
-    
-    const { recordId, paymentAmount, paymentDate, paymentType } = validatedFields.data;
-    
-    const record = await getStorageRecord(recordId);
-    if (!record) {
-        return { message: 'Record not found.', success: false, data: rawData };
-    }
+            if (!validatedFields.success) {
+                const error = validatedFields.error.flatten().fieldErrors;
+                const message = Object.values(error).flat().join(', ');
+                logger.warn("Payment validation failed", { errors: error });
+                return { message: `Invalid data: ${message}`, success: false, data: rawData };
+            }
+            
+            const { recordId, paymentAmount, paymentDate, paymentType } = validatedFields.data;
+            span.setAttribute("paymentAmount", paymentAmount);
+            
+            const record = await getStorageRecord(recordId);
+            if (!record) {
+                logger.error("Storage record not found for payment", { recordId });
+                return { message: 'Record not found.', success: false, data: rawData };
+            }
 
-    if (paymentType === 'Hamali') {
-        const payment: Payment = {
-            amount: paymentAmount,
-            date: new Date(paymentDate),
-            type: 'hamali',
-            notes: 'Hamali Payment'
-        };
-        await addPaymentToRecord(recordId, payment);
-    } else {
-        // This is a payment against the outstanding balance.
-        const payment: Payment = {
-            amount: paymentAmount,
-            date: new Date(paymentDate),
-            type: 'rent',
-            notes: 'Rent Payment'
-        };
-        await addPaymentToRecord(recordId, payment);
-    }
-    
-    const { createNotification } = await import('@/lib/logger');
-    
-    // Fetch customer    
-    const customer = await getCustomer(record.customerId);
-    if (customer) {
-        const paymentTypeLabel = paymentType === 'Hamali' ? 'Hamali' : 'Rent/Storage';
-        await createNotification(
-            'Payment Received',
-            `Payment of ₹${paymentAmount} received from ${customer.name} for ${paymentTypeLabel}`,
-            'info'
-        );
-    }
-    
-    revalidatePath('/customers');
-    revalidatePath('/payments/pending');
-    revalidatePath(`/customers/${record.customerId}`);
-    return { message: 'Payment recorded successfully!', success: true };
+            try {
+                if (paymentType === 'Hamali') {
+                    const payment: Payment = {
+                        amount: paymentAmount,
+                        date: new Date(paymentDate),
+                        type: 'hamali',
+                        notes: 'Hamali Payment'
+                    };
+                    await addPaymentToRecord(recordId, payment);
+                } else {
+                    // This is a payment against the outstanding balance.
+                    const payment: Payment = {
+                        amount: paymentAmount,
+                        date: new Date(paymentDate),
+                        type: 'rent',
+                        notes: 'Rent Payment'
+                    };
+                    await addPaymentToRecord(recordId, payment);
+                }
+                
+                const { createNotification } = await import('@/lib/logger');
+                
+                // Fetch customer    
+                const customer = await getCustomer(record.customerId);
+                if (customer) {
+                    const paymentTypeLabel = paymentType === 'Hamali' ? 'Hamali' : 'Rent/Storage';
+                    await createNotification(
+                        'Payment Received',
+                        `Payment of ₹${paymentAmount} received from ${customer.name} for ${paymentTypeLabel}`,
+                        'info'
+                    );
+                }
+                
+                logger.info("Payment recorded successfully", { recordId, amount: paymentAmount, type: paymentType });
+                revalidatePath('/customers');
+                revalidatePath('/payments/pending');
+                revalidatePath(`/customers/${record.customerId}`);
+                return { message: 'Payment recorded successfully!', success: true };
+            } catch (error: any) {
+                Sentry.captureException(error);
+                logger.error("Failed to record payment", { error: error.message, recordId });
+                return { message: `Failed to record payment: ${error.message}`, success: false, data: rawData };
+            }
+        }
+    );
 }
 
 /**
