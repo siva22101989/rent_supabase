@@ -53,17 +53,19 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
     const selectedLot = lots?.find(l => l.id === selectedLotId);
     const selectedCrop = crops?.find(c => c.id === selectedCropId);
 
-    // Auto-fill effects for crops
+    // Auto-restoration from state.data on error
     useEffect(() => {
-        if (selectedCrop) {
-            // Auto-fill product name if needed, but we pass ID mostly.
-            // Check if weight input exists and set it?
-            // Since we use uncontrolled inputs mostly but state for calculated, we might need a ref or controlled input for weight.
-            // We can just use the key trick to reset default value or set a state if we want strict control.
-            // For now, let's keep it simple: we just need to ensure the ID is passed.
-            // But wait, the user wants auto-fill.
+        if (state.data) {
+            if (state.data.customerId) setSelectedCustomerId(state.data.customerId);
+            if (state.data.inflowType) setInflowType(state.data.inflowType);
+            if (state.data.bagsStored) setBags(Number(state.data.bagsStored));
+            if (state.data.plotBags) setPlotBags(Number(state.data.plotBags));
+            if (state.data.hamaliRate) setRate(Number(state.data.hamaliRate));
+            if (state.data.hamaliPaid) setHamaliPaid(Number(state.data.hamaliPaid));
+            if (state.data.lotId) setSelectedLotId(state.data.lotId);
+            if (state.data.cropId) setSelectedCropId(state.data.cropId);
         }
-    }, [selectedCrop]);
+    }, [state.data]);
     
     // We'll use a derived state/key for Weight default if we want to force updates, or just controlled input.
     // Let's make Weight controlled slightly or just defaultValue logic.
@@ -212,6 +214,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                                     min="1"
                                     placeholder="0" 
                                     required
+                                    defaultValue={state.data?.plotBags}
                                     onChange={e => setPlotBags(Number(e.target.value))} 
                                 />
                             </div>
@@ -223,6 +226,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                                     type="number" 
                                     min="1"
                                     placeholder="0" 
+                                    defaultValue={state.data?.loadBags}
                                 />
                             </div>
                         </div>
@@ -234,7 +238,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                             <Label htmlFor="cropId">Product / Crop <span className="text-destructive">*</span></Label>
                             <Select name="cropId" required onValueChange={val => {
                                 setSelectedCropId(val);
-                            }}>
+                            }} value={selectedCropId}>
                                 <SelectTrigger id="cropId">
                                     <SelectValue placeholder="Select Crop" />
                                 </SelectTrigger>
@@ -250,7 +254,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="lotId">Lot No. <span className="text-destructive">*</span></Label>
-                            <Select name="lotId" required onValueChange={setSelectedLotId}>
+                            <Select name="lotId" required onValueChange={setSelectedLotId} value={selectedLotId}>
                                 <SelectTrigger id="lotId">
                                     <SelectValue placeholder="Select Lot" />
                                 </SelectTrigger>
@@ -273,7 +277,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="lorryTractorNo">Lorry / Tractor No.</Label>
-                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" />
+                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" defaultValue={state.data?.lorryTractorNo} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="storageStartDate">Date <span className="text-destructive">*</span></Label>
@@ -281,7 +285,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                                 id="storageStartDate" 
                                 name="storageStartDate" 
                                 type="date"
-                                defaultValue={new Date().toISOString().split('T')[0]}
+                                defaultValue={state.data?.storageStartDate || new Date().toISOString().split('T')[0]}
                                 required 
                             />
                         </div>
@@ -297,6 +301,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                                     placeholder="0" 
                                     required 
                                     min="1"
+                                    defaultValue={state.data?.bagsStored}
                                     onChange={e => setBags(Number(e.target.value))}
                                 />
                             </div>
@@ -305,16 +310,16 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliRate">Hamali Rate (per bag)</Label>
-                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" onChange={e => setRate(Number(e.target.value))}/>
+                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.hamaliRate} onChange={e => setRate(Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
-                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" onChange={e => setHamaliPaid(Number(e.target.value))}/>
+                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.hamaliPaid} onChange={e => setHamaliPaid(Number(e.target.value))}/>
                         </div>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="khataAmount">Khata Amount (Weighbridge)</Label>
-                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" />
+                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.khataAmount} />
                     </div>
                      <Separator />
                     <div className="space-y-4">

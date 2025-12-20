@@ -69,7 +69,7 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                 Customer
               </Label>
               <div className="col-span-3">
-                <Select name="customerId" defaultValue={record.customerId} required>
+                <Select name="customerId" defaultValue={state.data?.customerId || record.customerId} required>
                     <SelectTrigger id="customerId">
                         <SelectValue placeholder="Select a customer" />
                     </SelectTrigger>
@@ -87,65 +87,65 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
               <Label htmlFor="commodityDescription" className="text-right">
                 Commodity
               </Label>
-              <Input 
-                id="commodityDescription" 
-                name="commodityDescription"
-                defaultValue={record.commodityDescription}
-                className="col-span-3"
-                required
-              />
+                <Input 
+                  id="commodityDescription" 
+                  name="commodityDescription"
+                  defaultValue={state.data?.commodityDescription || record.commodityDescription}
+                  className="col-span-3"
+                  required
+                />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="location" className="text-right">
                 Location
               </Label>
-              <Input 
-                id="location" 
-                name="location"
-                defaultValue={record.location}
-                className="col-span-3"
-                required
-              />
+                <Input 
+                  id="location" 
+                  name="location"
+                  defaultValue={state.data?.location || record.location}
+                  className="col-span-3"
+                  required
+                />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bagsStored" className="text-right">
                 Bags In
               </Label>
-              <Input 
-                id="bagsStored" 
-                name="bagsStored" 
-                type="number"
-                defaultValue={record.bagsIn} 
-                className="col-span-3" 
-                required 
-              />
+                <Input 
+                  id="bagsStored" 
+                  name="bagsStored" 
+                  type="number"
+                  defaultValue={state.data?.bagsStored || record.bagsIn} 
+                  className="col-span-3" 
+                  required 
+                />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="hamaliPayable" className="text-right">
                 Hamali Payable
               </Label>
-              <Input 
-                id="hamaliPayable"
-                name="hamaliPayable" 
-                type="number"
-                step="0.01"
-                defaultValue={record.hamaliPayable} 
-                className="col-span-3" 
-                required 
-              />
+                <Input 
+                  id="hamaliPayable"
+                  name="hamaliPayable" 
+                  type="number"
+                  step="0.01"
+                  defaultValue={state.data?.hamaliPayable || record.hamaliPayable} 
+                  className="col-span-3" 
+                  required 
+                />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="storageStartDate" className="text-right">
                 Start Date
               </Label>
-              <Input 
-                id="storageStartDate" 
-                name="storageStartDate" 
-                type="date"
-                defaultValue={record.storageStartDate ? format(record.storageStartDate, 'yyyy-MM-dd') : ''}
-                className="col-span-3" 
-                required 
-              />
+                <Input 
+                  id="storageStartDate" 
+                  name="storageStartDate" 
+                  type="date"
+                  defaultValue={state.data?.storageStartDate || (record.storageStartDate ? format(record.storageStartDate, 'yyyy-MM-dd') : '')}
+                  className="col-span-3" 
+                  required 
+                />
             </div>
           </div>
           <DialogFooter>

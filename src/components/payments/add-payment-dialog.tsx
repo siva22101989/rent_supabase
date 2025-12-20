@@ -39,6 +39,13 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
   const initialState: PaymentFormState = { message: '', success: false };
   const [state, formAction] = useActionState(addPayment, initialState);
 
+  // Auto-restoration from state.data on error
+  useEffect(() => {
+    if (state.data) {
+      if (state.data.paymentType) setPaymentType(state.data.paymentType);
+    }
+  }, [state.data]);
+
   useEffect(() => {
     if (state.message && state !== lastHandledRef.current) {
       lastHandledRef.current = state;
@@ -80,9 +87,10 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
              <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Type</Label>
                 <RadioGroup 
-                    defaultValue="Rent/Other"
+                    defaultValue={state.data?.paymentType || "Rent/Other"}
                     name="paymentType"
                     className="col-span-3 flex gap-4"
+                    value={paymentType}
                     onValueChange={(value: 'Rent/Other' | 'Hamali') => setPaymentType(value)}
                 >
                     <div className="flex items-center space-x-2">
@@ -106,7 +114,7 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
                 step="0.01"
                 min="0.01"
                 placeholder="0.00"
-                defaultValue={paymentType === 'Rent/Other' ? record.balanceDue.toFixed(2) : undefined}
+                defaultValue={state.data?.paymentAmount || (paymentType === 'Rent/Other' ? record.balanceDue.toFixed(2) : undefined)}
                 className="col-span-3" 
                 required 
               />
@@ -119,7 +127,7 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
                 id="paymentDate" 
                 name="paymentDate" 
                 type="date"
-                defaultValue={new Date().toISOString().split('T')[0]}
+                defaultValue={state.data?.paymentDate || new Date().toISOString().split('T')[0]}
                 className="col-span-3" 
                 required 
               />

@@ -56,7 +56,7 @@ export function ProfileSettingsTab({ profile }: ProfileTabProps) {
                             <Label htmlFor="fullName">Full Name</Label>
                             <div className="relative">
                                 <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input id="fullName" name="fullName" defaultValue={profile?.full_name || ''} className="pl-9" placeholder="John Doe" />
+                                <Input id="fullName" name="fullName" defaultValue={state.data?.fullName || profile?.full_name || ''} className="pl-9" placeholder="John Doe" />
                             </div>
                         </div>
                         <div className="grid gap-2">

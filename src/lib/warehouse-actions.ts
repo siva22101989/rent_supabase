@@ -27,7 +27,11 @@ export async function createWarehouse(name: string, location: string, capacity: 
         p_phone: phone
     });
 
-    if (error) return { message: 'Failed to create warehouse: ' + error.message, success: false };
+    if (error) return { 
+        message: 'Failed to create warehouse: ' + error.message, 
+        success: false,
+        data: { name, location, capacity, email, phone }
+    };
 
     // 2. Switch Context
     await switchWarehouse(warehouseId);

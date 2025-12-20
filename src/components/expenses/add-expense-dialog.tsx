@@ -73,11 +73,11 @@ export function AddExpenseDialog() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
-              <Input id="date" name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} required />
+              <Input id="date" name="date" type="date" defaultValue={state.data?.date || new Date().toISOString().split('T')[0]} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Select name="category" required>
+              <Select name="category" required defaultValue={state.data?.category}>
                 <SelectTrigger id="category">
                     <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
@@ -92,11 +92,11 @@ export function AddExpenseDialog() {
             </div>
              <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea id="description" name="description" placeholder="e.g., Petrol for generator" required />
+               <Textarea id="description" name="description" placeholder="e.g., Petrol for generator" required defaultValue={state.data?.description} />
             </div>
              <div className="space-y-2">
               <Label htmlFor="amount">Amount</Label>
-              <Input id="amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required />
+               <Input id="amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required defaultValue={state.data?.amount} />
             </div>
           </div>
           <DialogFooter>

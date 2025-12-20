@@ -24,6 +24,7 @@ const NewCustomerSchema = z.object({
 export type FormState = {
   message: string;
   success: boolean;
+  data?: Record<string, any>;
 };
 
 export async function getAnomalyDetection() {
@@ -36,20 +37,22 @@ export async function getAnomalyDetection() {
   }
 }
 
-export async function addCustomer(prevState: FormState, formData: FormData) {
-    const validatedFields = NewCustomerSchema.safeParse({
+export async function addCustomer(prevState: FormState, formData: FormData): Promise<FormState> {
+    const rawData = {
         name: formData.get('name'),
         email: formData.get('email'),
         phone: formData.get('phone'),
         address: formData.get('address'),
         fatherName: formData.get('fatherName'),
         village: formData.get('village'),
-    });
+    };
+
+    const validatedFields = NewCustomerSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
         const error = validatedFields.error.flatten().fieldErrors;
         const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
+        return { message: `Invalid data: ${message}`, success: false, data: rawData };
     }
 
     const { email, fatherName, village, ...rest } = validatedFields.data;
@@ -62,11 +65,14 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
         village: village ?? '',
     };
     
-    await saveCustomer(newCustomer);
-    
-    revalidatePath('/customers');
-    revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
-    return { message: 'Customer added successfully.', success: true };
+    try {
+        await saveCustomer(newCustomer);
+        revalidatePath('/customers');
+        revalidatePath('/inflow');
+        return { message: 'Customer added successfully.', success: true };
+    } catch (error: any) {
+        return { message: `Failed to add customer: ${error.message}`, success: false, data: rawData };
+    }
 }
 
 const CustomerSchema = z.object({
@@ -263,10 +269,11 @@ const InflowSchema = z.object({
 export type InflowFormState = {
     message: string;
     success: boolean;
+    data?: Record<string, any>;
 };
 
-export async function addInflow(prevState: InflowFormState, formData: FormData) {
-    const validatedFields = InflowSchema.safeParse({
+export async function addInflow(prevState: InflowFormState, formData: FormData): Promise<InflowFormState> {
+    const rawData = {
         customerId: formData.get('customerId'),
         commodityDescription: formData.get('commodityDescription'),
         location: formData.get('location'),
@@ -283,12 +290,14 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         khataAmount: formData.get('khataAmount'),
         lotId: formData.get('lotId'),
         cropId: formData.get('cropId'),
-    });
+    };
+
+    const validatedFields = InflowSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
         const error = validatedFields.error.flatten().fieldErrors;
         const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
+        return { message: `Invalid data: ${message}`, success: false, data: rawData };
     }
 
     let { bagsStored, hamaliRate, hamaliPaid, storageStartDate, fatherName, village, plotBags, loadBags, inflowType, ...rest } = validatedFields.data;
@@ -334,7 +343,8 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
                 if (inflowBags > available) {
                     return { 
                         message: `Lot is full! Available: ${available} bags. You tried to add ${inflowBags}.`, 
-                        success: false 
+                        success: false,
+                        data: rawData
                     };
                 }
             }
@@ -434,7 +444,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     } catch (error: any) {
         if (error.message === 'NEXT_REDIRECT') throw error;
         console.error('Add Inflow Error:', error);
-        return { message: `Failed to create record: ${error.message || 'Unknown error'}`, success: false };
+        return { message: `Failed to create record: ${error.message || 'Unknown error'}`, success: false, data: rawData };
     }
 }
 
@@ -450,21 +460,24 @@ const OutflowSchema = z.object({
 export type OutflowFormState = {
     message: string;
     success: boolean;
+    data?: Record<string, any>;
 };
 
-export async function addOutflow(prevState: OutflowFormState, formData: FormData) {
-    const validatedFields = OutflowSchema.safeParse({
+export async function addOutflow(prevState: OutflowFormState, formData: FormData): Promise<OutflowFormState> {
+    const rawData = {
         recordId: formData.get('recordId'),
         bagsToWithdraw: formData.get('bagsToWithdraw'),
         withdrawalDate: formData.get('withdrawalDate'),
         finalRent: formData.get('finalRent'),
         amountPaidNow: formData.get('amountPaidNow'),
-    });
+    };
+
+    const validatedFields = OutflowSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
         const error = validatedFields.error.flatten().fieldErrors;
         const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
+        return { message: `Invalid data: ${message}`, success: false, data: rawData };
     }
     
     const { recordId, bagsToWithdraw, withdrawalDate, finalRent, amountPaidNow } = validatedFields.data;
@@ -472,11 +485,11 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     const originalRecord = await getStorageRecord(recordId);
 
     if (!originalRecord) {
-        return { message: 'Record not found.', success: false };
+        return { message: 'Record not found.', success: false, data: rawData };
     }
 
     if (bagsToWithdraw > originalRecord.bagsStored) {
-        return { message: 'Cannot withdraw more bags than are in storage.', success: false };
+        return { message: 'Cannot withdraw more bags than are in storage.', success: false, data: rawData };
     }
 
     const isFullWithdrawal = bagsToWithdraw === originalRecord.bagsStored;
@@ -554,26 +567,28 @@ const StorageRecordUpdateSchema = z.object({
 });
 
 
-export async function updateStorageRecordAction(recordId: string, prevState: InflowFormState, formData: FormData) {
-    const validatedFields = StorageRecordUpdateSchema.safeParse({
+export async function updateStorageRecordAction(recordId: string, prevState: InflowFormState, formData: FormData): Promise<InflowFormState> {
+    const rawData = {
         customerId: formData.get('customerId'),
         commodityDescription: formData.get('commodityDescription'),
         location: formData.get('location'),
-        bagsStored: formData.get('bagsStored'), // This now refers to bagsIn
+        bagsStored: formData.get('bagsStored'),
         hamaliPayable: formData.get('hamaliPayable'),
         storageStartDate: formData.get('storageStartDate'),
         cropId: formData.get('cropId'),
-    });
+    };
+
+    const validatedFields = StorageRecordUpdateSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
         const error = validatedFields.error.flatten().fieldErrors;
         const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
+        return { message: `Invalid data: ${message}`, success: false, data: rawData };
     }
     
     const originalRecord = await getStorageRecord(recordId);
     if (!originalRecord) {
-        return { message: 'Record not found.', success: false };
+        return { message: 'Record not found.', success: false, data: rawData };
     }
 
     const { bagsStored, ...rest } = validatedFields.data;
@@ -658,27 +673,30 @@ const PaymentSchema = z.object({
 export type PaymentFormState = {
     message: string;
     success: boolean;
+    data?: Record<string, any>;
 };
 
-export async function addPayment(prevState: PaymentFormState, formData: FormData) {
-    const validatedFields = PaymentSchema.safeParse({
+export async function addPayment(prevState: PaymentFormState, formData: FormData): Promise<PaymentFormState> {
+    const rawData = {
         recordId: formData.get('recordId'),
         paymentAmount: formData.get('paymentAmount'),
         paymentDate: formData.get('paymentDate'),
         paymentType: formData.get('paymentType'),
-    });
+    };
+
+    const validatedFields = PaymentSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
         const error = validatedFields.error.flatten().fieldErrors;
         const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
+        return { message: `Invalid data: ${message}`, success: false, data: rawData };
     }
     
     const { recordId, paymentAmount, paymentDate, paymentType } = validatedFields.data;
     
     const record = await getStorageRecord(recordId);
     if (!record) {
-        return { message: 'Record not found.', success: false };
+        return { message: 'Record not found.', success: false, data: rawData };
     }
 
     if (paymentType === 'Hamali') {
@@ -812,18 +830,20 @@ const ExpenseSchema = z.object({
   category: z.enum(expenseCategories, { required_error: 'Category is required.' }),
 });
 
-export async function addExpense(prevState: FormState, formData: FormData) {
-    const validatedFields = ExpenseSchema.safeParse({
+export async function addExpense(prevState: FormState, formData: FormData): Promise<FormState> {
+    const rawData = {
         description: formData.get('description'),
         amount: formData.get('amount'),
         date: formData.get('date'),
         category: formData.get('category'),
-    });
+    };
+
+    const validatedFields = ExpenseSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
         const error = validatedFields.error.flatten().fieldErrors;
         const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
+        return { message: `Invalid data: ${message}`, success: false, data: rawData };
     }
 
     const newExpense = {
@@ -960,7 +980,7 @@ const TeamMemberSchema = z.object({
   role: z.enum(['admin', 'manager', 'staff']),
 });
 
-export async function createTeamMember(prevState: FormState, formData: FormData) {
+export async function createTeamMember(prevState: FormState, formData: FormData): Promise<FormState> {
   const validatedFields = TeamMemberSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
@@ -969,7 +989,17 @@ export async function createTeamMember(prevState: FormState, formData: FormData)
   });
 
   if (!validatedFields.success) {
-    return { message: 'Invalid inputs', success: false };
+    const error = validatedFields.error.flatten().fieldErrors;
+    const message = Object.values(error).flat().join(', ');
+    return { 
+      message: `Invalid inputs: ${message}`, 
+      success: false, 
+      data: { 
+        email: formData.get('email'), 
+        fullName: formData.get('fullName'), 
+        role: formData.get('role') 
+      } 
+    };
   }
 
   const { email, password, fullName, role } = validatedFields.data;
@@ -1020,13 +1050,13 @@ const UserProfileSchema = z.object({
     fullName: z.string().min(2, "Name must be at least 2 characters."),
 });
 
-export async function updateUserProfile(prevState: FormState, formData: FormData) {
+export async function updateUserProfile(prevState: FormState, formData: FormData): Promise<FormState> {
     const validatedFields = UserProfileSchema.safeParse({
         fullName: formData.get('fullName'),
     });
 
     if (!validatedFields.success) {
-        return { message: "Invalid name", success: false };
+        return { message: "Invalid name", success: false, data: { fullName: formData.get('fullName') } };
     }
 
     const { fullName } = validatedFields.data;

@@ -46,17 +46,17 @@ export function AddTeamMemberForm({ onSuccess }: { onSuccess?: () => void }) {
         <form action={formAction} className="grid gap-4 py-4">
             <div className="grid gap-2">
                 <Label htmlFor="fullName">Full Name</Label>
-                <Input id="fullName" name="fullName" placeholder="Jane Doe" required />
+                <Input id="fullName" name="fullName" placeholder="Jane Doe" required defaultValue={state.data?.fullName} />
             </div>
 
             <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" placeholder="jane@example.com" required />
+                <Input id="email" name="email" type="email" placeholder="jane@example.com" required defaultValue={state.data?.email} />
             </div>
 
             <div className="grid gap-2">
                 <Label htmlFor="role">Role</Label>
-                <Select name="role" defaultValue="staff">
+                <Select name="role" defaultValue={state.data?.role || "staff"}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select Role" />
                     </SelectTrigger>

@@ -48,6 +48,16 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
     const selectedRecord = records.find(r => r.id === selectedRecordId);
     const totalPayable = finalRent + hamaliPending;
 
+    // Auto-restoration from state.data on error
+    useEffect(() => {
+        if (state.data) {
+            if (state.data.customerId) setSelectedCustomerId(state.data.customerId);
+            if (state.data.recordId) setSelectedRecordId(state.data.recordId);
+            if (state.data.bagsToWithdraw) setBagsToWithdraw(Number(state.data.bagsToWithdraw));
+            if (state.data.withdrawalDate) setWithdrawalDate(new Date(state.data.withdrawalDate));
+        }
+    }, [state.data]);
+
     useEffect(() => {
         if (state.message && state !== lastHandledRef.current) {
             lastHandledRef.current = state;
@@ -135,7 +145,7 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="customerId">Customer</Label>
-                        <Select onValueChange={handleCustomerChange} required>
+                        <Select onValueChange={handleCustomerChange} required value={selectedCustomerId}>
                             <SelectTrigger id="customerId">
                                 <SelectValue placeholder="Select a customer..." />
                             </SelectTrigger>
@@ -186,6 +196,7 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
                                         min="1"
                                         max={selectedRecord.bagsStored}
                                         required 
+                                        defaultValue={state.data?.bagsToWithdraw}
                                         onChange={e => setBagsToWithdraw(Number(e.target.value))}
                                     />
                                     <p className="text-xs text-muted-foreground">
@@ -198,7 +209,7 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
                                         id="withdrawalDate" 
                                         name="withdrawalDate" 
                                         type="date"
-                                        defaultValue={new Date().toISOString().split('T')[0]}
+                                        defaultValue={state.data?.withdrawalDate || new Date().toISOString().split('T')[0]}
                                         required
                                         onChange={handleDateChange}
                                      />
@@ -235,6 +246,7 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
                                             step="0.01"
                                             min="0"
                                             max={totalPayable.toFixed(2)}
+                                            defaultValue={state.data?.amountPaidNow}
                                         />
                                         <p className="text-xs text-muted-foreground">
                                             Enter the amount paid by the customer. Leave blank if unpaid.

@@ -69,11 +69,11 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
           <div className="grid gap-4 py-4">
              <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
-              <Input id="date" name="date" type="date" defaultValue={format(toDate(expense.date), 'yyyy-MM-dd')} required />
+              <Input id="date" name="date" type="date" defaultValue={state.data?.date || format(toDate(expense.date), 'yyyy-MM-dd')} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Select name="category" defaultValue={expense.category} required>
+              <Select name="category" defaultValue={state.data?.category || expense.category} required>
                 <SelectTrigger id="category">
                     <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
@@ -88,11 +88,11 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
             </div>
              <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea id="description" name="description" defaultValue={expense.description} required />
+               <Textarea id="description" name="description" defaultValue={state.data?.description || expense.description} required />
             </div>
              <div className="space-y-2">
               <Label htmlFor="amount">Amount</Label>
-              <Input id="amount" name="amount" type="number" step="0.01" defaultValue={expense.amount} required />
+               <Input id="amount" name="amount" type="number" step="0.01" defaultValue={state.data?.amount || expense.amount} required />
             </div>
           </div>
           <DialogFooter>

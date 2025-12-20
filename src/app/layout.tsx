@@ -30,6 +30,7 @@ export const viewport = {
 
 import { WarehouseProvider } from '@/contexts/warehouse-context';
 import { CustomerProvider } from '@/contexts/customer-context';
+import { StaticDataProvider } from '@/hooks/use-static-data';
 
 export default function RootLayout({
   children,
@@ -41,14 +42,14 @@ export default function RootLayout({
       <body className={`${inter.className} font-body antialiased bg-background`}>
         <ThemeProvider>
           <WarehouseProvider>
-            <CustomerProvider>
-              <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
-              {children}
-              <Toaster />
-              <SpeedInsights />
-              <Analytics />
-              <KeyboardShortcuts />
-            </CustomerProvider>
+            <StaticDataProvider>
+                <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
+                {children}
+                <Toaster />
+                <SpeedInsights />
+                <Analytics />
+                <KeyboardShortcuts />
+            </StaticDataProvider>
           </WarehouseProvider>
         </ThemeProvider>
       </body>
