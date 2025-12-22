@@ -40,6 +40,10 @@ export default async function ExpensesPage() {
       <PageHeader
         title="Expenses & Income"
         description="Track your warehouse operational finances."
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Expenses' }
+        ]}
       >
         <AddExpenseDialog />
       </PageHeader>

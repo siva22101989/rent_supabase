@@ -30,6 +30,10 @@ export default async function PendingPaymentsPage() {
             <PageHeader
                 title="Pending Payments"
                 description="View all records with an outstanding balance."
+                breadcrumbs={[
+                  { label: 'Dashboard', href: '/' },
+                  { label: 'Payments' }
+                ]}
             />
              <div className="space-y-4">
                  {/* Mobile View */}

@@ -5,6 +5,7 @@ import { Building2, Users, Wheat, Database, Activity, LayoutDashboard, BarChart3
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/shared/page-header";
 import { 
     getAdminDashboardStats, 
     getAllWarehousesAdmin, 
@@ -56,40 +57,20 @@ export default async function SuperAdminDashboard() {
   if (!stats) return <div>Failed to load stats</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 font-sans text-slate-900">
-        {/* Header */}
-        <header className="sticky top-0 z-30 w-full border-b bg-white/80 backdrop-blur-md">
-            <div className="max-w-7xl mx-auto flex h-14 sm:h-16 items-center justify-between px-0 sm:px-6 md:px-8">
-                 <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="bg-indigo-600 p-1.5 sm:p-2 rounded-lg text-white">
-                        <Database className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-                    <div>
-                        <h1 className="font-bold text-sm sm:text-lg tracking-tight">MAINFRAME</h1>
-                        <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-slate-500 font-bold leading-none">Super Admin</p>
-                    </div>
-                 </div>
-                 <div className="flex items-center gap-2 sm:gap-3">
-                    <Button size="sm" variant="outline" className="hidden md:flex gap-2">
-                        <Settings className="h-4 w-4" /> System Settings
-                    </Button>
-                    <Button size="sm" variant="ghost" asChild className="text-xs sm:text-sm">
-                        <Link href="/">Exit</Link>
-                    </Button>
-                 </div>
-            </div>
-        </header>
-
-        <main className="max-w-7xl mx-auto py-4 sm:py-6 px-0 sm:px-6 md:px-8 space-y-6 sm:space-y-8">
-            <div className="flex flex-col gap-3 sm:gap-4">
-                <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-800">Platform Overview</h2>
-                    <p className="text-sm sm:text-base text-slate-500">Managing {stats.warehouseCount} warehouses with {stats.usersCount} active users.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto text-sm">Create New Warehouse</Button>
-                </div>
-            </div>
+    <>
+      <PageHeader
+        title="Admin Panel"
+        description={`Managing ${stats.warehouseCount} warehouses with ${stats.usersCount} active users.`}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Admin Panel' }
+        ]}
+      >
+        <Button className="bg-indigo-600 hover:bg-indigo-700">
+          <Database className="h-4 w-4 mr-2" />
+          Create Warehouse
+        </Button>
+      </PageHeader>
 
             <AdminStatsCards stats={stats} />
 
@@ -160,8 +141,7 @@ export default async function SuperAdminDashboard() {
                     <PlatformAnalyticsCharts data={analyticsData} />
                 </TabsContent>
             </Tabs>
-        </main>
-    </div>
+    </>
   );
 }
 
