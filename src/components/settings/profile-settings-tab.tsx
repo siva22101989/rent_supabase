@@ -1,14 +1,53 @@
 'use client';
 
 import { useActionState, useEffect, useRef } from "react";
-import { updateUserProfile, type FormState } from "@/lib/actions";
+import { updateUserProfile, changePassword, type FormState } from "@/lib/actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Shield } from "lucide-react";
+import { User, Mail, Shield, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SubmitButton } from "@/components/ui/submit-button";
+
+function ChangePasswordForm() {
+    const [state, formAction] = useActionState(changePassword, { message: '', success: false });
+    const { toast } = useToast();
+    const lastHandledRef = useRef<any>(null);
+
+    useEffect(() => {
+        if (state.message && state !== lastHandledRef.current) {
+             lastHandledRef.current = state;
+             toast({
+                title: state.success ? "Success" : "Error",
+                description: state.message,
+                variant: state.success ? "default" : "destructive"
+            });
+        }
+    }, [state, toast]);
+
+    return (
+        <form action={formAction} className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+                <Label htmlFor="password">New Password</Label>
+                <div className="relative">
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input id="password" name="password" type="password" className="pl-9" required minLength={6} placeholder="••••••" />
+                </div>
+            </div>
+            <div className="grid gap-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input id="confirmPassword" name="confirmPassword" type="password" className="pl-9" required minLength={6} placeholder="••••••" />
+                </div>
+            </div>
+            <div className="md:col-span-2 flex justify-end">
+                <SubmitButton>Update Password</SubmitButton>
+            </div>
+        </form>
+    );
+}
 
 type ProfileTabProps = {
     profile: any;
@@ -39,12 +78,12 @@ export function ProfileSettingsTab({ profile }: ProfileTabProps) {
         <div className="grid gap-6">
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                          <div className="space-y-1">
                             <CardTitle>Personal Information</CardTitle>
                             <CardDescription>Manage your personal details and account settings.</CardDescription>
                          </div>
-                         <Badge variant="secondary" className="text-sm px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                         <Badge variant="secondary" className="text-sm px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 w-fit">
                             <Shield className="w-3 h-3 mr-1 inline-block" />
                             {profile?.role || 'Staff'}
                          </Badge>
@@ -72,6 +111,16 @@ export function ProfileSettingsTab({ profile }: ProfileTabProps) {
                             <SubmitButton>Update Profile</SubmitButton>
                         </div>
                     </form>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Security</CardTitle>
+                    <CardDescription>Update your password and security settings.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChangePasswordForm />
                 </CardContent>
             </Card>
 

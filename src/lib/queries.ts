@@ -615,7 +615,8 @@ export const getAllWarehousesAdmin = cache(async () => {
     }
 
     return data.map((w: any) => {
-        const totalStock = w.warehouse_lots?.reduce((sum: number, lot: any) => sum + (lot.current_stock || 0), 0) || 0;
+        // Calculate actual stock from storage records (source of truth)
+        const totalStock = w.storage_records?.reduce((sum: number, record: any) => sum + (record.bags_stored || 0), 0) || 0;
         const totalCapacity = w.warehouse_lots?.reduce((sum: number, lot: any) => sum + (lot.capacity || 0), 0) || w.capacity_bags || 0;
         const activeRecords = (w.storage_records || []).length;
 

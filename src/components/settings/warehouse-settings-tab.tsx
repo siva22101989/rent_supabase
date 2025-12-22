@@ -77,12 +77,12 @@ export function WarehouseSettingsTab({ warehouse }: WarehouseTabProps) {
                     <CardDescription>Manage your storage lots and compartments.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg border">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-muted/30 p-4 rounded-lg border gap-4">
                         <div>
                              <p className="font-medium">Storage Lots</p>
                              <p className="text-sm text-muted-foreground">Configure physical storage areas and capacities.</p>
                         </div>
-                        <Button variant="outline" asChild>
+                        <Button variant="outline" asChild className="w-full sm:w-auto">
                             <Link href="/settings/lots">Manage Lots</Link>
                         </Button>
                     </div>

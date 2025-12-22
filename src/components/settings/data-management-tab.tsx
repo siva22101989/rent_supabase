@@ -58,7 +58,7 @@ export function DataManagementTab() {
         </CardHeader>
         <CardContent className="space-y-4">
             
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 border rounded-lg gap-4">
                 <div className="flex items-center gap-4">
                     <div className="p-2 bg-primary/10 rounded-full">
                         <Users className="w-5 h-5 text-primary" />
@@ -68,13 +68,13 @@ export function DataManagementTab() {
                         <p className="text-sm text-muted-foreground">Cached for 24 hours</p>
                     </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleRefreshCustomers} disabled={!!loading}>
+                <Button variant="outline" size="sm" onClick={handleRefreshCustomers} disabled={!!loading} className="w-full sm:w-auto">
                     {loading === 'customers' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <RefreshCw className="w-4 h-4 mr-2"/>}
                     Sync
                 </Button>
             </div>
 
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 border rounded-lg gap-4">
                 <div className="flex items-center gap-4">
                     <div className="p-2 bg-primary/10 rounded-full">
                         <Users className="w-5 h-5 text-primary" />
@@ -84,13 +84,13 @@ export function DataManagementTab() {
                         <p className="text-sm text-muted-foreground">Cached for 24 hours</p>
                     </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleRefreshTeam} disabled={!!loading}>
+                <Button variant="outline" size="sm" onClick={handleRefreshTeam} disabled={!!loading} className="w-full sm:w-auto">
                     {loading === 'team' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <RefreshCw className="w-4 h-4 mr-2"/>}
                     Sync
                 </Button>
             </div>
 
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 border rounded-lg gap-4">
                 <div className="flex items-center gap-4">
                     <div className="p-2 bg-primary/10 rounded-full">
                         <Wheat className="w-5 h-5 text-primary" />
@@ -100,7 +100,7 @@ export function DataManagementTab() {
                         <p className="text-sm text-muted-foreground">Cached for 24 hours</p>
                     </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleRefreshStatic} disabled={!!loading}>
+                <Button variant="outline" size="sm" onClick={handleRefreshStatic} disabled={!!loading} className="w-full sm:w-auto">
                     {loading === 'static' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <RefreshCw className="w-4 h-4 mr-2"/>}
                     Sync
                 </Button>
@@ -124,12 +124,12 @@ export function DataManagementTab() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex items-center justify-between p-4 border border-red-100 bg-red-50 rounded-lg">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 border border-red-100 bg-red-50 rounded-lg gap-4">
                     <div>
                         <p className="font-medium text-red-900">Leave Warehouse</p>
                         <p className="text-sm text-red-700">Remove yourself from this warehouse. You will lose access.</p>
                     </div>
-                    <Button variant="destructive" size="sm">
+                    <Button variant="destructive" size="sm" className="w-full sm:w-auto">
                         Leave Warehouse
                     </Button>
                 </div>

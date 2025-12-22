@@ -216,6 +216,32 @@ export async function deleteCustomer(customerId: string) {
     redirect('/customers');
 }
 
+export async function changePassword(prevState: FormState, formData: FormData): Promise<FormState> {
+    const password = formData.get('password') as string;
+    const confirmPassword = formData.get('confirmPassword') as string;
+
+    if (!password || !confirmPassword) {
+        return { message: 'Please fill in all fields', success: false };
+    }
+
+    if (password !== confirmPassword) {
+        return { message: 'Passwords do not match', success: false };
+    }
+
+    if (password.length < 6) {
+        return { message: 'Password must be at least 6 characters', success: false };
+    }
+
+    const supabase = await createClient();
+    const { error } = await supabase.auth.updateUser({ password: password });
+
+    if (error) {
+        return { message: error.message, success: false };
+    }
+
+    return { message: 'Password updated successfully', success: true };
+}
+
 const FinalizeDryingSchema = z.object({
     recordId: z.string(),
     finalBags: z.coerce.number().positive(),
@@ -226,6 +252,8 @@ export async function finalizePlotDrying(prevState: FormState, formData: FormDat
         recordId: formData.get('recordId'),
         finalBags: formData.get('finalBags'),
     });
+
+    const hamaliPayable = Number(formData.get('hamaliPayable') || 0);
 
     if (!validatedFields.success) {
         return { message: "Invalid data", success: false };
@@ -238,27 +266,24 @@ export async function finalizePlotDrying(prevState: FormState, formData: FormDat
         return { message: "Invalid record for drying finalization", success: false };
     }
 
-    if (record.loadBags && record.loadBags > 0) {
-        return { message: "Drying already finalized", success: false };
-    }
-
-    const rawBags = record.plotBags || record.bagsStored;
-    const diff = rawBags - finalBags;
-
     const supabase = await createClient();
     
-    // Manual Lot Adjustment (Release difference)
-    if (record.lotId && diff > 0) {
-        const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', record.lotId).single();
-        if (lot) {
-            const newStock = Math.max(0, (lot.current_stock || 0) - diff);
-            await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', record.lotId);
-        }
-    } else if (record.lotId && diff < 0) { 
-        // Gained weight/bags? Rare but possible. Consume more space.
+    // Update Lot Stock
+    // Logic: 
+    // 1. We are converting Plot Bags -> Load Bags (Final Bags)
+    // 2. The physical space used in lot changes from Plot Bags count to Final Bags count.
+    // 3. Loss = Plot Bags - Final Bags. We need to free up this space.
+    // However, lot.current_stock currently holds 'bags_stored' which IS 'plotBags' for this record.
+    // So we just need to subtract the difference (loss) from lot stock.
+    // Or simpler: remove old bags_stored from lot, add new finalBags to lot.
+    
+    if (record.lotId) {
          const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', record.lotId).single();
          if (lot) {
-             const newStock = (lot.current_stock || 0) + Math.abs(diff);
+             const oldStock = lot.current_stock || 0;
+             const loss = (record.bagsStored || 0) - finalBags;
+             const newStock = Math.max(0, oldStock - loss);
+             
              await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', record.lotId);
          }
     }
@@ -268,7 +293,8 @@ export async function finalizePlotDrying(prevState: FormState, formData: FormDat
     await updateStorageRecord(recordId, {
         loadBags: finalBags,
         bagsStored: finalBags,
-        bagsIn: finalBags // Sync bagsIn so Total Inflow = Current + Outflow (Loss is hidden from main stats but kept in plotBags)
+        bagsIn: finalBags, // Sync bagsIn
+        hamaliPayable: hamaliPayable // Update Hamali
     });
 
     revalidatePath('/storage');

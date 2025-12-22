@@ -18,12 +18,15 @@ import { useToast } from "@/hooks/use-toast";
 import { finalizePlotDrying } from '@/lib/actions';
 import { Loader2, Wheat } from 'lucide-react';
 
+import { Separator } from "@/components/ui/separator"; // Add import
+
 interface FinalizeDryingDialogProps {
   record: {
     id: string;
     plotBags?: number;
     bagsStored: number;
     commodityDescription: string;
+    hamaliPayable?: number;
   };
 }
 
@@ -32,9 +35,16 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const router = useRouter();
-  const [finalBags, setFinalBags] = useState<number>(record.plotBags || record.bagsStored);
-
+  
   const rawBags = record.plotBags || record.bagsStored;
+  const initialHamali = record.hamaliPayable || 0;
+  const initialRate = rawBags > 0 ? (initialHamali / rawBags) : 0;
+
+  const [finalBags, setFinalBags] = useState<number>(rawBags);
+  const [hamaliRate, setHamaliRate] = useState<number>(Number(initialRate.toFixed(2)));
+  
+  // Calculate total hamali based on current rate and RAW bags (Input quantity)
+  const totalHamali = Math.round(rawBags * hamaliRate);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +58,7 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
         const formData = new FormData();
         formData.append('recordId', record.id);
         formData.append('finalBags', finalBags.toString());
+        formData.append('hamaliPayable', totalHamali.toString());
 
         const result = await finalizePlotDrying({ message: '', success: false }, formData);
 
@@ -88,6 +99,9 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
                 <Label className="text-right">Raw Bags</Label>
                 <div className="col-span-3 font-mono">{rawBags}</div>
             </div>
+            
+            <Separator className="col-span-4 my-2" />
+
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="finalBags" className="text-right">
                 Final Bags
@@ -102,6 +116,34 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
                     required
                 />
             </div>
+
+            {/* Hamali Section */}
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="hamaliRate" className="text-right">
+                    Hamali Rate
+                </Label>
+                <div className="col-span-3 relative">
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">₹</span>
+                    <Input
+                        id="hamaliRate"
+                        type="number"
+                        value={hamaliRate}
+                        onChange={(e) => setHamaliRate(Number(e.target.value))}
+                        className="pl-7"
+                        min="0"
+                        step="0.01"
+                        required
+                    />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Total Hamali</Label>
+                <div className="col-span-3 font-semibold text-green-600">
+                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalHamali)}
+                </div>
+            </div>
+
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right text-muted-foreground">Loss</Label>
                 <div className="col-span-3 text-destructive font-bold">
