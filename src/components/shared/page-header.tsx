@@ -32,12 +32,12 @@ export const PageHeader: FC<PageHeaderProps> = ({ title, description, children, 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex-1">
           {breadcrumbs && breadcrumbs.length > 0 && (
-            <div className="mb-2">
+            <div className="hidden md:block md:mb-2">
               <Breadcrumbs items={breadcrumbs} />
             </div>
           )}
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-headline">{title}</h1>
-          {description && <p className="mt-1 text-muted-foreground">{description}</p>}
+          {description && <p className="mt-1 text-sm md:text-base text-muted-foreground hidden md:block">{description}</p>}
         </div>
         {children && <div className="flex items-center gap-2">{children}</div>}
       </div>
