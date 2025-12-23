@@ -59,14 +59,14 @@ export function AddCropForm() {
                 <Label htmlFor="price6m">Rent (6M)</Label>
                 <div className="relative">
                     <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input id="price6m" name="price6m" type="number" step="0.01" placeholder="30" required className="pl-9 bg-background" />
+                    <Input id="price6m" name="price6m" type="number" step="0.01" placeholder="30" required className="pl-9 bg-background" onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
                 </div>
             </div>
             <div className="grid gap-2">
                 <Label htmlFor="price1y">Rent (1Y)</Label>
                 <div className="relative">
                     <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input id="price1y" name="price1y" type="number" step="0.01" placeholder="50" required className="pl-9 bg-background" />
+                    <Input id="price1y" name="price1y" type="number" step="0.01" placeholder="50" required className="pl-9 bg-background" onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
                 </div>
             </div>
             <div className="md:col-span-5 md:col-start-5">

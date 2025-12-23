@@ -114,6 +114,8 @@ export function EditOutflowDialog({ transaction }: EditOutflowDialogProps) {
                 required
                 min={1}
                 max={transaction.maxEditableBags}
+                onFocus={(e) => e.target.select()}
+                onWheel={(e) => e.currentTarget.blur()}
                 />
                 <p className="text-xs text-muted-foreground mt-1 text-primary/80 font-medium">
                     Max available: {transaction.maxEditableBags}
@@ -133,6 +135,8 @@ export function EditOutflowDialog({ transaction }: EditOutflowDialogProps) {
                 required
                 min={0}
                 step="0.01"
+                onFocus={(e) => e.target.select()}
+                onWheel={(e) => e.currentTarget.blur()}
                 />
                 <p className="text-xs text-muted-foreground mt-1 text-amber-600 font-medium">
                     Update manually if date/bags changed

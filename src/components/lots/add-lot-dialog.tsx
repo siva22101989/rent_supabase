@@ -60,7 +60,7 @@ export function AddLotDialog() {
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="capacity">Capacity (Bags)</Label>
-                        <Input id="capacity" name="capacity" type="number" placeholder="1000" defaultValue="1000" />
+                        <Input id="capacity" name="capacity" type="number" placeholder="1000" defaultValue="1000" onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
                     </div>
                     <Button type="submit" disabled={loading}>
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

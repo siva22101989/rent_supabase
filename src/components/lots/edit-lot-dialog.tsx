@@ -85,6 +85,8 @@ export function EditLotDialog({ lot }: Props) {
                                 defaultValue={lot.capacity}
                                 required
                                 min="1"
+                                onFocus={(e) => e.target.select()}
+                                onWheel={(e) => e.currentTarget.blur()}
                             />
                         </div>
                     </div>

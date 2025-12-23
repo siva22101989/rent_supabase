@@ -112,6 +112,8 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                   name="bagsStored" 
                   type="number"
                   defaultValue={state.data?.bagsStored || record.bagsIn} 
+                  onFocus={(e) => e.target.select()}
+                  onWheel={(e) => e.currentTarget.blur()}
                   required 
                 />
             </div>
@@ -125,6 +127,8 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                   type="number"
                   step="0.01"
                   defaultValue={state.data?.hamaliPayable || record.hamaliPayable} 
+                  onFocus={(e) => e.target.select()}
+                  onWheel={(e) => e.currentTarget.blur()}
                   required 
                 />
             </div>

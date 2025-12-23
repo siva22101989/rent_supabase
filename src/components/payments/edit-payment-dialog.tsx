@@ -86,6 +86,8 @@ export function EditPaymentDialog({ payment, customerId, variant = 'ghost', size
                                 type="number"
                                 step="0.01"
                                 defaultValue={payment.amount}
+                                onFocus={(e) => e.target.select()}
+                                onWheel={(e) => e.currentTarget.blur()}
                                 required
                             />
                         </div>

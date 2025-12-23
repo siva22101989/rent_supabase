@@ -27,7 +27,7 @@ export default async function InflowReceiptPage({ params }: { params: Promise<{ 
     <>
       <PageHeader
         title="Inflow Receipt"
-        description={`Details for storage record ${record.id}`}
+        description={`Details for storage record ${record.recordNumber || record.id}`}
       >
         <PrintButton />
         <Button asChild variant="outline" size="sm" className="print:hidden gap-2">

@@ -61,7 +61,7 @@ export function WarehouseSettingsTab({ warehouse }: WarehouseTabProps) {
                             <Label htmlFor="capacity">Capacity (Bags)</Label>
                              <div className="relative">
                                 <Box className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input id="capacity" name="capacity" type="number" defaultValue={warehouse?.capacity_bags || ''} className="pl-9" />
+                                <Input id="capacity" name="capacity" type="number" defaultValue={warehouse?.capacity_bags || ''} className="pl-9" onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
                             </div>
                         </div>
                         <div className="md:col-span-2 flex justify-end">

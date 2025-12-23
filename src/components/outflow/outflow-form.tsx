@@ -209,6 +209,8 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
                                         max={selectedRecord.bagsStored}
                                         required 
                                         defaultValue={state.data?.bagsToWithdraw}
+                                        onFocus={(e) => e.target.select()}
+                                        onWheel={(e) => e.currentTarget.blur()}
                                         onChange={e => setBagsToWithdraw(Number(e.target.value))}
                                     />
                                     <p className="text-xs text-muted-foreground">
@@ -258,6 +260,8 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
                                             step="0.01"
                                             min="0"
                                             max={totalPayable.toFixed(2)}
+                                            onFocus={(e) => e.target.select()}
+                                            onWheel={(e) => e.currentTarget.blur()}
                                             defaultValue={state.data?.amountPaidNow}
                                         />
                                         <p className="text-xs text-muted-foreground">

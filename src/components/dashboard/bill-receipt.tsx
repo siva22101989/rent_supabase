@@ -62,8 +62,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                          <div>
                             <h3 className="font-semibold mb-2">Billing Details</h3>
                             <p><span className="font-medium">Bill Date:</span> {formattedBillDate}</p>
-                            <p><span className="font-medium">Record #:</span> {record.id}</p>
-                            <p><span className="font-medium">Ref ID:</span> {record.id.substring(0, 8)}</p>
+                            <p><span className="font-medium">Record #:</span> {record.recordNumber || record.id}</p>
                             <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
                         </div>
                     </div>
@@ -108,6 +107,40 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                             </TableRow>
                         </TableFooter>
                     </Table>
+                    
+                    <Separator />
+
+                    {/* Payment History Section */}
+                    {record.payments && record.payments.length > 0 && (
+                        <div className="mt-6 mb-6">
+                            <h3 className="font-semibold text-sm mb-3">Payment History</h3>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Reference / Type</TableHead>
+                                        <TableHead>Notes</TableHead>
+                                        <TableHead className="text-right">Amount</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {record.payments.map((payment, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell>{format(toDate(payment.date), 'dd MMM yyyy')}</TableCell>
+                                            <TableCell className="capitalize">
+                                                {payment.paymentNumber ? `#${payment.paymentNumber} • ` : ''} 
+                                                {payment.type || 'Payment'}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground text-xs max-w-[200px] truncate">
+                                                {payment.notes || '-'}
+                                            </TableCell>
+                                            <TableCell className="text-right">{formatCurrency(payment.amount)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
                     
                     <Separator />
                     

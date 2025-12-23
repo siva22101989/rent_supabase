@@ -75,7 +75,7 @@ export function WelcomeOnboarding() {
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="capacity">Total Capacity (Bags)</Label>
-                            <Input id="capacity" name="capacity" type="number" placeholder="5000" required />
+                            <Input id="capacity" name="capacity" type="number" placeholder="5000" required onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
                         </div>
                         <Button type="submit" className="w-full mt-2" isLoading={loading}>
                             Get Started

@@ -38,7 +38,7 @@ export default async function OutflowReceiptPage({
     <>
       <PageHeader
         title="Outflow Receipt"
-        description={`Final bill for storage record ${record.id}`}
+        description={`Final bill for storage record ${record.outflowInvoiceNo || record.id}`}
       >
         <PrintButton />
         <Button asChild variant="outline" size="sm" className="print:hidden gap-2">

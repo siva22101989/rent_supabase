@@ -92,7 +92,7 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
             </div>
              <div className="space-y-2">
               <Label htmlFor="amount">Amount</Label>
-               <Input id="amount" name="amount" type="number" step="0.01" defaultValue={state.data?.amount || expense.amount} required />
+               <Input id="amount" name="amount" type="number" step="0.01" defaultValue={state.data?.amount || expense.amount} required onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
             </div>
           </div>
           <DialogFooter>

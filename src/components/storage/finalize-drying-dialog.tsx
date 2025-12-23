@@ -113,6 +113,8 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
                     value={finalBags}
                     onChange={(e) => setFinalBags(Number(e.target.value))}
                     min="1"
+                    onFocus={(e) => e.target.select()}
+                    onWheel={(e) => e.currentTarget.blur()}
                     required
                 />
             </div>
@@ -130,8 +132,9 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
                         value={hamaliRate}
                         onChange={(e) => setHamaliRate(Number(e.target.value))}
                         className="pl-7"
-                        min="0"
                         step="0.01"
+                        onFocus={(e) => e.target.select()}
+                        onWheel={(e) => e.currentTarget.blur()}
                         required
                     />
                 </div>

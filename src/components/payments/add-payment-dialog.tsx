@@ -115,6 +115,8 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
                 min="0.01"
                 placeholder="0.00"
                 defaultValue={state.data?.paymentAmount || (paymentType === 'Rent/Other' ? record.balanceDue.toFixed(2) : undefined)}
+                onFocus={(e) => e.target.select()}
+                onWheel={(e) => e.currentTarget.blur()}
                 required 
               />
             </div>

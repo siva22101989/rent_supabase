@@ -88,6 +88,8 @@ export function EditCropDialog({ crop }: Props) {
                                     defaultValue={crop.rent_price_6m}
                                     required
                                     min="0.01"
+                                    onFocus={(e) => e.target.select()}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -100,6 +102,8 @@ export function EditCropDialog({ crop }: Props) {
                                     defaultValue={crop.rent_price_1y}
                                     required
                                     min="0.01"
+                                    onFocus={(e) => e.target.select()}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                 />
                             </div>
                         </div>

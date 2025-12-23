@@ -227,6 +227,8 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                                     placeholder="0" 
                                     required
                                     defaultValue={state.data?.plotBags}
+                                    onFocus={(e) => e.target.select()}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     onChange={e => setPlotBags(Number(e.target.value))} 
                                 />
                             </div>
@@ -239,6 +241,8 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                                     min="1"
                                     placeholder="0" 
                                     defaultValue={state.data?.loadBags}
+                                    onFocus={(e) => e.target.select()}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                 />
                             </div>
                         </div>
@@ -314,6 +318,8 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                                     required 
                                     min="1"
                                     defaultValue={state.data?.bagsStored}
+                                    onFocus={(e) => e.target.select()}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     onChange={e => setBags(Number(e.target.value))}
                                 />
                             </div>
@@ -322,16 +328,16 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliRate">Hamali Rate (per bag)</Label>
-                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.hamaliRate} onChange={e => setRate(Number(e.target.value))}/>
+                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.hamaliRate} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} onChange={e => setRate(Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
-                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.hamaliPaid} onChange={e => setHamaliPaid(Number(e.target.value))}/>
+                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.hamaliPaid} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} onChange={e => setHamaliPaid(Number(e.target.value))}/>
                         </div>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="khataAmount">Khata Amount (Weighbridge)</Label>
-                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.khataAmount} />
+                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.khataAmount} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
                     </div>
                      <Separator />
                     <div className="space-y-4">

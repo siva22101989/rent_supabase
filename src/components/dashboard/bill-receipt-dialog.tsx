@@ -28,10 +28,11 @@ export function BillReceiptDialog({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const receiptRef = useRef<HTMLDivElement>(null);
+  // We use a separate ref for the hidden, print-optimized version
+  const printRef = useRef<HTMLDivElement>(null);
 
   const handleDownloadPdf = async () => {
-    const element = receiptRef.current;
+    const element = printRef.current;
     if (!element) return;
 
     setIsGenerating(true);
@@ -78,7 +79,12 @@ export function BillReceiptDialog({
           <DialogTitle>Billing Statement</DialogTitle>
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto p-2">
-            <BillReceipt ref={receiptRef} record={record} customer={customer} />
+            <BillReceipt record={record} customer={customer} />
+        </div>
+        
+        {/* Hidden Print Version - Optimizes PDF generation */}
+        <div style={{ position: 'fixed', top: '-1000vh', left: '-1000vw', width: '210mm' }}>
+             <BillReceipt ref={printRef} record={record} customer={customer} />
         </div>
         <DialogFooter className="sm:justify-end">
           <Button onClick={handleDownloadPdf} disabled={isGenerating}>

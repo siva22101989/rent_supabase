@@ -96,7 +96,7 @@ export function AddExpenseDialog() {
             </div>
              <div className="space-y-2">
               <Label htmlFor="amount">Amount</Label>
-               <Input id="amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required defaultValue={state.data?.amount} />
+               <Input id="amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required defaultValue={state.data?.amount} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
             </div>
           </div>
           <DialogFooter>
