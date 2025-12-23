@@ -65,6 +65,7 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
         if (result?.success) {
             toast({ title: "Success", description: result.message });
             setOpen(false);
+            router.refresh(); // Ensure the table/list updates immediately
             if (result.recordId) {
                 router.push(`/inflow/receipt/${result.recordId}`);
             }

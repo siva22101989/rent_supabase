@@ -339,6 +339,8 @@ export const updateStorageRecord = async (id: string, data: Partial<StorageRecor
     if (data.billingCycle) dbData.billing_cycle = data.billingCycle;
     if (data.hamaliPayable !== undefined) dbData.hamali_payable = data.hamaliPayable;
     if (data.totalRentBilled !== undefined) dbData.total_rent_billed = data.totalRentBilled;
+    if (data.plotBags !== undefined) dbData.plot_bags = data.plotBags;
+    if (data.loadBags !== undefined) dbData.load_bags = data.loadBags;
     if (data.outflowInvoiceNo) dbData.outflow_invoice_no = data.outflowInvoiceNo;
 
     const { error } = await supabase
