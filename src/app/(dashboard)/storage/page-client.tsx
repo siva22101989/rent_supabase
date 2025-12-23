@@ -125,9 +125,9 @@ export function StoragePageClient({ activeRecords, initialStats }: { activeRecor
 
       {/* Detailed Stock Register */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h3 className="text-lg font-medium">Detailed Stock Register ({filteredRecords.length} active)</h3>
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by commodity, location, ID..."

@@ -68,46 +68,44 @@ export function AddCustomerDialog() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="name">
                 Name
               </Label>
-              <Input id="name" name="name" className="col-span-3" defaultValue={state.data?.name} required />
+              <Input id="name" name="name" defaultValue={state.data?.name} required />
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="fatherName" className="text-right">
+             <div className="grid gap-2">
+              <Label htmlFor="fatherName">
                 Father's Name
               </Label>
-              <Input id="fatherName" name="fatherName" className="col-span-3" defaultValue={state.data?.fatherName} />
+              <Input id="fatherName" name="fatherName" defaultValue={state.data?.fatherName} />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="village" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="village">
                 Village
               </Label>
-              <Input id="village" name="village" className="col-span-3" defaultValue={state.data?.village} />
+              <Input id="village" name="village" defaultValue={state.data?.village} />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="address">
                 Address
               </Label>
-              <Input id="address" name="address" className="col-span-3" defaultValue={state.data?.address} required />
+              <Input id="address" name="address" defaultValue={state.data?.address} required />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="phone">
                 Phone
               </Label>
-              <Input id="phone" name="phone" className="col-span-3" defaultValue={state.data?.phone} required />
+              <Input id="phone" name="phone" defaultValue={state.data?.phone} required />
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
+             <div className="grid gap-2">
+              <Label htmlFor="email">
                 Email
               </Label>
-              <Input id="email" name="email" type="email" placeholder="example@gmail.com" className="col-span-3" defaultValue={state.data?.email} />
-              <div className="col-start-2 col-span-3">
-                 <p className="text-[10px] text-muted-foreground w-full">
-                    * If this user logs into the Portal with this email, they will automatically see their stock.
-                 </p>
-              </div>
+              <Input id="email" name="email" type="email" placeholder="example@gmail.com" defaultValue={state.data?.email} />
+              <p className="text-[10px] text-muted-foreground">
+                * If this user logs into the Portal with this email, they will automatically see their stock.
+              </p>
             </div>
           </div>
           <DialogFooter>

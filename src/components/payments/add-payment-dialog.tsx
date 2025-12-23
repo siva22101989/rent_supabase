@@ -84,12 +84,12 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-             <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Type</Label>
+             <div className="grid gap-2">
+                <Label>Type</Label>
                 <RadioGroup 
                     defaultValue={state.data?.paymentType || "Rent/Other"}
                     name="paymentType"
-                    className="col-span-3 flex gap-4"
+                    className="flex gap-4"
                     value={paymentType}
                     onValueChange={(value: 'Rent/Other' | 'Hamali') => setPaymentType(value)}
                 >
@@ -103,8 +103,8 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
                     </div>
                 </RadioGroup>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="paymentAmount" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="paymentAmount">
                 Amount
               </Label>
               <Input 
@@ -115,12 +115,11 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
                 min="0.01"
                 placeholder="0.00"
                 defaultValue={state.data?.paymentAmount || (paymentType === 'Rent/Other' ? record.balanceDue.toFixed(2) : undefined)}
-                className="col-span-3" 
                 required 
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="paymentDate" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="paymentDate">
                 Date
               </Label>
               <Input 
@@ -128,7 +127,6 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
                 name="paymentDate" 
                 type="date"
                 defaultValue={state.data?.paymentDate || new Date().toISOString().split('T')[0]}
-                className="col-span-3" 
                 required 
               />
             </div>

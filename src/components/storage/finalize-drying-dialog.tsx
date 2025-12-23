@@ -91,19 +91,19 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Product</Label>
-                <div className="col-span-3 font-medium">{record.commodityDescription}</div>
+            <div className="grid gap-1">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Product</Label>
+                <div className="font-medium">{record.commodityDescription}</div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Raw Bags</Label>
-                <div className="col-span-3 font-mono">{rawBags}</div>
+            <div className="grid gap-1">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Raw Bags</Label>
+                <div className="font-mono">{rawBags}</div>
             </div>
             
-            <Separator className="col-span-4 my-2" />
+            <Separator className="my-2" />
 
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="finalBags" className="text-right">
+            <div className="grid gap-2">
+                <Label htmlFor="finalBags">
                 Final Bags
                 </Label>
                 <Input
@@ -111,18 +111,17 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
                     type="number"
                     value={finalBags}
                     onChange={(e) => setFinalBags(Number(e.target.value))}
-                    className="col-span-3"
                     min="1"
                     required
                 />
             </div>
 
             {/* Hamali Section */}
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="hamaliRate" className="text-right">
+            <div className="grid gap-2">
+                <Label htmlFor="hamaliRate">
                     Hamali Rate
                 </Label>
-                <div className="col-span-3 relative">
+                <div className="relative">
                     <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">₹</span>
                     <Input
                         id="hamaliRate"
@@ -137,19 +136,13 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Total Hamali</Label>
-                <div className="col-span-3 font-semibold text-green-600">
-                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalHamali)}
-                </div>
-            </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right text-muted-foreground">Loss</Label>
-                <div className="col-span-3 text-destructive font-bold">
-                    {rawBags - finalBags} bags
+                <div className="grid gap-1">
+                    <Label className="text-muted-foreground text-xs uppercase tracking-wider text-red-700">Loss</Label>
+                    <div className="text-destructive font-bold">
+                        {rawBags - finalBags} bags
+                    </div>
                 </div>
-            </div>
             </div>
             <DialogFooter>
             <Button type="submit" disabled={isPending}>

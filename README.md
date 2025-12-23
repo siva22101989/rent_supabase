@@ -94,10 +94,11 @@ Visit `http://localhost:3000`.
 While the application is production-ready, these features are continuously evolving:
 
 - [x] **Role Based Access**: Implemented multi-tier roles (Super Admin, Owner, Admin, Manager, Staff, Customer).
-- [x] **Mobile Optimization**: Full responsive overhaul for seamless phone usage.
+- [x] **Mobile Optimization**: Full responsive overhaul + optimized dialog forms for phone usage.
 - [x] **Audit Logging**: Comprehensive tracking of inflows and withdrawals.
-- [ ] **Automated Testing**: Integration tests (Playwright) for critical flows like Billing.
-- [ ] **PDF Generation**: Native export of Gate Passes and Invoices.
+- [x] **Automated Testing**: Integration tests (Playwright) & Unit tests (Vitest) for critical flows.
+- [x] **PDF Generation**: Native export of Receipts and Reports via `jsPDF`.
+- [ ] **Email Notifications**: Automated payment reminders and receipts.
 
 ---
 

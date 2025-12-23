@@ -89,8 +89,8 @@ export function EditOutflowDialog({ transaction }: EditOutflowDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="date" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="date">
               Date
             </Label>
             <Input
@@ -98,35 +98,33 @@ export function EditOutflowDialog({ transaction }: EditOutflowDialogProps) {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="col-span-3"
               required
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="bags" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="bags">
               Bags
             </Label>
-            <div className="col-span-3">
+            <div>
                 <Input
                 id="bags"
                 type="number"
                 value={bags}
                 onChange={(e) => setBags(parseInt(e.target.value) || 0)}
-                className=""
                 required
                 min={1}
                 max={transaction.maxEditableBags}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1 text-primary/80 font-medium">
                     Max available: {transaction.maxEditableBags}
                 </p>
             </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="rent" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="rent">
               Rent Bill
             </Label>
-            <div className="col-span-3">
+            <div>
                 <Input
                 id="rent"
                 type="number"
@@ -136,7 +134,7 @@ export function EditOutflowDialog({ transaction }: EditOutflowDialogProps) {
                 min={0}
                 step="0.01"
                 />
-                <p className="text-xs text-muted-foreground mt-1 text-yellow-600">
+                <p className="text-xs text-muted-foreground mt-1 text-amber-600 font-medium">
                     Update manually if date/bags changed
                 </p>
             </div>

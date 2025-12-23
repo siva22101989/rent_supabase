@@ -64,51 +64,47 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="customerId" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="customerId">
                 Customer
               </Label>
-              <div className="col-span-3">
-                <Select name="customerId" defaultValue={state.data?.customerId || record.customerId} required>
-                    <SelectTrigger id="customerId">
-                        <SelectValue placeholder="Select a customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {customers.map(customer => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                                {customer.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-              </div>
+              <Select name="customerId" defaultValue={state.data?.customerId || record.customerId} required>
+                  <SelectTrigger id="customerId">
+                      <SelectValue placeholder="Select a customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {customers.map(customer => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                              {customer.name}
+                          </SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="commodityDescription" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="commodityDescription">
                 Commodity
               </Label>
                 <Input 
                   id="commodityDescription" 
                   name="commodityDescription"
                   defaultValue={state.data?.commodityDescription || record.commodityDescription}
-                  className="col-span-3"
                   required
                 />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="location" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="location">
                 Location
               </Label>
                 <Input 
                   id="location" 
                   name="location"
                   defaultValue={state.data?.location || record.location}
-                  className="col-span-3"
                   required
                 />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="bagsStored" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="bagsStored">
                 Bags In
               </Label>
                 <Input 
@@ -116,12 +112,11 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                   name="bagsStored" 
                   type="number"
                   defaultValue={state.data?.bagsStored || record.bagsIn} 
-                  className="col-span-3" 
                   required 
                 />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="hamaliPayable" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="hamaliPayable">
                 Hamali Payable
               </Label>
                 <Input 
@@ -130,12 +125,11 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                   type="number"
                   step="0.01"
                   defaultValue={state.data?.hamaliPayable || record.hamaliPayable} 
-                  className="col-span-3" 
                   required 
                 />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="storageStartDate" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="storageStartDate">
                 Start Date
               </Label>
                 <Input 
@@ -143,7 +137,6 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                   name="storageStartDate" 
                   type="date"
                   defaultValue={state.data?.storageStartDate || (record.storageStartDate ? format(record.storageStartDate, 'yyyy-MM-dd') : '')}
-                  className="col-span-3" 
                   required 
                 />
             </div>
