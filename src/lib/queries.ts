@@ -192,7 +192,8 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
     .from('storage_records')
     .select(`
       *,
-      payments (*)
+      payments (*),
+      customer:customers(name)
     `)
     .eq('warehouse_id', warehouseId)
     .order('storage_start_date', { ascending: false }); // Ensure newest first
@@ -215,7 +216,8 @@ export async function getActiveStorageRecords(): Promise<StorageRecord[]> {
     .from('storage_records')
     .select(`
       *,
-      payments (*)
+      payments (*),
+      customer:customers(name)
     `)
     .eq('warehouse_id', warehouseId)
     .is('storage_end_date', null)
@@ -288,6 +290,7 @@ function mapRecords(records: any[]): StorageRecord[] {
     id: r.id,
     recordNumber: r.record_number,
     customerId: r.customer_id,
+    customerName: r.customer?.name || 'Unknown',
     cropId: r.crop_id,
     commodityDescription: r.commodity_description,
     location: r.location,
@@ -320,7 +323,8 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     .from('storage_records')
     .select(`
       *,
-      payments (*)
+      payments (*),
+      customer:customers(name)
     `)
     .eq('id', id)
     .single();
@@ -331,6 +335,7 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     id: r.id,
     recordNumber: r.record_number,
     customerId: r.customer_id,
+    customerName: r.customer?.name || 'Unknown',
     cropId: r.crop_id,
     commodityDescription: r.commodity_description,
     location: r.location,
@@ -411,7 +416,8 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
         .from('storage_records')
         .select(`
           *,
-          payments (*)
+          payments (*),
+          customer:customers(name)
         `)
         .eq('warehouse_id', warehouseId)
         .eq('customer_id', customerId)
@@ -426,6 +432,7 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
         id: r.id,
         recordNumber: r.record_number,
         customerId: r.customer_id,
+        customerName: r.customer?.name || 'Unknown',
         cropId: r.crop_id,
         commodityDescription: r.commodity_description,
         location: r.location,

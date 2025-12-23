@@ -46,6 +46,7 @@ export function StoragePageClient({ activeRecords, initialStats }: { activeRecor
     const query = debouncedSearch.toLowerCase();
     return activeRecords.filter(r => 
       r.commodityDescription?.toLowerCase().includes(query) ||
+      r.customerName?.toLowerCase().includes(query) ||
       r.location?.toLowerCase().includes(query) ||
       r.recordNumber?.toString().includes(query)
     );
@@ -130,7 +131,7 @@ export function StoragePageClient({ activeRecords, initialStats }: { activeRecor
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by commodity, location, ID..."
+              placeholder="Search by customer, commodity, location..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-10"
@@ -163,6 +164,7 @@ export function StoragePageClient({ activeRecords, initialStats }: { activeRecor
                     <MobileCard.Badge>{record.location}</MobileCard.Badge>
                   </MobileCard.Header>
                   <MobileCard.Content>
+                    <MobileCard.Row label="Customer" value={record.customerName || 'Unknown'} />
                     <MobileCard.Row label="Bags Stored" value={record.bagsStored} />
                     <MobileCard.Row label="Rent Due" value={formatCurrency(rent)} className="text-primary font-semibold" />
                   </MobileCard.Content>
@@ -210,6 +212,7 @@ export function StoragePageClient({ activeRecords, initialStats }: { activeRecor
                         <TableRow>
                             <TableHead>Date In</TableHead>
                             <TableHead>Record #</TableHead>
+                            <TableHead>Customer</TableHead>
                             <TableHead>Location</TableHead>
                             <TableHead>Commodity</TableHead>
                             <TableHead className="text-right">Bags</TableHead>
@@ -224,6 +227,7 @@ export function StoragePageClient({ activeRecords, initialStats }: { activeRecor
                                 <TableRow key={record.id}>
                                     <TableCell>{new Date(record.storageStartDate).toLocaleDateString()}</TableCell>
                                     <TableCell className="font-medium font-mono">#{record.recordNumber}</TableCell>
+                                    <TableCell className="font-medium">{record.customerName || 'Unknown'}</TableCell>
                                     <TableCell>
                                       <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
                                         {record.location}
@@ -266,7 +270,7 @@ export function StoragePageClient({ activeRecords, initialStats }: { activeRecor
                         })}
                         {paginatedRecords.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-64">
+                                <TableCell colSpan={8} className="h-64">
                                     <EmptyState
                                         icon={Warehouse}
                                         title={searchQuery ? "No results found" : "No active storage records"}

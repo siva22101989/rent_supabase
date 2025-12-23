@@ -46,6 +46,7 @@ export type StorageRecord = {
   khataAmount?: number;
   recordNumber?: string;
   outflowInvoiceNo?: string;
+  customerName?: string;
   updatedAt?: Date | string;
 };
 
