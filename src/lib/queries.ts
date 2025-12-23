@@ -744,3 +744,54 @@ export const getPlatformAnalytics = cache(async () => {
 });
 
 
+
+// Optimized Search for Outflow Selector (Phase 1 Scalability)
+export async function searchActiveStorageRecords(query: string, limit = 20) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+  
+  if (!warehouseId) return [];
+
+  let dbQuery = supabase
+    .from('storage_records')
+    .select(`
+      id,
+      record_number,
+      storage_start_date,
+      commodity_description,
+      bags_stored,
+      customer:customers!inner(name) 
+    `)
+    .eq('warehouse_id', warehouseId)
+    .is('storage_end_date', null)
+    .gt('bags_stored', 0) 
+    .order('storage_start_date', { ascending: false })
+    .limit(limit);
+
+  if (query) {
+       // Check if query looks like a number
+       if (!isNaN(Number(query))) {
+           // We use ::text casting to safely search if record_number is an integer or string in DB
+           // This prevents "operator does not exist: integer ~~* unknown" errors
+           dbQuery = dbQuery.or(`record_number::text.ilike.%${query}%`);
+       } else {
+            dbQuery = dbQuery.ilike('customer.name', `%${query}%`);
+       }
+  }
+
+  const { data, error } = await dbQuery;
+
+  if (error) {
+    logError(error, { operation: 'search_active_records', warehouseId });
+    return [];
+  }
+
+  return data.map((r: any) => ({
+      id: r.id,
+      recordNumber: r.record_number,
+      customerName: r.customer?.name,
+      commodity: r.commodity_description,
+      date: new Date(r.storage_start_date),
+      bags: r.bags_stored
+  }));
+}

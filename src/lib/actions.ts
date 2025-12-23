@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
-import { getStorageRecords, getCustomers, getStorageRecord, getCustomer, getUserWarehouse, getAvailableCrops, getAvailableLots, getTeamMembers, getDashboardMetrics } from '@/lib/queries';
+import { getStorageRecords, getCustomers, getStorageRecord, getCustomer, getUserWarehouse, getAvailableCrops, getAvailableLots, getTeamMembers, getDashboardMetrics, searchActiveStorageRecords } from '@/lib/queries';
 import { saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, deleteStorageRecord, saveExpense, updateExpense, deleteExpense } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -15,6 +15,17 @@ import * as Sentry from "@sentry/nextjs";
 import { logError } from '@/lib/error-logger';
 
 const { logger } = Sentry;
+
+// --- New Actions for Scalability ---
+export async function findRecordsAction(query: string) {
+    'use server';
+    return await searchActiveStorageRecords(query);
+}
+
+export async function getStorageRecordAction(id: string) {
+    'use server';
+    return await getStorageRecord(id);
+}
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),

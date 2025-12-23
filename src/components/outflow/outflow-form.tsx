@@ -21,7 +21,10 @@ import { toDate } from '@/lib/utils';
 import { useCustomers } from '@/contexts/customer-context';
 import { useStaticData } from '@/hooks/use-static-data';
 
-export function OutflowForm({ records }: { records: StorageRecord[] }) {
+import { AsyncRecordSelector } from './async-record-selector';
+import { getStorageRecordAction } from '@/lib/actions';
+
+export function OutflowForm({ records = [] }: { records?: StorageRecord[] }) {
     const { toast } = useToast();
     const initialState: OutflowFormState = { message: '', success: false };
     const [state, formAction] = useActionState(addOutflow, initialState);
@@ -35,8 +38,8 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
     // Derived loading state if needed, but we can just show skeletal UI or wait.
     // For now we render selectors empty until loaded.
 
-    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [selectedRecordId, setSelectedRecordId] = useState<string>('');
+    const [selectedRecord, setSelectedRecord] = useState<StorageRecord | null>(null);
     const [bagsToWithdraw, setBagsToWithdraw] = useState(0);
     const [withdrawalDate, setWithdrawalDate] = useState(new Date());
     
@@ -44,17 +47,43 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
     const [storageMonths, setStorageMonths] = useState(0);
     const [rentPerBag, setRentPerBag] = useState({ rentPerBag: 0 });
     const [hamaliPending, setHamaliPending] = useState(0);
+    const [isLoadingRecord, setIsLoadingRecord] = useState(false);
 
-    const filteredRecords = selectedCustomerId ? records.filter(r => r.customerId === selectedCustomerId) : [];
-    const selectedRecord = records.find(r => r.id === selectedRecordId);
+    // Filtered logic removed in favor of Async Search
     const totalPayable = finalRent + hamaliPending;
+
+    const handleRecordSelect = async (recordId: string) => {
+        setSelectedRecordId(recordId);
+        if(!recordId) {
+             setSelectedRecord(null);
+             return;
+        }
+
+        setIsLoadingRecord(true);
+        try {
+            const record = await getStorageRecordAction(recordId);
+            if(record) {
+                setSelectedRecord(record);
+                // Auto-set customer ID format compatibility if needed by action
+                // But action likely uses hidden inputs or state
+            }
+        } catch(e) {
+            toast({ title: "Error", description: "Failed to load record details", variant: "destructive" });
+        } finally {
+            setIsLoadingRecord(false);
+        }
+    };
 
     // Auto-restoration from state.data on error
     useEffect(() => {
         if (state.data) {
-            if (state.data.customerId) setSelectedCustomerId(state.data.customerId);
-            if (state.data.recordId) setSelectedRecordId(state.data.recordId);
-            if (state.data.bagsToWithdraw) setBagsToWithdraw(Number(state.data.bagsToWithdraw));
+             // If we have an error and state returns data, we technically need to re-fetch the record to show the form again 
+             // or rely on what's already selected.
+             // Ideally we shouldn't lose state on server action error if we prevent default reset.
+             if (state.data.recordId && state.data.recordId !== selectedRecordId) {
+                  handleRecordSelect(state.data.recordId);
+             }
+             if (state.data.bagsToWithdraw) setBagsToWithdraw(Number(state.data.bagsToWithdraw));
             if (state.data.withdrawalDate) setWithdrawalDate(new Date(state.data.withdrawalDate));
         }
     }, [state.data]);
@@ -131,15 +160,8 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
         }
     }, [selectedRecord, bagsToWithdraw, withdrawalDate, crops]);
     
-    const handleCustomerChange = (customerId: string) => {
-        setSelectedCustomerId(customerId);
-        setSelectedRecordId('');
-        setBagsToWithdraw(0);
-        setFinalRent(0);
-        setStorageMonths(0);
-        setRentPerBag({ rentPerBag: 0 });
-        setHamaliPending(0);
-    }
+    // Removed handleCustomerChange
+
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const dateValue = e.target.valueAsDate ? new Date(e.target.valueAsDate.valueOf() + e.target.valueAsDate.getTimezoneOffset() * 60 * 1000) : new Date();
@@ -156,38 +178,17 @@ export function OutflowForm({ records }: { records: StorageRecord[] }) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="customerId">Customer</Label>
-                        <Select onValueChange={handleCustomerChange} required value={selectedCustomerId}>
-                            <SelectTrigger id="customerId">
-                                <SelectValue placeholder="Select a customer..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {customers.map(customer => (
-                                    <SelectItem key={customer.id} value={customer.id}>
-                                        {customer.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Label>Search Record</Label>
+                        <AsyncRecordSelector onSelect={handleRecordSelect} />
+                        {/* Hidden Inputs for Form Action */}
+                        <input type="hidden" name="customerId" value={selectedRecord?.customerId || ''} />
+                        <input type="hidden" name="recordId" value={selectedRecordId} />
                     </div>
-
-                    {selectedCustomerId && (
-                        <div className="space-y-2">
-                            <Label htmlFor="recordId">Storage Record</Label>
-                            <Select name="recordId" onValueChange={setSelectedRecordId} value={selectedRecordId} required>
-                                <SelectTrigger id="recordId">
-                                    <SelectValue placeholder="Select a record..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {filteredRecords.length > 0 ? filteredRecords.map(record => (
-                                        <SelectItem key={record.id} value={record.id}>
-                                            #{record.recordNumber || record.id.slice(0, 8)} - ({record.commodityDescription})
-                                        </SelectItem>
-                                    )) : (
-                                        <SelectItem value="none" disabled>No active records for this customer</SelectItem>
-                                    )}
-                                </SelectContent>
-                            </Select>
+                    
+                    {isLoadingRecord && (
+                        <div className="flex justify-center p-4 text-muted-foreground text-sm">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading details...
                         </div>
                     )}
 

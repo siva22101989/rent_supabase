@@ -12,10 +12,10 @@ import { EditOutflowDialog } from "@/components/outflow/edit-outflow-dialog";
 export const dynamic = 'force-dynamic';
 
 export default async function OutflowPage() {
-  const records = await getStorageRecords(); 
+  // const records = await getStorageRecords(); // REMOVED FOR SCALABILITY
   const recentOutflows = await getRecentOutflows(5);
   
-  const activeRecords = records.filter(r => !r.storageEndDate);
+  // const activeRecords = records.filter(r => !r.storageEndDate);
 
   return (
     <>
@@ -27,7 +27,7 @@ export default async function OutflowPage() {
           { label: 'Outflow' }
         ]}
       />
-      <OutflowForm records={activeRecords || []} />
+      <OutflowForm records={[]} />
 
       {/* Recent Withdrawals Table */}
       <div className="mt-8">
