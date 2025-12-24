@@ -23,9 +23,9 @@ export function AsyncRecordSelector({ onSelect, customerId }: AsyncRecordSelecto
   const [query, setQuery] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const [records, setRecords] = React.useState<any[]>([])
-  const [selectedRecord, setSelectedRecord] = React.useState<any | null>(null)
-  
-  const lastQueryRef = React.useRef<string>("");
+  const [selectedRecord, setSelectedRecord] = React.useState<any | null>(null) // Track the most recent query to prevent race conditions
+  // Initialize to null so the first run (query="") detects a change and fetches defaults
+  const lastQueryRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
       const timer = setTimeout(() => {

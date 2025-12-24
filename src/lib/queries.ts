@@ -131,6 +131,66 @@ export const getDashboardMetrics = cache(async () => {
 });
 
 // Customer Functions (Read)
+// Phase 5: Database Aggregation
+export async function getCustomersWithBalance(limit = 50, offset = 0, search = ''): Promise<any[]> {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+  
+  if (!warehouseId) return [];
+
+  let query = supabase
+    .from('customer_balances')
+    .select('*')
+    .eq('warehouse_id', warehouseId)
+    .order('customer_name', { ascending: true })
+    .range(offset, offset + limit - 1);
+
+  if (search) {
+     query = query.or(`customer_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    logError(error, { operation: 'fetch_customer_balances', warehouseId });
+    return [];
+  }
+
+  return data.map((c: any) => ({
+      id: c.customer_id,
+      name: c.customer_name,
+      phone: c.phone,
+      email: c.email,
+      village: c.village,
+      activeRecords: c.active_records_count,
+      totalBilled: c.total_billed,
+      totalPaid: c.total_paid,
+      balance: c.balance
+  }));
+}
+
+export async function getPendingPayments(limit = 50): Promise<any[]> {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+    
+    if (!warehouseId) return [];
+  
+    const { data, error } = await supabase
+      .from('customer_balances')
+      .select('*')
+      .eq('warehouse_id', warehouseId)
+      .gt('balance', 0)
+      .order('balance', { ascending: false }) // Highest debt first
+      .limit(limit);
+  
+    if (error) {
+      logError(error, { operation: 'fetch_pending_payments', warehouseId });
+      return [];
+    }
+  
+    return data;
+}
+
 export async function getCustomers(): Promise<Customer[]> {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
@@ -206,7 +266,7 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
   return mapRecords(records);
 }
 
-export async function getActiveStorageRecords(): Promise<StorageRecord[]> {
+export async function getActiveStorageRecords(limit = 50): Promise<StorageRecord[]> {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
@@ -221,7 +281,8 @@ export async function getActiveStorageRecords(): Promise<StorageRecord[]> {
     `)
     .eq('warehouse_id', warehouseId)
     .is('storage_end_date', null)
-    .order('storage_start_date', { ascending: false });
+    .order('storage_start_date', { ascending: false })
+    .limit(limit);
 
   if (error) {
     logError(error, { operation: 'fetch_active_storage_records', warehouseId });
@@ -362,7 +423,43 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
   };
 };
 
-export async function getExpenses(): Promise<Expense[]> {
+export async function getFinancialStats() {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+    if (!warehouseId) return { totalIncome: 0, totalExpenses: 0, totalBalance: 0 };
+
+    // Calculate Total Income (Sum of all payments)
+    // We can't easily do sum across joins without RPC, so we fetch all payments for this warehouse.
+    // Optimization: create a payments view or use direct query if possible.
+    // Payments are linked to storage_records. We need to filter by warehouse_id of the storage_record.
+    
+    // Efficient way: Fetch only amount from payments where storage_record.warehouse_id = warehouseId
+    const { data: payments, error: paymentError } = await supabase
+        .from('payments')
+        .select(`
+            amount,
+            storage_record:storage_records!inner(warehouse_id)
+        `)
+        .eq('storage_record.warehouse_id', warehouseId);
+
+    const totalIncome = (payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // Calculate Total Expenses
+    const { data: expenses, error: expenseError } = await supabase
+        .from('expenses')
+        .select('amount')
+        .eq('warehouse_id', warehouseId);
+
+    const totalExpenses = (expenses || []).reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    return {
+        totalIncome,
+        totalExpenses,
+        totalBalance: totalIncome - totalExpenses
+    };
+}
+
+export async function getExpenses(limit = 50): Promise<Expense[]> {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
 
@@ -371,7 +468,9 @@ export async function getExpenses(): Promise<Expense[]> {
   const { data, error } = await supabase
     .from('expenses')
     .select('*')
-    .eq('warehouse_id', warehouseId);
+    .eq('warehouse_id', warehouseId)
+    .order('expense_date', { ascending: false }) // Ensure newest first
+    .limit(limit);
 
   if (error) {
     logError(error, { operation: 'fetch_expenses', warehouseId });
@@ -746,7 +845,7 @@ export const getPlatformAnalytics = cache(async () => {
 
 
 // Optimized Search for Outflow Selector (Phase 1 Scalability)
-export async function searchActiveStorageRecords(query: string, limit = 20) {
+export async function searchActiveStorageRecords(query: string, limit = 50) {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   

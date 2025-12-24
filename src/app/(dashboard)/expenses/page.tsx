@@ -4,36 +4,25 @@ import { PageHeader } from "@/components/shared/page-header";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Scale, Wallet } from "lucide-react";
-import { getStorageRecords, getExpenses } from "@/lib/queries";
+import { getFinancialStats, getExpenses } from "@/lib/queries";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { EmptyState } from "@/components/ui/empty-state";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Expense, StorageRecord } from "@/lib/definitions";
+import type { Expense } from "@/lib/definitions";
 import { format } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 
 export const dynamic = 'force-dynamic';
 
 export default async function ExpensesPage() {
-  const [allRecords, allExpenses] = await Promise.all([
-     getStorageRecords(),
-     getExpenses()
+  const [financials, allExpenses] = await Promise.all([
+     getFinancialStats(),
+     getExpenses(50) // Default to latest 50
   ]);
 
-    const income = allRecords.reduce((total, record) => {
-      const rentPayments = (record.payments || [])
-        // All payments attached to storage records are considered Income (Rent + Hamali)
-        .reduce((acc: any, p: any) => acc + p.amount, 0);
-      return total + rentPayments;
-    }, 0);
-
-    const expensesTotal = allExpenses.reduce((total, expense) => total + expense.amount, 0);
-
-    const totalIncome = income;
-    const totalExpenses = expensesTotal;
-    const totalBalance = income - expensesTotal;
+  const { totalIncome, totalExpenses, totalBalance } = financials;
 
   return (
     <>

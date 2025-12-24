@@ -11,7 +11,7 @@ import { MobileCard } from "@/components/ui/mobile-card";
 export const dynamic = 'force-dynamic';
 
 export default async function InflowPage() {
-    const records = await getRecentInflows(5);
+    const records = await getRecentInflows(50);
 
   // Removed manual sequence logic as it is now handled server-side
   const nextSerialNumber = "Auto-Generated";

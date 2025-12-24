@@ -1,7 +1,7 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from "@/components/shared/page-header";
 import Link from "next/link";
 import {
@@ -22,72 +22,52 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { useDebounce } from "@uidotdev/usehooks";
 
-import type { Customer, StorageRecord } from "@/lib/definitions";
-
-
 const ITEMS_PER_PAGE = 20;
 
-import { useCustomers } from "@/contexts/customer-context";
-
-// ... imports
-
 export function CustomersPageClient({ 
-  customers: initialCustomers, // Unused now, but kept for signature compatibility if needed
-  records 
+  initialCustomers
 }: { 
-  customers: Customer[], 
-  records: StorageRecord[] 
+  initialCustomers: any[], 
 }) {
-  const { customers, isLoading } = useCustomers();
+  // Use initial data plus client-side search/sort if needed.
+  // Ideally, search should be server-side now.
+  // For Phase 5 completeness, we'll implement simple client-side search on the loaded 50 records,
+  // but true scalability requires wiring the search input to the URL params.
+  
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebounce(searchQuery, 300);
+  const [localSearch, setLocalSearch] = useState(searchParams.get('search') || '');
+  const debouncedSearch = useDebounce(localSearch, 500);
 
-  // Filter customers based on search
-  const filteredCustomers = useMemo(() => {
-    if (!customers) return [];
-    if (!debouncedSearch) return customers;
-    const query = debouncedSearch.toLowerCase();
-    return customers.filter(c => 
-      c.name.toLowerCase().includes(query) ||
-      c.phone?.toLowerCase().includes(query) ||
-      c.email?.toLowerCase().includes(query) ||
-      c.village?.toLowerCase().includes(query)
-    );
-  }, [customers, searchQuery]);
+  // Update URL when debounced search changes
+  useEffect(() => {
+     const params = new URLSearchParams(searchParams);
+     if (debouncedSearch) {
+         params.set('search', debouncedSearch);
+     } else {
+         params.delete('search');
+     }
+     // Reset pagination on search
+     if (debouncedSearch !== searchParams.get('search')) {
+        setCurrentPage(1);
+     }
+     router.replace(`/customers?${params.toString()}`);
+  }, [debouncedSearch, router, searchParams]);
 
-  // Loading State
-  if (isLoading && customers.length === 0) {
-      return (
-          <>
-             <PageHeader title="Customers" description="Loading..." breadcrumbs={[{ label: 'Dashboard', href: '/' }, { label: 'Customers' }]}>
-                 <div className="h-10 w-32 bg-muted animate-pulse rounded" />
-             </PageHeader>
-             <div className="space-y-4">
-                 <div className="h-10 w-full bg-muted animate-pulse rounded" />
-                 <div className="h-64 w-full bg-muted animate-pulse rounded" />
-             </div>
-          </>
-      )
-  }
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex);
-
-  // Reset to page 1 when search changes
   const handleSearch = (value: string) => {
-    setSearchQuery(value);
-    setCurrentPage(1);
+    setLocalSearch(value);
   };
+  
+  // Since we are filtering on the server, we just display what's passed in
+  // No need for client-side filtering logic
+  const paginatedCustomers = initialCustomers; // Server limit is applied
 
   return (
     <>
       <PageHeader
         title="Customers"
-        description={`Manage your customers and view their activity. (${customers.length} total)`}
+        description="Manage your customers and view their financial status."
         breadcrumbs={[
           { label: 'Dashboard', href: '/' },
           { label: 'Customers' }
@@ -102,8 +82,8 @@ export function CustomersPageClient({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, phone, email, or village..."
-            value={searchQuery}
+            placeholder="Search all customers (Server-Side)..."
+            value={localSearch}
             onChange={(e) => handleSearch(e.target.value)}
             className="pl-10"
           />
@@ -115,59 +95,45 @@ export function CustomersPageClient({
         {paginatedCustomers.length === 0 ? (
           <EmptyState
             icon={Users}
-            title={searchQuery ? "No customers found" : "No customers yet"}
-            description={searchQuery ? `No customers match "${searchQuery}". Try a different search term.` : "Add your first customer to start tracking storage and payments."}
-            actionLabel={searchQuery ? undefined : "Add First Customer"}
-            onAction={searchQuery ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
+            title={localSearch ? "No customers found" : "No customers yet"}
+            description={localSearch ? `No customers match "${localSearch}".` : "Add your first customer to start tracking storage and payments."}
+            actionLabel={localSearch ? undefined : "Add First Customer"}
+            onAction={localSearch ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
           />
         ) : (
-          paginatedCustomers.map((customer) => {
-            const customerRecords = records.filter(r => r.customerId === customer.id);
-            const activeBags = customerRecords
-              .filter(r => !r.storageEndDate)
-              .reduce((sum, r) => sum + r.bagsStored, 0);
-            
-            const totalDue = customerRecords.reduce((sum, r) => {
-               const totalBilled = (r.hamaliPayable || 0) + (r.totalRentBilled || 0);
-               const amountPaid = (r.payments || []).reduce((acc: any, p: any) => acc + p.amount, 0);
-               const balance = totalBilled - amountPaid;
-               return sum + (balance > 0 ? balance : 0);
-            }, 0);
-
-            return (
-              <Link key={customer.id} href={`/customers/${customer.id}`} className="block">
-                <MobileCard className="hover:border-primary/50 transition-colors">
-                  <MobileCard.Header>
-                    <div className="flex-1">
-                      <MobileCard.Title>{customer.name}</MobileCard.Title>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+          paginatedCustomers.map((customer) => (
+            <Link key={customer.id} href={`/customers/${customer.id}`} className="block">
+              <MobileCard className="hover:border-primary/50 transition-colors">
+                <MobileCard.Header>
+                  <div className="flex-1">
+                    <MobileCard.Title>{customer.name}</MobileCard.Title>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {customer.phone || '-'}
+                      </span>
+                      {customer.village && (
                         <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {customer.phone}
+                          <MapPin className="h-3 w-3" />
+                          {customer.village}
                         </span>
-                        {customer.village && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {customer.village}
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
-                  </MobileCard.Header>
-                  <MobileCard.Content>
-                    <MobileCard.Row 
-                      label="Active Bags" 
-                      value={activeBags > 0 ? <span className="text-green-600 font-semibold">{activeBags}</span> : <span className="text-muted-foreground">-</span>}
-                    />
-                    <MobileCard.Row 
-                      label="Total Due" 
-                      value={totalDue > 0 ? <span className="text-destructive font-bold">{formatCurrency(totalDue)}</span> : <span className="text-muted-foreground">-</span>}
-                    />
-                  </MobileCard.Content>
-                </MobileCard>
-              </Link>
-            );
-          })
+                  </div>
+                </MobileCard.Header>
+                <MobileCard.Content>
+                  <MobileCard.Row 
+                    label="Active Bags" 
+                    value={customer.activeRecords > 0 ? <span className="text-green-600 font-semibold">{customer.activeRecords} (Records)</span> : <span className="text-muted-foreground">-</span>}
+                  />
+                  <MobileCard.Row 
+                    label="Balance Due" 
+                    value={customer.balance > 0 ? <span className="text-destructive font-bold">{formatCurrency(customer.balance)}</span> : <span className="text-muted-foreground">-</span>}
+                  />
+                </MobileCard.Content>
+              </MobileCard>
+            </Link>
+          ))
         )}
       </div>
 
@@ -180,79 +146,67 @@ export function CustomersPageClient({
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Village</TableHead>
-                <TableHead className="text-right">Active Bags</TableHead>
-                <TableHead className="text-right">Total Due</TableHead>
+                <TableHead className="text-right">Active Records</TableHead>
+                <TableHead className="text-right">Total Billed</TableHead>
+                <TableHead className="text-right">Paid</TableHead>
+                <TableHead className="text-right">Balance Due</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-64">
+                  <TableCell colSpan={7} className="h-64">
                     <EmptyState
                       icon={Users}
-                      title={searchQuery ? "No customers found" : "No customers yet"}
-                      description={searchQuery ? `No customers match "${searchQuery}". Try a different search term.` : "Add your first customer to start tracking storage and payments."}
-                      actionLabel={searchQuery ? undefined : "Add First Customer"}
-                      onAction={searchQuery ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
+                      title={localSearch ? "No customers found" : "No customers yet"}
+                      description={localSearch ? `No customers match "${localSearch}".` : "Add your first customer to start tracking storage and payments."}
+                      actionLabel={localSearch ? undefined : "Add First Customer"}
+                      onAction={localSearch ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
                     />
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedCustomers.map((customer) => {
-                  // Calculate insights
-                  const customerRecords = records.filter(r => r.customerId === customer.id);
-                  const activeBags = customerRecords
-                    .filter(r => !r.storageEndDate) // Only active
-                    .reduce((sum, r) => sum + r.bagsStored, 0);
-                  
-                  const totalDue = customerRecords.reduce((sum, r) => {
-                     const totalBilled = (r.hamaliPayable || 0) + (r.totalRentBilled || 0);
-                     const amountPaid = (r.payments || []).reduce((acc: any, p: any) => acc + p.amount, 0);
-                     const balance = totalBilled - amountPaid;
-                     // Only count positive balance (debt)
-                     return sum + (balance > 0 ? balance : 0);
-                  }, 0);
-
-                  return (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">
-                        <Link href={`/customers/${customer.id}`} className="hover:underline">
-                          <div className="text-base font-semibold text-primary">{customer.name}</div>
-                        </Link>
-                        <div className="text-xs text-muted-foreground">{customer.email || '-'}</div>
-                      </TableCell>
-                      <TableCell>{customer.phone}</TableCell>
-                      <TableCell>{customer.village || customer.address}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        {activeBags > 0 ? (
-                          <span className="font-medium text-green-600">{activeBags}</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {totalDue > 0 ? (
-                          <span className="font-bold text-destructive">{formatCurrency(totalDue)}</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                paginatedCustomers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell className="font-medium">
+                      <Link href={`/customers/${customer.id}`} className="hover:underline">
+                        <div className="text-base font-semibold text-primary">{customer.name}</div>
+                      </Link>
+                      <div className="text-xs text-muted-foreground">{customer.email || '-'}</div>
+                    </TableCell>
+                    <TableCell>{customer.phone || '-'}</TableCell>
+                    <TableCell>{customer.village || '-'}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {customer.activeRecords > 0 ? (
+                        <span className="font-medium text-green-600">{customer.activeRecords}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                     <TableCell className="text-right font-mono text-muted-foreground">
+                      {formatCurrency(customer.totalBilled)}
+                    </TableCell>
+                     <TableCell className="text-right font-mono text-green-600">
+                      {formatCurrency(customer.totalPaid)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {customer.balance > 0 ? (
+                        <span className="font-bold text-destructive">{formatCurrency(customer.balance)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      )}
+      {/* Pagination removed for now as we are relying on Infinite Scroll or simple Limit 50 
+          TODO: Add Server-Side Link Pagination for page 2, 3 etc. 
+      */}
     </>
   );
 }
