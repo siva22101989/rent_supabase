@@ -114,7 +114,7 @@ export function CustomerStatementDialog({
         <DialogHeader>
           <DialogTitle>Customer Statement</DialogTitle>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto p-2 border rounded-md bg-zinc-50/50">
+        <div className="max-h-[70vh] overflow-y-auto overflow-x-auto p-2 border rounded-md bg-zinc-50/50">
             <CustomerStatementReceipt customer={customer} records={records} dateRange={dateRange} />
         </div>
         
