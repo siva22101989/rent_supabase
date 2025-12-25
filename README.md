@@ -16,6 +16,7 @@ Built with **Next.js 16**, **Supabase**, and **Shadcn UI**, it offers a modern, 
 - **Readable IDs**: Auto-generated transaction IDs (e.g., `REC-1001`, `PAY-505`) for easy reference.
 - **Lot Management**: Track capacity by specific warehouse zones (Row A, Row B).
 - **Visual Metrics**: Real-time charts for occupancy, weekly flow, and revenue.
+- **SMS Notifications**: Automated SMS for inflow, outflow, and payment reminders via TextBee.
 
 ### 💰 Financial Automation
 
