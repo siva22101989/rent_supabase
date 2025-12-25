@@ -13,14 +13,17 @@ import { expenseCategories } from './definitions';
 import { getNextInvoiceNumber } from '@/lib/sequence-utils';
 import * as Sentry from "@sentry/nextjs";
 import { logError } from '@/lib/error-logger';
-import { textBeeService } from '@/lib/textbee';
-
-const { logger } = Sentry;
+import { isSMSEnabled } from '@/lib/sms-settings-actions';
 
 /**
  * Send payment reminder SMS via TextBee
  */
 export async function sendPaymentReminderSMS(customerId: string, recordId?: string) {
+    // Check if payment reminders enabled
+    if (!(await isSMSEnabled('payment_reminders'))) {
+        return { success: false, error: 'SMS disabled in settings' };
+    }
+
     try {
         const supabase = await createClient();
         

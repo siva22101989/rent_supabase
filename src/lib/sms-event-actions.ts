@@ -6,11 +6,17 @@
 import { textBeeService } from '@/lib/textbee';
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { isSMSEnabled } from '@/lib/sms-settings-actions';
 
 /**
  * Send welcome SMS when inflow is created
  */
 export async function sendInflowWelcomeSMS(storageRecordId: string) {
+    // Check settings
+    if (!(await isSMSEnabled('inflow_welcome'))) {
+        return { success: false, error: 'SMS disabled in settings' };
+    }
+
     try {
         const supabase = await createClient();
         
@@ -69,6 +75,11 @@ export async function sendInflowWelcomeSMS(storageRecordId: string) {
  * Send confirmation SMS when outflow is processed
  */
 export async function sendOutflowConfirmationSMS(transactionId: string) {
+    // Check settings
+    if (!(await isSMSEnabled('outflow_confirmation'))) {
+        return { success: false, error: 'SMS disabled in settings' };
+    }
+
     try {
         const supabase = await createClient();
         
@@ -133,6 +144,11 @@ export async function sendOutflowConfirmationSMS(transactionId: string) {
  * Send payment confirmation SMS
  */
 export async function sendPaymentConfirmationSMS(paymentId: string) {
+    // Check settings
+    if (!(await isSMSEnabled('payment_confirmation'))) {
+        return { success: false, error: 'SMS disabled in settings' };
+    }
+
     try {
         const supabase = await createClient();
         
