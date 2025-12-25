@@ -588,6 +588,7 @@ export async function getTeamMembers() {
         .from('profiles')
         .select('*')
         .eq('warehouse_id', warehouseId)
+        .neq('role', 'customer')
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -692,42 +693,100 @@ export async function getRecentOutflows(limit = 5) {
 export const getAdminDashboardStats = cache(async () => {
     const supabase = await createClient();
     
-    // Check if user is super admin
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
     
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'super_admin') return null;
+    // Check role
+    const { data: profile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', user.id).single();
+    if (!profile) return null;
+    
+    const isSuper = profile.role === 'super_admin';
+    const isOwner = profile.role === 'owner';
+
+    if (!isSuper && !isOwner) return null; 
+
+    // Access Scope
+    let warehouseIds: string[] = [];
+    if (isOwner) {
+        // Fetch all warehouses this owner has access to
+        const { data: assignments } = await supabase.from('warehouse_assignments').select('warehouse_id').eq('user_id', user.id);
+        warehouseIds = assignments?.map(a => a.warehouse_id) || [];
+        if (profile.warehouse_id && !warehouseIds.includes(profile.warehouse_id)) {
+            warehouseIds.push(profile.warehouse_id);
+        }
+        if (warehouseIds.length === 0) return null; // No access
+    }
+
+    // Determine counts with filters
+    const getCount = async (table: string, filterByWarehouse = false) => {
+        let q = supabase.from(table).select('*', { count: 'exact', head: true });
+        if (!isSuper && filterByWarehouse && warehouseIds.length > 0) {
+            // Check if table has 'warehouse_id'
+            // storage_records yes
+            // customers no (global?) - Managers see all customers usually or linked via warehouse? 
+            // Currently customers are global in schema? schema says profiles with role='customer'.
+            // If customers are global, owners see all. If we want scope, we need 'warehouse_id' on customers.
+            // Assuming customers are global for now to avoid breaking.
+            if (table !== 'customers') {
+                 q = q.in('warehouse_id', warehouseIds);
+            }
+        }
+        // Specific filters
+        if (table === 'profiles') q = q.neq('role', 'customer');
+        if (table === 'storage_records') q = q.is('storage_end_date', null);
+
+        const { count } = await q;
+        return count || 0;
+    };
+    
+    // For specific data (Lots)
+    let lotsQuery = supabase.from('warehouse_lots').select('current_stock');
+    // Lots are in a warehouse. warehouse_lots has 'warehouse_id'
+    if (!isSuper && warehouseIds.length > 0) {
+        lotsQuery = lotsQuery.in('warehouse_id', warehouseIds);
+    }
 
     const [
-        { count: warehouseCount },
-        { count: usersCount },
-        { count: customersCount },
-        { count: activeRecordsCount },
+        warehouseCount,
+        usersCount,
+        customersCount,
+        activeRecordsCount,
         { data: lots }
     ] = await Promise.all([
-        supabase.from('warehouses').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('customers').select('*', { count: 'exact', head: true }),
-        supabase.from('storage_records').select('*', { count: 'exact', head: true }).is('storage_end_date', null),
-        supabase.from('warehouse_lots').select('current_stock')
+        getCount('warehouses', true) // Filter warehouses by ID
+            .then(c => isSuper ? c : warehouseIds.length), // If owner, count is length of IDs
+        getCount('profiles', true), 
+        getCount('customers', false), // Global customers
+        getCount('storage_records', true),
+        lotsQuery
     ]);
 
     const totalStock = lots?.reduce((sum, lot) => sum + (lot.current_stock || 0), 0) || 0;
 
     return {
-        warehouseCount: warehouseCount || 0,
-        usersCount: usersCount || 0,
-        customersCount: customersCount || 0,
-        activeRecordsCount: activeRecordsCount || 0,
+        warehouseCount,
+        usersCount,
+        customersCount,
+        activeRecordsCount,
         totalStock
     };
 });
 
 export const getAllWarehousesAdmin = cache(async () => {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     
-    const { data, error } = await supabase
+    const { data: profile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', user?.id).single();
+    const isOwner = profile?.role === 'owner';
+    let warehouseIds: string[] = [];
+    
+    if (isOwner) {
+         const { data: assignments } = await supabase.from('warehouse_assignments').select('warehouse_id').eq('user_id', user?.id);
+         warehouseIds = assignments?.map(a => a.warehouse_id) || [];
+         if (profile?.warehouse_id) warehouseIds.push(profile.warehouse_id);
+    }
+    
+    let query = supabase
         .from('warehouses')
         .select(`
             *,
@@ -735,6 +794,13 @@ export const getAllWarehousesAdmin = cache(async () => {
             storage_records (id, bags_stored)
         `)
         .order('created_at', { ascending: false });
+
+    if (isOwner) {
+        if (warehouseIds.length === 0) return [];
+        query = query.in('id', warehouseIds);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error('Error fetching warehouses:', error);
@@ -759,14 +825,33 @@ export const getAllWarehousesAdmin = cache(async () => {
 
 export const getAllUsersAdmin = cache(async () => {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     
-    const { data, error } = await supabase
+    const { data: profile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', user?.id).single();
+    const isOwner = profile?.role === 'owner';
+    let warehouseIds: string[] = [];
+    
+    if (isOwner) {
+         const { data: assignments } = await supabase.from('warehouse_assignments').select('warehouse_id').eq('user_id', user?.id);
+         warehouseIds = assignments?.map(a => a.warehouse_id) || [];
+         if (profile?.warehouse_id) warehouseIds.push(profile.warehouse_id);
+    }
+    
+    let query = supabase
         .from('profiles')
         .select(`
             *,
             warehouse:warehouses (name)
         `)
+        .neq('role', 'customer') // Hide customers from Admin Panel User List
         .order('created_at', { ascending: false });
+
+    if (isOwner) {
+        if (warehouseIds.length === 0) return [];
+        query = query.in('warehouse_id', warehouseIds);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error('Error fetching users:', error);
@@ -776,10 +861,21 @@ export const getAllUsersAdmin = cache(async () => {
     return data;
 });
 
-export const getGlobalActivityLogs = cache(async (limit = 50) => {
+export const getGlobalActivityLogs = cache(async (limit = 50, offset = 0, search = '', filterAction = '') => {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     
-    const { data, error } = await supabase
+    const { data: profile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', user?.id).single();
+    const isOwner = profile?.role === 'owner';
+    let warehouseIds: string[] = [];
+    
+    if (isOwner) {
+         const { data: assignments } = await supabase.from('warehouse_assignments').select('warehouse_id').eq('user_id', user?.id);
+         warehouseIds = assignments?.map(a => a.warehouse_id) || [];
+         if (profile?.warehouse_id) warehouseIds.push(profile.warehouse_id);
+    }
+    
+    let query = supabase
         .from('activity_logs')
         .select(`
             *,
@@ -787,7 +883,23 @@ export const getGlobalActivityLogs = cache(async (limit = 50) => {
             warehouse:warehouses (name)
         `)
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .range(offset, offset + limit - 1);
+
+    if (isOwner) {
+        if (warehouseIds.length === 0) return [];
+        query = query.in('warehouse_id', warehouseIds);
+    }
+
+    if (search) {
+        // Correct query logic for search
+        query = query.or(`action.ilike.%${search}%,entity.ilike.%${search}%,entity_id.ilike.%${search}%`);
+    }
+
+    if (filterAction && filterAction !== 'all') {
+        query = query.eq('action', filterAction);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error('Error fetching activity logs:', error);

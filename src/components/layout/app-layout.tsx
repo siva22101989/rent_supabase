@@ -130,13 +130,17 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
   }
 
   const getBackLink = () => {
-      if (isDashboard) return null;
-      const parts = pathname.split('/').filter(Boolean);
-      if (parts.length > 1) {
-          const parentPath = '/' + parts.slice(0, -1).join('/');
-          return { href: parentPath, label: 'Back' };
-      }
-      return { href: '/', label: 'Dashboard' };
+    if (isDashboard) return null;
+    const parts = pathname.split('/').filter(Boolean);
+    
+    // special cases for admin
+    if (pathname.startsWith('/admin')) return { href: '/', label: 'Dashboard' };
+    
+    if (parts.length > 1) {
+        const parentPath = '/' + parts.slice(0, -1).join('/');
+        return { href: parentPath, label: 'Back' };
+    }
+    return { href: '/', label: 'Dashboard' };
   };
 
   const backLink = getBackLink();
@@ -144,7 +148,7 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
 
   return (
     <LayoutProvider isSidebarMode={isSidebarMode}>
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full overflow-x-hidden">
        {/* Conditional Sidebar */}
        {isSidebarMode && (
            <Sidebar 
@@ -154,15 +158,15 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
             />
        )}
 
-       <div className="flex-1 flex flex-col min-h-screen transition-all duration-300">
+       <div className="flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300">
            {/* Header */}
-           <header className="sticky top-0 z-50 flex h-16 items-center justify-between gap-2 md:gap-4 border-b bg-gradient-to-r from-primary/10 via-background to-primary/5 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 md:px-6">
+           <header className="sticky top-0 z-50 flex h-16 items-center justify-between gap-4 border-b bg-background/80 backdrop-blur-md px-4 md:px-8">
                 <div className="flex items-center gap-2 md:gap-4">
                   {/* If in Sidebar Mode, Hide Logo in Header unless on mobile */}
                   {(!isSidebarMode) && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                          {backLink && (
-                            <Button variant="ghost" size="icon" className="h-9 w-9 md:h-8 md:w-8" asChild>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 md:h-8 md:w-8 shrink-0" asChild>
                                 <Link href={backLink.href}>
                                 <ArrowLeft className="h-4 w-4" />
                                 <span className="sr-only">Back to {backLink.label}</span>
@@ -202,17 +206,19 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
                     <CommandSearch />
                 </div>
 
-                <div className="flex items-center gap-1 md:gap-2">
-                  {warehouses.length > 0 && (
-                      <WarehouseSwitcher warehouses={warehouses} currentWarehouseId={currentWarehouseId} />
-                  )}
+                <div className="flex items-center gap-1.5 md:gap-3 shrink-0 ml-auto">
+                  <div className="hidden xs:block">
+                    {warehouses.length > 0 && (
+                        <WarehouseSwitcher warehouses={warehouses} currentWarehouseId={currentWarehouseId} />
+                    )}
+                  </div>
                   <ThemeToggle />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                       <Button variant="ghost" className="relative h-9 w-9 md:h-8 md:w-8 rounded-full">
+                       <Button variant="ghost" className="relative h-9 w-9 md:h-8 md:w-8 rounded-full border border-primary/10 shadow-sm ring-offset-background transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <Avatar className="h-9 w-9 md:h-8 md:w-8">
                            <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
-                          <AvatarFallback>{user.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
+                          <AvatarFallback className="bg-primary/5 text-primary text-[10px] md:text-sm font-bold uppercase">{user.email?.[0] || 'U'}</AvatarFallback>
                         </Avatar>
                       </Button>
                     </DropdownMenuTrigger>
@@ -255,7 +261,7 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
                 </div>
             </header>
             
-            <main className="flex flex-1 flex-col gap-4 p-3 md:gap-8 md:p-8 pb-20 md:pb-8">
+            <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8 pb-24 md:pb-8">
                 {showOnboarding ? <WelcomeOnboarding /> : children}
             </main>
        </div>

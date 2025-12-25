@@ -110,10 +110,10 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block rounded-md border bg-white overflow-x-auto">
+            <div className="hidden md:block rounded-md border bg-card overflow-x-auto">
                 <Table>
                 <TableHeader>
-                    <TableRow className="bg-slate-50/50">
+                    <TableRow className="hover:bg-muted/50">
                         <TableHead className="w-[250px]">Warehouse</TableHead>
                         <TableHead>Location</TableHead>
                         <TableHead>Utilization</TableHead>
@@ -135,7 +135,7 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-1 text-sm text-slate-500">
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                     <MapPin className="h-3 w-3" />
                                     {w.location || 'N/A'}
                                 </div>
@@ -157,7 +157,7 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
                                     {w.activeRecords}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-xs text-slate-500">
+                            <TableCell className="text-xs text-muted-foreground">
                                 {format(new Date(w.created_at), 'MMM d, yyyy')}
                             </TableCell>
                             <TableCell className="text-right">

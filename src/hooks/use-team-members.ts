@@ -3,7 +3,7 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { fetchTeamMembers } from '@/lib/actions';
 import { createClient } from '@/utils/supabase/client';
 
-const CACHE_KEY = 'bagbill_team_members';
+const CACHE_KEY = 'rent_team_members_v2'; // Changed to force refresh after customer filter update
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 Hours
 
 export function useTeamMembers() {

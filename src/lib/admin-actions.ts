@@ -7,26 +7,47 @@ import { getUserWarehouse } from './queries';
 
 const { logger } = Sentry;
 
-async function checkSuperAdmin() {
+async function checkAdminPermissions() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user) return { authorized: false };
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, warehouse_id')
         .eq('id', user.id)
         .single();
 
-    return profile?.role === 'super_admin';
+    const isAuthorized = profile?.role === 'super_admin' || profile?.role === 'owner';
+    return { 
+        authorized: isAuthorized, 
+        role: profile?.role, 
+        warehouseId: profile?.warehouse_id,
+        userId: user.id
+    };
 }
 
 export async function updateUserRole(userId: string, newRole: string) {
-    if (!(await checkSuperAdmin())) {
+    const { authorized, role, warehouseId } = await checkAdminPermissions();
+    if (!authorized) {
         return { success: false, message: 'Unauthorized' };
     }
 
     const supabase = await createClient();
+
+    // If owner, check if the target user is in their warehouse
+    if (role === 'owner') {
+        const { data: targetProfile } = await supabase
+            .from('profiles')
+            .select('warehouse_id')
+            .eq('id', userId)
+            .single();
+        
+        if (targetProfile?.warehouse_id !== warehouseId) {
+            return { success: false, message: 'Unauthorized: User belongs to another warehouse' };
+        }
+    }
+
     const { error } = await supabase
         .from('profiles')
         .update({ role: newRole })
@@ -41,9 +62,58 @@ export async function updateUserRole(userId: string, newRole: string) {
     return { success: true, message: 'Role updated successfully' };
 }
 
+export async function bulkUpdateUserRoles(userIds: string[], newRole: string) {
+    const { authorized, role, warehouseId } = await checkAdminPermissions();
+    if (!authorized) return { success: false, message: 'Unauthorized' };
+
+    const supabase = await createClient();
+
+    let query = supabase.from('profiles').update({ role: newRole }).in('id', userIds);
+
+    // If owner, restrict to their warehouse
+    if (role === 'owner') {
+        query = query.eq('warehouse_id', warehouseId);
+    }
+
+    const { error } = await query;
+
+    if (error) {
+        Sentry.captureException(error);
+        return { success: false, message: error.message };
+    }
+
+    revalidatePath('/admin');
+    return { success: true, message: `Updated ${userIds.length} users successfully` };
+}
+
+export async function bulkDeleteUsers(userIds: string[]) {
+    const { authorized, role, warehouseId } = await checkAdminPermissions();
+    if (!authorized) return { success: false, message: 'Unauthorized' };
+
+    const supabase = await createClient();
+
+    let query = supabase.from('profiles').delete().in('id', userIds);
+
+    // If owner, restrict to their warehouse
+    if (role === 'owner') {
+        query = query.eq('warehouse_id', warehouseId);
+    }
+
+    const { error } = await query;
+
+    if (error) {
+        Sentry.captureException(error);
+        return { success: false, message: error.message };
+    }
+
+    revalidatePath('/admin');
+    return { success: true, message: `Deleted ${userIds.length} users successfully` };
+}
+
 export async function deleteWarehouseAction(warehouseId: string) {
-    if (!(await checkSuperAdmin())) {
-        return { success: false, message: 'Unauthorized' };
+    const { authorized, role } = await checkAdminPermissions();
+    if (!authorized || role !== 'super_admin') {
+        return { success: false, message: 'Unauthorized: Only super admins can delete warehouses' };
     }
 
     const supabase = await createClient();
@@ -95,7 +165,8 @@ export async function updateWarehouseDetails(formData: FormData) {
 }
 
 export async function superAdminUpdateWarehouse(warehouseId: string, updates: any) {
-    if (!(await checkSuperAdmin())) {
+    const { authorized, role } = await checkAdminPermissions();
+    if (!authorized || role !== 'super_admin') {
         return { success: false, message: 'Unauthorized' };
     }
 

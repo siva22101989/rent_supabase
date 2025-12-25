@@ -17,10 +17,20 @@ import {
 import { AdminStatsCards } from '@/components/admin/stats-cards';
 import { AdminWarehousesTable } from '@/components/admin/warehouses-table';
 import { AdminUsersTable } from '@/components/admin/users-table';
-import { GlobalActivityFeed } from '@/components/admin/activity-feed';
+// import { GlobalActivityFeed } from '@/components/admin/activity-feed'; // Replaced
+import { ActivityLogsTable } from '@/components/admin/activity-logs-table';
 import { PlatformAnalyticsCharts } from '@/components/admin/analytics-charts';
 
-export default async function SuperAdminDashboard() {
+export default async function SuperAdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const params = await searchParams;
+  const q = typeof params.q === 'string' ? params.q : '';
+  const page = typeof params.page === 'string' ? Number(params.page) : 1;
+  const type = typeof params.type === 'string' ? params.type : '';
+  
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -35,7 +45,7 @@ export default async function SuperAdminDashboard() {
     .eq('id', user.id)
     .single();
 
-  if (profile?.role !== 'super_admin') {
+  if (profile?.role !== 'super_admin' && profile?.role !== 'owner') {
       return (
         <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-slate-50">
             <h1 className="text-4xl font-bold text-slate-800">403 Forbidden</h1>
@@ -51,13 +61,17 @@ export default async function SuperAdminDashboard() {
   const stats = await getAdminDashboardStats();
   const warehouses = await getAllWarehousesAdmin();
   const users = await getAllUsersAdmin();
-  const activityLogs = await getGlobalActivityLogs(20);
   const analyticsData = await getPlatformAnalytics();
+
+  // Fetch Logs with Filters
+  const limit = 50;
+  const offset = (page - 1) * limit;
+  const activityLogs = await getGlobalActivityLogs(limit, offset, q, type);
 
   if (!stats) return <div>Failed to load stats</div>;
 
   return (
-    <>
+    <div className="max-w-7xl mx-auto w-full space-y-6 sm:space-y-8">
       <PageHeader
         title="Admin Panel"
         description={`Managing ${stats.warehouseCount} warehouses with ${stats.usersCount} active users.`}
@@ -66,82 +80,75 @@ export default async function SuperAdminDashboard() {
           { label: 'Admin Panel' }
         ]}
       >
-        <Button className="bg-indigo-600 hover:bg-indigo-700">
-          <Database className="h-4 w-4 mr-2" />
-          Create Warehouse
+        <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-sm gap-2">
+          <Database className="h-4 w-4" />
+          <span className="hidden xs:inline">Create Warehouse</span>
+          <span className="xs:hidden">Create</span>
         </Button>
       </PageHeader>
 
-            <AdminStatsCards stats={stats} />
+      <AdminStatsCards stats={stats} />
 
-            <Tabs defaultValue="warehouses" className="space-y-4 sm:space-y-6">
-                <div className="flex items-center justify-between overflow-x-auto pb-2 border-b">
-                    <TabsList className="bg-transparent h-auto p-0 gap-3 sm:gap-6 w-full sm:w-auto justify-start">
-                        <TabsTrigger 
-                            value="warehouses" 
-                            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-2 py-2.5 sm:py-3 h-auto font-semibold text-xs sm:text-sm whitespace-nowrap"
-                        >
-                            <Building2 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
-                            Warehouses
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="users" 
-                            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-2 py-2.5 sm:py-3 h-auto font-semibold text-xs sm:text-sm whitespace-nowrap"
-                        >
-                            <Users className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Users
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="activity" 
-                            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-2 py-2.5 sm:py-3 h-auto font-semibold text-xs sm:text-sm whitespace-nowrap"
-                        >
-                            <Activity className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Activity
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="analytics" 
-                            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-2 py-2.5 sm:py-3 h-auto font-semibold text-xs sm:text-sm whitespace-nowrap"
-                        >
-                            <BarChart3 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Analytics
-                        </TabsTrigger>
-                    </TabsList>
-                </div>
+      <Tabs defaultValue="warehouses" className="space-y-4 sm:space-y-6 overflow-hidden">
+        <div className="flex items-center justify-between overflow-x-auto pb-1 no-scrollbar border-b border-primary/10 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="bg-transparent h-auto p-0 gap-6 justify-start">
+            <TabsTrigger 
+              value="warehouses" 
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+            >
+              <Building2 className="mr-2 h-4 w-4" /> 
+              Warehouses
+            </TabsTrigger>
+            <TabsTrigger 
+              value="users" 
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+            >
+              <Users className="mr-2 h-4 w-4" /> Users
+            </TabsTrigger>
+            <TabsTrigger 
+              value="activity" 
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+            >
+              <Activity className="mr-2 h-4 w-4" /> Audit Logs
+            </TabsTrigger>
+            <TabsTrigger 
+              value="analytics" 
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+            >
+              <BarChart3 className="mr-2 h-4 w-4" /> Analytics
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-                <TabsContent value="warehouses" className="mt-0 space-y-4">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                        <h3 className="text-base sm:text-lg font-semibold">Platform Warehouses</h3>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none text-xs sm:text-sm">Download CSV</Button>
-                        </div>
-                    </div>
-                    <AdminWarehousesTable warehouses={warehouses} />
-                </TabsContent>
+        <TabsContent value="warehouses" className="mt-0 space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold tracking-tight">Platform Warehouses</h3>
+          </div>
+          <AdminWarehousesTable warehouses={warehouses} />
+        </TabsContent>
 
-                <TabsContent value="users" className="mt-0 space-y-4">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                        <h3 className="text-base sm:text-lg font-semibold">User Directory</h3>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none text-xs sm:text-sm">Export Users</Button>
-                        </div>
-                    </div>
-                    <AdminUsersTable users={users} />
-                </TabsContent>
+        <TabsContent value="users" className="mt-0 space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold tracking-tight">User Directory</h3>
+          </div>
+          <AdminUsersTable users={users} />
+        </TabsContent>
 
-                <TabsContent value="activity" className="mt-0">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Global Audit Log</CardTitle>
-                            <CardDescription>Latest actions from all users across the platform.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <GlobalActivityFeed logs={activityLogs} />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+        <TabsContent value="activity" className="mt-0 pt-4">
+          <Card className="border-none shadow-none bg-transparent">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold tracking-tight">Global Audit Log</h3>
+              <p className="text-sm text-muted-foreground">Latest actions from all users across the platform.</p>
+            </div>
+            <ActivityLogsTable logs={activityLogs} />
+          </Card>
+        </TabsContent>
 
-                <TabsContent value="analytics" className="mt-0">
-                    <PlatformAnalyticsCharts data={analyticsData} />
-                </TabsContent>
-            </Tabs>
-    </>
+        <TabsContent value="analytics" className="mt-0 pt-4">
+          <PlatformAnalyticsCharts data={analyticsData} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
 

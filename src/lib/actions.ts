@@ -1576,3 +1576,21 @@ export async function getCustomerRecordsAction(customerId: string) {
     const allRecords = await getStorageRecords();
     return allRecords.filter(r => r.customerId === customerId);
 }
+
+/**
+ * Server action to log user login activity
+ */
+export async function logLoginActivity() {
+    'use server';
+    try {
+        const { logActivity } = await import('@/lib/logger');
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) return;
+        
+        await logActivity('LOGIN', 'User', user.id);
+    } catch (error) {
+        logError(error, { operation: 'log_login_activity' });
+    }
+}

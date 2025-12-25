@@ -16,7 +16,10 @@ import {
   IndianRupee,
   Users,
   FileText,
-  Search
+  Search,
+  LayoutDashboard,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 import {
@@ -32,10 +35,13 @@ import {
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
+import { useTheme } from "next-themes";
+
 export function CommandSearch() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
   const [customers, setCustomers] = React.useState<any[]>([]);
+  const { setTheme } = useTheme();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -49,12 +55,12 @@ export function CommandSearch() {
     return () => document.removeEventListener('keydown', down);
   }, []);
 
-  // Fetch Customers needed for search
+  // Fetch Customers needed for search (Increased limit)
   React.useEffect(() => {
       if (open) {
           const fetchCustomers = async () => {
               const supabase = createClient();
-              const { data } = await supabase.from('customers').select('id, name, phone, village').limit(20);
+              const { data } = await supabase.from('customers').select('id, name, phone, village').limit(100).order('name');
               if (data) setCustomers(data);
           }
           fetchCustomers();
@@ -83,31 +89,39 @@ export function CommandSearch() {
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Suggestions">
+            <CommandItem onSelect={() => runCommand(() => router.push('/dashboard'))}>
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Dashboard</span>
+            </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push('/inflow'))}>
               <ArrowDownToDot className="mr-2 h-4 w-4" />
               <span>New Inflow</span>
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push('/outflow'))}>
                 <ArrowUpFromDot className="mr-2 h-4 w-4" />
-              <span>Outflow</span>
+              <span>New Outflow</span>
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push('/storage'))}>
-              <Warehouse className="mr-2 h-4 w-4" />
+             <CommandItem onSelect={() => runCommand(() => router.push('/storage'))}>
+              <Package className="mr-2 h-4 w-4" />
               <span>Storage</span>
             </CommandItem>
              <CommandItem onSelect={() => runCommand(() => router.push('/payments/pending'))}>
               <IndianRupee className="mr-2 h-4 w-4" />
-              <span>Payments</span>
+              <span>Pending Payments</span>
+            </CommandItem>
+             <CommandItem onSelect={() => runCommand(() => router.push('/reports'))}>
+              <FileText className="mr-2 h-4 w-4" />
+              <span>Reports</span>
             </CommandItem>
           </CommandGroup>
           <CommandSeparator />
           
           <CommandGroup heading="Customers">
             {customers.map(c => (
-                <CommandItem key={c.id} onSelect={() => runCommand(() => router.push(`/customers`))}>
+                <CommandItem key={c.id} onSelect={() => runCommand(() => router.push(`/customers/${c.id}`))}>
                     <User className="mr-2 h-4 w-4" />
                     <span>{c.name}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">({c.village})</span>
+                    {c.phone && <span className="ml-2 text-xs text-muted-foreground">({c.phone})</span>}
                 </CommandItem>
             ))}
           </CommandGroup>
@@ -118,6 +132,14 @@ export function CommandSearch() {
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
               <CommandShortcut>⌘S</CommandShortcut>
+            </CommandItem>
+             <CommandItem onSelect={() => runCommand(() => setTheme("light"))}>
+              <Sun className="mr-2 h-4 w-4" />
+              <span>Light Theme</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => setTheme("dark"))}>
+              <Moon className="mr-2 h-4 w-4" />
+              <span>Dark Theme</span>
             </CommandItem>
           </CommandGroup>
         </CommandList>

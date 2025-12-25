@@ -31,7 +31,7 @@ export function Logo() {
       <div className="bg-primary text-primary-foreground p-2 rounded-lg">
         <Package size={24} />
       </div>
-      <span className="font-headline font-semibold text-xl text-primary">BagBill</span>
+      <span className="font-headline font-semibold text-xl text-primary hidden sm:inline">BagBill</span>
     </Link>
   )
 }

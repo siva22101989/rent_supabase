@@ -61,7 +61,7 @@ export const AdminStatsCards = React.memo(
 
 AdminStatsCards.displayName = 'AdminStatsCards';
 
-// Memoize StatCard as well
+// Stat Card Component
 const StatCard = React.memo(function StatCard({ title, value, unit, icon, description }: { 
     title: string; 
     value: string | number; 
@@ -70,17 +70,23 @@ const StatCard = React.memo(function StatCard({ title, value, unit, icon, descri
     description?: string;
 }) {
     return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <div className="p-2 bg-slate-100 rounded-full">{icon}</div>
+        <Card className="hover:shadow-md transition-all duration-200 border-primary/5 bg-card/50 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground tracking-tight">{title}</CardTitle>
+                <div className="p-2.5 bg-primary/10 rounded-xl shadow-inner">
+                    {icon}
+                </div>
             </CardHeader>
             <CardContent>
-                <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold">{value}</span>
-                    {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+                <div className="flex items-baseline gap-1.5 overflow-hidden">
+                    <span className="text-2xl font-bold tracking-tight truncate">{value}</span>
+                    {unit && <span className="text-xs font-semibold text-muted-foreground uppercase">{unit}</span>}
                 </div>
-                {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+                {description && (
+                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed truncate">
+                        {description}
+                    </p>
+                )}
             </CardContent>
         </Card>
     );

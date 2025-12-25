@@ -14,7 +14,7 @@ import {
 
 export const navItems = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { label: 'Admin Panel', href: '/admin', icon: Shield, roles: ['super_admin'] },
+    { label: 'Admin Panel', href: '/admin', icon: Shield, roles: ['super_admin', 'owner'] },
     { label: 'Inflow', href: '/inflow', icon: Truck },
     { label: 'Outflow', href: '/outflow', icon: ArrowRight },
     { label: 'Storage', href: '/storage', icon: Package },

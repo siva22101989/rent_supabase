@@ -31,6 +31,7 @@ export const viewport = {
 import { WarehouseProvider } from '@/contexts/warehouse-context';
 import { CustomerProvider } from '@/contexts/customer-context';
 import { StaticDataProvider } from '@/hooks/use-static-data';
+import { AuthListener } from '@/components/auth/auth-listener';
 
 export default function RootLayout({
   children,
@@ -44,6 +45,7 @@ export default function RootLayout({
           <WarehouseProvider>
             <StaticDataProvider>
               <CustomerProvider>
+                <AuthListener />
                 <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
                 {children}
                 <Toaster />
