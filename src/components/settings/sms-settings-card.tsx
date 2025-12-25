@@ -99,17 +99,18 @@ export function SMSSettingsCard() {
             </CardHeader>
             <CardContent className="space-y-6">
                 {/* Payment Reminders */}
-                <div className="flex items-center justify-between space-x-2">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="payment-reminders" className="text-base">
+                <div className="flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sm">
+                    <div className="space-y-0.5 flex-1">
+                        <Label htmlFor="payment-reminders" className="text-base font-medium">
                             Payment Reminders
                         </Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mr-2">
                             Manual SMS when you click "Send Reminder" button
                         </p>
                     </div>
                     <Switch
                         id="payment-reminders"
+                        className="shrink-0"
                         checked={settings.enable_payment_reminders}
                         onCheckedChange={(checked) =>
                             setSettings({ ...settings, enable_payment_reminders: checked })
@@ -118,17 +119,18 @@ export function SMSSettingsCard() {
                 </div>
 
                 {/* Inflow Welcome */}
-                <div className="flex items-center justify-between space-x-2">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="inflow-welcome" className="text-base">
+                <div className="flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sm">
+                    <div className="space-y-0.5 flex-1">
+                        <Label htmlFor="inflow-welcome" className="text-base font-medium">
                             Inflow Welcome SMS
                         </Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mr-2">
                             Automatic SMS when new storage record is created
                         </p>
                     </div>
                     <Switch
                         id="inflow-welcome"
+                        className="shrink-0"
                         checked={settings.enable_inflow_welcome}
                         onCheckedChange={(checked) =>
                             setSettings({ ...settings, enable_inflow_welcome: checked })
@@ -137,17 +139,18 @@ export function SMSSettingsCard() {
                 </div>
 
                 {/* Outflow Confirmation */}
-                <div className="flex items-center justify-between space-x-2">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="outflow-confirmation" className="text-base">
+                <div className="flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sm">
+                    <div className="space-y-0.5 flex-1">
+                        <Label htmlFor="outflow-confirmation" className="text-base font-medium">
                             Outflow Confirmation SMS
                         </Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mr-2">
                             Automatic SMS when withdrawal is processed
                         </p>
                     </div>
                     <Switch
                         id="outflow-confirmation"
+                        className="shrink-0"
                         checked={settings.enable_outflow_confirmation}
                         onCheckedChange={(checked) =>
                             setSettings({ ...settings, enable_outflow_confirmation: checked })
@@ -156,17 +159,18 @@ export function SMSSettingsCard() {
                 </div>
 
                 {/* Payment Confirmation */}
-                <div className="flex items-center justify-between space-x-2">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="payment-confirmation" className="text-base">
+                <div className="flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sm">
+                    <div className="space-y-0.5 flex-1">
+                        <Label htmlFor="payment-confirmation" className="text-base font-medium">
                             Payment Confirmation SMS
                         </Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mr-2">
                             Automatic SMS when payment is recorded
                         </p>
                     </div>
                     <Switch
                         id="payment-confirmation"
+                        className="shrink-0"
                         checked={settings.enable_payment_confirmation}
                         onCheckedChange={(checked) =>
                             setSettings({ ...settings, enable_payment_confirmation: checked })
