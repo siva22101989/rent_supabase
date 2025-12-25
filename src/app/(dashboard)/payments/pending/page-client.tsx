@@ -7,8 +7,10 @@ import { formatCurrency } from "@/lib/utils";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AddPaymentDialog } from '@/components/payments/add-payment-dialog';
-import { Loader2, ChevronDown, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, ArrowUpDown, MessageSquare } from 'lucide-react';
 import { getCustomerRecordsAction } from '@/lib/actions';
+import { sendPaymentReminderSMS } from '@/lib/sms-actions';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -29,6 +31,8 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
     const [loadingCustomerId, setLoadingCustomerId] = useState<string | null>(null);
     const [customerRecords, setCustomerRecords] = useState<Record<string, StorageRecord[]>>({});
     const [selectedRecord, setSelectedRecord] = useState<(StorageRecord & { balanceDue: number }) | null>(null);
+    const [sendingSMS, setSendingSMS] = useState<string | null>(null);
+    const { toast } = useToast();
     
     // Search and filter state
     const [searchTerm, setSearchTerm] = useState('');
@@ -103,6 +107,34 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
             ...record,
             balanceDue
         });
+    };
+
+    const handleSendReminder = async (customerId: string, customerName: string) => {
+        setSendingSMS(customerId);
+        try {
+            const result = await sendPaymentReminderSMS(customerId);
+            
+            if (result.success) {
+                toast({
+                    title: "SMS Sent!",
+                    description: `Payment reminder sent to ${customerName}`,
+                });
+            } else {
+                toast({
+                    title: "Failed to send SMS",
+                    description: result.error || "Please try again",
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to send SMS. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setSendingSMS(null);
+        }
     };
 
     return (
@@ -225,9 +257,30 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
                                     )}
 
                                     <div className="pt-2">
-                                        <Link href={`/customers/${customer.id}`}>
-                                            <Button variant="outline" className="w-full" size="sm">View Full Details</Button>
-                                        </Link>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1"
+                                                onClick={() => handleSendReminder(customer.id, customer.name)}
+                                                disabled={sendingSMS === customer.id}
+                                            >
+                                                {sendingSMS === customer.id ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                        Sending...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <MessageSquare className="h-4 w-4 mr-2" />
+                                                        Send Reminder
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Link href={`/customers/${customer.id}`} className="flex-1">
+                                                <Button variant="outline" className="w-full" size="sm">View Full Details</Button>
+                                            </Link>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -282,9 +335,23 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
                                                 <TableCell className="text-right font-mono text-green-600">{formatCurrency(customer.totalPaid)}</TableCell>
                                                 <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(customer.balance)}</TableCell>
                                                 <TableCell className="text-right">
-                                                    <Link href={`/customers/${customer.id}`}>
-                                                        <Button size="sm" variant="outline">View Details</Button>
-                                                    </Link>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleSendReminder(customer.id, customer.name)}
+                                                            disabled={sendingSMS === customer.id}
+                                                        >
+                                                            {sendingSMS === customer.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <MessageSquare className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                        <Link href={`/customers/${customer.id}`}>
+                                                            <Button size="sm" variant="outline">View Details</Button>
+                                                        </Link>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
 

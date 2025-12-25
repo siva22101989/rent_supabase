@@ -70,16 +70,18 @@ export async function sendPaymentReminderSMS(customerId: string, recordId?: stri
         
         // Log SMS in database (optional - create sms_logs table if needed)
         if (result.success) {
-            await supabase.from('sms_logs').insert({
+            const { error: logError } = await supabase.from('sms_logs').insert({
                 customer_id: customerId,
                 phone: customer.phone,
                 message_type: 'payment_reminder',
                 message_id: result.messageId,
                 status: 'sent',
-            }).catch(() => {
-                // Ignore if table doesn't exist yet
-                console.log('SMS sent but not logged (sms_logs table not found)');
             });
+            
+            // Ignore if table doesn't exist
+            if (logError) {
+                console.log('SMS sent but not logged (sms_logs table not found):', logError.message);
+            }
         }
         
         revalidatePath('/payments/pending');
