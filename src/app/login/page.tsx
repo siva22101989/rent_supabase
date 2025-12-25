@@ -30,8 +30,17 @@ export default function LoginPage() {
     setLoading(true);
     const supabase = createClient();
     
+    // Check if input looks like a mobile number (10 digits)
+    let loginEmail = email.trim();
+    const isMobile = /^\d{10}$/.test(loginEmail);
+    
+    if (isMobile) {
+        loginEmail = `${loginEmail}@rentapp.local`;
+        console.log("Logging in via mobile:", loginEmail);
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: loginEmail,
       password,
     });
 
@@ -59,12 +68,12 @@ export default function LoginPage() {
         <CardContent className="grid gap-4">
             <form onSubmit={handleLogin} className="grid gap-4">
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email or Mobile Number</Label>
                     <Input
                     id="email"
                     name="email"
-                    type="email"
-                    placeholder="m@example.com"
+                    type="text"
+                    placeholder="Mobile Number or Email"
                     autoComplete="username"
                     required
                     value={email}

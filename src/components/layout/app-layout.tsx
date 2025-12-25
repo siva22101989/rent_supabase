@@ -78,6 +78,8 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
     return () => subscription.unsubscribe();
   }, [router]);
 
+  const [hasPortalAccess, setHasPortalAccess] = React.useState(false);
+
   React.useEffect(() => {
     async function checkProfile(userId: string) {
        const supabase = createClient();
@@ -89,6 +91,14 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
            } else {
                setShowOnboarding(false);
            }
+
+           // Check for Customer Portal Access (Linked Customer Profile)
+           const { count } = await supabase
+                .from('customers')
+                .select('*', { count: 'exact', head: true })
+                .eq('linked_user_id', userId);
+           setHasPortalAccess((count || 0) > 0);
+
        } finally {
            setCheckingOnboarding(false);
        }
@@ -224,9 +234,11 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
                       <DropdownMenuItem asChild>
                         <Link href="/settings">Settings</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/portal">My Customer Portal</Link>
-                      </DropdownMenuItem>
+                      {hasPortalAccess && (
+                          <DropdownMenuItem asChild>
+                            <Link href="/portal">My Customer Portal</Link>
+                          </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
                         <Link href="/guide" className="flex items-center">

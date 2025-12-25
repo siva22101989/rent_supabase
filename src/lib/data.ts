@@ -142,7 +142,8 @@ export const saveCustomer = async (customer: Customer): Promise<void> => {
     address: customer.address,
     father_name: customer.fatherName,
     village: customer.village,
-    warehouse_id: warehouseId
+    warehouse_id: warehouseId,
+    linked_user_id: customer.linkedUserId
   });
 
   if (error) throw error;

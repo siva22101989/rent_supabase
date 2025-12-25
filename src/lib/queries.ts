@@ -30,6 +30,20 @@ export const getCurrentUserRole = cache(async () => {
     .single();
 
   return profile?.role;
+  return profile?.role;
+});
+
+export const hasCustomerProfile = cache(async () => {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { count } = await supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true })
+        .eq('linked_user_id', user.id);
+    
+    return (count || 0) > 0;
 });
 
 export const getUserWarehouses = cache(async (): Promise<UserWarehouse[]> => {

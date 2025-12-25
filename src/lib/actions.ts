@@ -91,12 +91,52 @@ export async function addCustomer(prevState: FormState, formData: FormData): Pro
 
             const { email, fatherName, village, ...rest } = validatedFields.data;
 
+            // Auto-Create Auth User Logic
+            let linkedUserId = undefined;
+            if (rest.phone && /^\d{10}$/.test(rest.phone)) {
+                 try {
+                     const { createAdminClient } = await import('@/utils/supabase/admin');
+                     const supabaseAdmin = createAdminClient();
+                     const dummyEmail = `${rest.phone}@rentapp.local`;
+                     
+                     // Check if user already exists
+                     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+                     const existingUser = existingUsers.users.find(u => u.email === dummyEmail);
+
+                     if (existingUser) {
+                         linkedUserId = existingUser.id;
+                         logger.info("Linked to existing auth user", { userId: linkedUserId });
+                     } else {
+                         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                             email: dummyEmail,
+                             password: '123456',
+                             email_confirm: true,
+                             user_metadata: { 
+                                 full_name: rest.name, 
+                                 role: 'customer',
+                                 phone_number: rest.phone
+                             }
+                         });
+
+                         if (createError) {
+                             logger.error("Failed to auto-create auth user", { error: createError.message });
+                         } else if (newUser.user) {
+                             linkedUserId = newUser.user.id;
+                             logger.info("Auto-created auth user", { userId: linkedUserId });
+                         }
+                     }
+                 } catch (e) {
+                     logger.error("Error in auto-auth creation", { error: e });
+                 }
+            }
+
             const newCustomer = {
                 ...rest,
                 id: `CUST-${Date.now()}`,
                 email: email ?? '',
                 fatherName: fatherName ?? '',
                 village: village ?? '',
+                linkedUserId: linkedUserId
             };
             
             try {
