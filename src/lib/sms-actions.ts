@@ -14,6 +14,7 @@ import { getNextInvoiceNumber } from '@/lib/sequence-utils';
 import * as Sentry from "@sentry/nextjs";
 import { logError } from '@/lib/error-logger';
 import { isSMSEnabled } from '@/lib/sms-settings-actions';
+import { textBeeService } from '@/lib/textbee';
 
 /**
  * Send payment reminder SMS via TextBee

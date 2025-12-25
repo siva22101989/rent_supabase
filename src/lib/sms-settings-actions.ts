@@ -3,26 +3,23 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+import { getUserWarehouse } from '@/lib/queries';
+
 /**
  * Get SMS settings for current warehouse
  */
 export async function getSMSSettings() {
     const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
     
-    const { data: warehouse } = await supabase
-        .from('user_warehouses')
-        .select('warehouse_id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-    
-    if (!warehouse) {
+    if (!warehouseId) {
         return null;
     }
     
     const { data, error } = await supabase
         .from('sms_settings')
         .select('*')
-        .eq('warehouse_id', warehouse.warehouse_id)
+        .eq('warehouse_id', warehouseId)
         .single();
     
     // Create default settings if none exist
@@ -30,7 +27,7 @@ export async function getSMSSettings() {
         const { data: newSettings } = await supabase
             .from('sms_settings')
             .insert({
-                warehouse_id: warehouse.warehouse_id,
+                warehouse_id: warehouseId,
                 enable_payment_reminders: true,
                 enable_inflow_welcome: false,
                 enable_outflow_confirmation: false,
@@ -55,14 +52,9 @@ export async function updateSMSSettings(settings: {
     enable_payment_confirmation?: boolean;
 }) {
     const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
     
-    const { data: warehouse } = await supabase
-        .from('user_warehouses')
-        .select('warehouse_id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-    
-    if (!warehouse) {
+    if (!warehouseId) {
         return { success: false, error: 'Warehouse not found' };
     }
     
@@ -72,9 +64,22 @@ export async function updateSMSSettings(settings: {
             ...settings,
             updated_at: new Date().toISOString(),
         })
-        .eq('warehouse_id', warehouse.warehouse_id);
+        .eq('warehouse_id', warehouseId);
     
     if (error) {
+        // Handle case where settings row doesn't exist yet
+        if (error.code === 'PGRST116' || error.details?.includes('0 rows')) {
+             const { error: insertError } = await supabase
+                .from('sms_settings')
+                .insert({
+                    warehouse_id: warehouseId,
+                    ...settings,
+                });
+                
+             if (insertError) return { success: false, error: insertError.message };
+             revalidatePath('/settings');
+             return { success: true };
+        }
         return { success: false, error: error.message };
     }
     
