@@ -188,7 +188,14 @@ export async function getPendingPayments(limit = 50): Promise<any[]> {
       return [];
     }
   
-    return data;
+    return data.map((c: any) => ({
+      id: c.customer_id,
+      name: c.customer_name,
+      phone: c.phone,
+      totalBilled: c.total_billed,
+      totalPaid: c.total_paid,
+      balance: c.balance
+    }));
 }
 
 export async function getCustomers(): Promise<Customer[]> {
