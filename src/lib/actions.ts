@@ -1526,3 +1526,13 @@ export async function updateOutflow(transactionId: string, formData: FormData) {
 
     return { success: true, message: 'Outflow updated successfully' };
 }
+
+/**
+ * Server action to fetch customer records
+ */
+export async function getCustomerRecordsAction(customerId: string) {
+    'use server';
+    const { getStorageRecords } = await import('@/lib/queries');
+    const allRecords = await getStorageRecords();
+    return allRecords.filter(r => r.customerId === customerId);
+}

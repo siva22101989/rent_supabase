@@ -26,6 +26,7 @@ import { EditCustomerDialog } from '@/components/customers/edit-customer-dialog'
 import { DeleteCustomerButton } from '@/components/customers/delete-customer-button';
 import { EditPaymentDialog } from '@/components/payments/edit-payment-dialog';
 import { DeletePaymentButton } from '@/components/payments/delete-payment-button';
+import { AddPaymentDialog } from '@/components/payments/add-payment-dialog';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
@@ -154,11 +155,14 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                             <PlusCircle className="mr-2 h-4 w-4" /> New Inflow
                         </Link>
                     </Button>
-                    <Button asChild variant="secondary" size="sm">
-                        <Link href="/payments/pending">
-                            <CreditCard className="mr-2 h-4 w-4" /> Receive Payment
-                        </Link>
-                    </Button>
+                    {activeRecords.length > 0 && totalDue > 0 && (
+                        <AddPaymentDialog 
+                            record={{
+                                ...activeRecords[0],
+                                balanceDue: totalDue
+                            }} 
+                        />
+                    )}
                 </div>
             </div>
         </div>

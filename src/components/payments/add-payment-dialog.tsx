@@ -29,10 +29,14 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 // Local SubmitButton removed in favor of shared component
 
-export function AddPaymentDialog({ record }: { record: StorageRecord & { balanceDue: number } }) {
+export function AddPaymentDialog({ record, onClose, autoOpen = false }: { 
+  record: StorageRecord & { balanceDue: number };
+  onClose?: () => void;
+  autoOpen?: boolean;
+}) {
   const { toast } = useToast();
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(autoOpen);
   const [paymentType, setPaymentType] = useState<'Rent/Other' | 'Hamali'>('Rent/Other');
   const lastHandledRef = useRef<any>(null);
   
@@ -52,6 +56,7 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
       if (state.success) {
         toast({ title: 'Success', description: state.message });
         setIsOpen(false);
+        onClose?.();
         router.refresh();
       } else {
         router.refresh();
@@ -62,18 +67,24 @@ export function AddPaymentDialog({ record }: { record: StorageRecord & { balance
         });
       }
     }
-  }, [state, toast, router]);
+  }, [state, toast, router, onClose]);
   
-  const title = paymentType === 'Hamali' ? 'Add Extra Hamali Charges' : 'Add Payment to Record';
+  const recordDisplay = record.recordNumber || `REC-${record.id.substring(0, 8)}`;
+  const title = paymentType === 'Hamali' ? 'Add Extra Hamali Charges' : 'Record Payment';
   const description = paymentType === 'Hamali'
-    ? `Add an additional hamali charge to record ${record.id}.`
-    : `Record a payment for ${record.id}. Balance Due: ${formatCurrency(record.balanceDue)}`;
+    ? `Add an additional hamali charge to ${recordDisplay}.`
+    : `Record a payment for ${recordDisplay}. Balance Due: ${formatCurrency(record.balanceDue)}`;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">Add Payment</Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) onClose?.();
+    }}>
+      {!autoOpen && (
+        <DialogTrigger asChild>
+          <Button size="sm">Add Payment</Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <form action={formAction}>
           <input type="hidden" name="recordId" value={record.id} />
