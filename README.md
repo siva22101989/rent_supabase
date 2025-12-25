@@ -28,7 +28,15 @@ Built with **Next.js 16**, **Supabase**, and **Shadcn UI**, it offers a modern, 
 
 - **Customer Profiles**: 360-degree view of every client (Active Stock, History, Total Due).
 - **Activity Timeline**: Full history of every inflow, payment, and withdrawal.
+- **Smart Payment Recording**: Expandable record selection with readable IDs - see all customer records, select which one to pay.
 - **One-Click Actions**: Quick buttons for "New Inflow" or "Receive Payment" directly from profile.
+
+### 🔍 Search & Filter
+
+- **Universal Search**: Instant search across all major pages (Customers, Payments, Storage, Outflow, Expenses, Inflow).
+- **Advanced Filters**: Date range filtering, sort options, and multi-criteria search.
+- **Smart Empty States**: Context-aware messages when no results found.
+- **Client-Side Performance**: Instant filtering with no server round-trips for 100+ records.
 
 ### ⚙️ Professional Grade
 
@@ -98,6 +106,11 @@ While the application is production-ready, these features are continuously evolv
 - [x] **Audit Logging**: Comprehensive tracking of inflows and withdrawals.
 - [x] **Automated Testing**: Integration tests (Playwright) & Unit tests (Vitest) for critical flows.
 - [x] **PDF Generation**: Native export of Receipts and Reports via `jsPDF`.
+- [x] **Search & Filter**: Universal search across all pages with date range filtering and sort options.
+- [x] **Smart Payment UX**: Expandable record selection with readable IDs and per-record balance display.
+- [ ] **WhatsApp Integration**: Automated payment reminders via WhatsApp Business API.
+- [ ] **Digital Payments**: Razorpay integration for UPI/Card payments with auto-reconciliation.
+- [ ] **Customer Self-Service**: OTP login portal for customers to view statements and upload payment proofs.
 - [ ] **Email Notifications**: Automated payment reminders and receipts.
 
 ---
