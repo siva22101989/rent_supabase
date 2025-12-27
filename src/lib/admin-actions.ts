@@ -164,25 +164,42 @@ export async function updateWarehouseDetails(formData: FormData) {
     revalidatePath('/settings');
 }
 
-export async function superAdminUpdateWarehouse(warehouseId: string, updates: any) {
+export async function assignWarehousePlan(warehouseId: string, planTier: string) {
     const { authorized, role } = await checkAdminPermissions();
     if (!authorized || role !== 'super_admin') {
-        return { success: false, message: 'Unauthorized' };
+        return { success: false, message: 'Unauthorized: Only super admins can assign plans' };
     }
 
     const supabase = await createClient();
-    const { error } = await supabase
-        .from('warehouses')
-        .update(updates)
-        .eq('id', warehouseId);
 
-    if (error) {
-        Sentry.captureException(error);
-        return { success: false, message: error.message };
+    // 1. Get the plan details by tier
+    const { data: plan, error: planError } = await supabase
+        .from('plans')
+        .select('id')
+        .eq('tier', planTier)
+        .single();
+
+    if (planError || !plan) {
+        return { success: false, message: 'Invalid plan tier' };
+    }
+
+    // 2. Upsert the subscription
+    const { error: subError } = await supabase
+        .from('subscriptions')
+        .upsert({
+            warehouse_id: warehouseId,
+            plan_id: plan.id,
+            status: 'active',
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'warehouse_id' });
+
+    if (subError) {
+        Sentry.captureException(subError);
+        return { success: false, message: subError.message };
     }
 
     revalidatePath('/admin');
-    return { success: true, message: 'Warehouse updated successfully' };
+    return { success: true, message: `Plan upgraded to ${planTier.toUpperCase()} successfully` };
 }
 
 

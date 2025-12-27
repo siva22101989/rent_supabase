@@ -14,7 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Customer } from '@/lib/definitions';
-import { useToast } from '@/hooks/use-toast';
+import { useUnifiedToast } from '@/components/shared/toast-provider';
+import { useFeatureGate, FEATURES } from '@/lib/feature-flags';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -25,8 +26,14 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useCustomers } from "@/contexts/customer-context";
 import { useStaticData } from "@/hooks/use-static-data";
 
-function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
-    const { toast } = useToast();
+function InflowFormInner({ 
+    nextSerialNumber,
+    onSuccess 
+}: { 
+    nextSerialNumber: string,
+    onSuccess?: (inflow: any) => void
+}) {
+    const { success: toastSuccess, error: toastError } = useUnifiedToast();
     const searchParams = useSearchParams();
     const queryCustomerId = searchParams.get('customerId');
     
@@ -80,10 +87,7 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                 scope.setExtra("success", state.success);
                 
                 if (state.success) {
-                    toast({
-                        title: 'Success!',
-                        description: state.message,
-                    });
+                    toastSuccess('Success!', state.message);
                     const initRefresh = async () => {
                         await Sentry.startSpan(
                             { name: "inflow-success-refresh", op: "ui.action.refresh" },
@@ -95,15 +99,11 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
                     };
                     initRefresh();
                 } else {
-                    toast({
-                        title: 'Error',
-                        description: state.message,
-                        variant: 'destructive',
-                    });
+                    toastError('Error', state.message);
                 }
             });
         }
-    }, [state, toast, refresh, router]);
+    }, [state, toastSuccess, toastError, refresh, router]);
 
     useEffect(() => {
         const bagsValue = inflowType === 'Plot' ? plotBags : bags;
@@ -146,6 +146,15 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
             setError(null);
+            if (onSuccess) {
+                onSuccess({
+                    id: 'optimistic-' + Date.now(),
+                    date: new Date(formData.get('storageStartDate') as string),
+                    customerName: selectedCustomer?.name || 'Customer',
+                    commodity: selectedCrop?.name || 'Product',
+                    bags: tParams.type === 'Direct' ? tParams.bags : tParams.plotBags
+                });
+            }
         }
     };
 
@@ -372,7 +381,10 @@ function InflowFormInner({ nextSerialNumber }: { nextSerialNumber: string }) {
   );
 }
 
-export function InflowForm(props: { nextSerialNumber: string }) {
+export function InflowForm(props: { 
+    nextSerialNumber: string,
+    onSuccess?: (inflow: any) => void 
+}) {
     return (
         <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>}>
             <InflowFormInner {...props} />

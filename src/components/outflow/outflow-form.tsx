@@ -12,20 +12,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Customer, StorageRecord } from '@/lib/definitions';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { useUnifiedToast } from '@/components/shared/toast-provider';
+import { FormError } from '../shared/form-error';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 import { useCustomers } from '@/contexts/customer-context';
 import { useStaticData } from '@/hooks/use-static-data';
 
 import { AsyncRecordSelector } from './async-record-selector';
 import { getStorageRecordAction } from '@/lib/actions';
 
-export function OutflowForm({ records = [] }: { records?: StorageRecord[] }) {
-    const { toast } = useToast();
+export function OutflowForm({ 
+    records = [],
+    onSuccess
+}: { 
+    records?: StorageRecord[],
+    onSuccess?: (outflow: any) => void
+}) {
+    const { success: toastSuccess, error: toastError } = useUnifiedToast();
     const initialState: OutflowFormState = { message: '', success: false };
     const [state, formAction] = useActionState(addOutflow, initialState);
 
@@ -68,7 +75,7 @@ export function OutflowForm({ records = [] }: { records?: StorageRecord[] }) {
                 // But action likely uses hidden inputs or state
             }
         } catch(e) {
-            toast({ title: "Error", description: "Failed to load record details", variant: "destructive" });
+            toastError("Error", "Failed to load record details");
         } finally {
             setIsLoadingRecord(false);
         }
@@ -109,15 +116,11 @@ export function OutflowForm({ records = [] }: { records?: StorageRecord[] }) {
                     };
                     initRefresh();
                 } else {
-                    toast({
-                        title: 'Error',
-                        description: state.message,
-                        variant: 'destructive',
-                    });
+                    toastError('Error', state.message);
                 }
             });
         }
-    }, [state, toast, refresh, router]);
+    }, [state, toastError, refresh, router]);
 
     useEffect(() => {
         if (selectedRecord) {
@@ -168,15 +171,31 @@ export function OutflowForm({ records = [] }: { records?: StorageRecord[] }) {
         setWithdrawalDate(dateValue);
     }
 
+   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        // Basic prediction for optimistic UI
+        if (onSuccess && selectedRecord) {
+            onSuccess({
+                id: 'optimistic-' + Date.now(),
+                date: withdrawalDate,
+                customerName: selectedRecord.customerName || 'Customer', // Corrected property name
+                commodity: selectedRecord.commodityDescription || 'Product',
+                bags: bagsToWithdraw,
+                totalAmount: totalPayable
+            });
+        }
+    };
+
   return (
     <div className="flex justify-center">
-        <form action={formAction} className="w-full max-w-lg">
+        <form action={formAction} onSubmit={handleSubmit} className="w-full max-w-lg">
             <Card>
                 <CardHeader>
                 <CardTitle>Withdrawal Details</CardTitle>
                 <CardDescription>Select a customer, then choose a record and enter withdrawal information.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {/* Standardized Error Alert */}
+                    <FormError message={!state.success ? state.message : undefined} className="mb-4" />
                     <div className="space-y-2">
                         <Label>Search Record</Label>
                         <AsyncRecordSelector onSelect={handleRecordSelect} />

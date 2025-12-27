@@ -88,3 +88,13 @@ export type UserWarehouse = {
     role: string;
     warehouse?: Warehouse;
 };
+
+export const roleHierarchy: Record<string, number> = {
+    'super_admin': 100,
+    'owner': 90,
+    'admin': 80,
+    'manager': 50,
+    'staff': 10,
+    'suspended': 0,
+    'customer': 0
+};

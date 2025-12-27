@@ -445,9 +445,33 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
     const supabase = await createClient();
     
     // Fetch record first to release lot
-    const { data: record } = await supabase.from('storage_records').select('lot_id, bags_stored').eq('id', id).single();
+    const { data: record } = await supabase.from('storage_records').select('lot_id, bags_stored, warehouse_id').eq('id', id).single();
     
-    if (record && record.lot_id) {
+    if (!record) return;
+
+    // Security Check: Ensure user is Owner or Admin of the warehouse
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // Check assignments
+    const { data: assignment } = await supabase.from('warehouse_assignments')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('warehouse_id', record.warehouse_id)
+        .single();
+    
+    // Check super admin fallback
+    let isSuperAdmin = false;
+    if (!assignment || !['owner', 'admin'].includes(assignment.role)) {
+         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+         if (profile?.role === 'super_admin') {
+             isSuperAdmin = true;
+         } else {
+             throw new Error("Access Denied: You do not have permission to delete records in this warehouse.");
+         }
+    }
+
+    if (record.lot_id) {
          const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', record.lot_id).single();
          if (lot) {
              const newStock = Math.max(0, (lot.current_stock || 0) - (record.bags_stored || 0));

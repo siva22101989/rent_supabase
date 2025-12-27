@@ -2,8 +2,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// import jsPDF from 'jspdf'; // Removed for lazy loading
+// import html2canvas from 'html2canvas'; // Removed for lazy loading
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,11 @@ export function BillReceiptDialog({
     setIsGenerating(true);
 
     try {
+      const [html2canvas, { default: jsPDF }] = await Promise.all([
+        import('html2canvas').then(m => m.default),
+        import('jspdf')
+      ]);
+
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,

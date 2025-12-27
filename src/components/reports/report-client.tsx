@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { ReportTable } from './report-table';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// import jsPDF from 'jspdf'; // Removed for lazy loading
+// import html2canvas from 'html2canvas'; // Removed for lazy loading
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 export function ReportClient({ records, customers }: { records: StorageRecord[], customers: Customer[] }) {
@@ -36,6 +36,12 @@ export function ReportClient({ records, customers }: { records: StorageRecord[],
         setIsGenerating(true);
 
         try {
+            // Dynamically import heavy libraries
+            const [html2canvas, { default: jsPDF }] = await Promise.all([
+                import('html2canvas').then(m => m.default),
+                import('jspdf')
+            ]);
+
             const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('l', 'mm', 'a4'); // landscape

@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+// import * as XLSX from 'xlsx'; // Removed for lazy loading
 import type { StorageRecord, Customer, Payment } from './definitions';
 import { formatCurrency } from './utils';
 
@@ -455,11 +455,14 @@ export function generateMonthlySummaryPDF(
 /**
  * Export data to Excel
  */
-export function exportToExcel<T extends Record<string, any>>(
+export async function exportToExcel<T extends Record<string, any>>(
     data: T[],
     filename: string,
     sheetName: string = 'Sheet1'
 ) {
+    // Dynamic import XLSX
+    const XLSX = await import('xlsx');
+    
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
@@ -516,11 +519,12 @@ export function exportCustomersToExcel(
 /**
  * Export Financial Report to Excel
  */
-export function exportFinancialReportToExcel(data: {
+export async function exportFinancialReportToExcel(data: {
     summary: { label: string; value: number }[];
     topCustomers: { name: string; revenue: number; paid: number; outstanding: number }[];
     aging: { range: string; count: number; amount: number }[];
 }) {
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     
     // Summary sheet

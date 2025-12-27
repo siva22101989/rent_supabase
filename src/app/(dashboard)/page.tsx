@@ -15,6 +15,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import { DashboardShortcuts } from "@/components/dashboard/dashboard-shortcuts"; 
 import { JoinWarehouseForm } from '@/components/onboarding/join-warehouse-form';
+import { MarketPricesWidgetWrapper } from '@/components/market-prices/price-widget-wrapper';
 
 export default async function DashboardPage() {
   const metrics = await getDashboardMetrics();
@@ -24,7 +25,7 @@ export default async function DashboardPage() {
 
   // Merge and sort activities
   const activities = [
-    ...recentInflows.map((i: any) => ({ ...i, type: 'inflow' })),
+    ...recentInflows.map((i: any) => ({ ...i, type: 'inflow', invoiceNo: i.recordNumber || i.id.slice(0, 8) })),
     ...recentOutflows.map((o: any) => ({ ...o, type: 'outflow' }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
    .slice(0, 5); // Top 5 recent events
@@ -83,6 +84,9 @@ export default async function DashboardPage() {
           </div>
       </div>
       <DashboardStats metrics={metrics} />
+
+      {/* 3. Market Prices Widget */}
+      <MarketPricesWidgetWrapper warehouseId={warehouse?.id} />
 
       {/* 4. Recent Activity */}
       <RecentActivity activities={activities as any} />

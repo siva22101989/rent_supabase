@@ -1,11 +1,6 @@
 'use client';
 
-import { useState, useActionState, useEffect, useRef } from 'react';
-import { useFormStatus } from 'react-dom';
-import { Loader2, Plus, Warehouse } from 'lucide-react';
-import { SubmitButton } from "@/components/ui/submit-button";
-import { createWarehouse, type ActionState } from '@/lib/warehouse-actions';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,85 +8,110 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { createWarehouse } from '@/lib/warehouse-actions';
+import { useUnifiedToast } from '@/components/shared/toast-provider';
+import { useFeatureGate, FEATURES } from '@/lib/feature-flags';
 
-// Local SubmitButton removed in favor of shared component
+export function CreateWarehouseDialog({ 
+    open, 
+    onOpenChange 
+}: { 
+    open: boolean, 
+    onOpenChange: (open: boolean) => void 
+}) {
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
+  const [capacity, setCapacity] = useState('10000');
+  const [loading, setLoading] = useState(false);
+  const { success: toastSuccess, error: toastError } = useUnifiedToast();
+  const { checkFeature, handleRestrictedAction } = useFeatureGate();
 
-export function CreateWarehouseDialog() {
-  const { toast } = useToast();
-  const [isOpen, setIsOpen] = useState(false);
-  const lastHandledRef = useRef<any>(null);
-  const initialState: ActionState = { message: '', success: false };
-  const [state, formAction] = useActionState(async (prev: ActionState, formData: FormData) => {
-      return createWarehouse(
-          formData.get('name') as string,
-          formData.get('location') as string,
-          Number(formData.get('capacity')),
-          formData.get('email') as string,
-          formData.get('phone') as string
-      );
-  }, initialState);
-
-  useEffect(() => {
-    if (state.message && state !== lastHandledRef.current) {
-      lastHandledRef.current = state;
-      if (state.success) {
-        toast({ title: 'Success', description: state.message });
-        setIsOpen(false);
-        // Optional: Force reload or update state context
-        window.location.reload(); // Hard reload to ensure context switch propagates fully if revalidatePath misses anything
-      } else {
-        toast({ title: 'Error', description: state.message, variant: 'destructive' });
-      }
+  const handleCreate = async () => {
+    // Pro check before submission
+    if (!checkFeature(FEATURES.MULTI_WAREHOUSE)) {
+        handleRestrictedAction(FEATURES.MULTI_WAREHOUSE);
+        onOpenChange(false);
+        return;
     }
-  }, [state, toast]);
+
+    if (!name || !location || !capacity) {
+        toastError('Validation Error', 'Please fill in all fields.');
+        return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await createWarehouse(
+        name, 
+        location, 
+        parseInt(capacity),
+        undefined, // Email
+        undefined  // Phone
+      );
+
+      if (result.success) {
+        toastSuccess('Warehouse Created', `Successfully created ${name}.`);
+        onOpenChange(false);
+        setName('');
+        setLocation('');
+      } else {
+        toastError('Creation Failed', result.message);
+      }
+    } catch (err) {
+      toastError('Error', 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full justify-start">
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Warehouse
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <form action={formAction}>
-          <DialogHeader>
-            <DialogTitle>Create New Warehouse</DialogTitle>
-            <DialogDescription>
-              Add a new facility. You will be the owner.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Warehouse Name</Label>
-              <Input id="name" name="name" placeholder="e.g., North Depot" required defaultValue={state.data?.name} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input id="location" name="location" placeholder="City or District" required defaultValue={state.data?.location} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="capacity">Capacity (Bags)</Label>
-              <Input id="capacity" name="capacity" type="number" placeholder="5000" min="0" required defaultValue={state.data?.capacity} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="contact@example.com" defaultValue={state.data?.email} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" name="phone" type="tel" placeholder="+1234567890" defaultValue={state.data?.phone} />
-            </div>
+        <DialogHeader>
+          <DialogTitle>Create New Warehouse</DialogTitle>
+          <DialogDescription>
+            Add a new location to your workspace. This feature is available for <strong>Professional</strong> plans.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Warehouse Name</Label>
+            <Input
+              id="name"
+              placeholder="Main Silo A"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
-          <DialogFooter>
-            <SubmitButton>Create Warehouse</SubmitButton>
-          </DialogFooter>
-        </form>
+          <div className="grid gap-2">
+            <Label htmlFor="location">Location</Label>
+            <Input
+              id="location"
+              placeholder="District / State"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="capacity">Capacity (Bags)</Label>
+            <Input
+              id="capacity"
+              type="number"
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={loading}>
+            {loading ? 'Creating...' : 'Create Warehouse'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

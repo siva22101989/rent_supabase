@@ -24,6 +24,7 @@ import {
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { LayoutProvider } from '@/components/providers/layout-context';
+import { SubscriptionProvider } from '@/components/providers/subscription-context';
 
 import { WelcomeOnboarding } from '@/components/onboarding/welcome-onboarding';
 
@@ -148,6 +149,7 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
 
   return (
     <LayoutProvider isSidebarMode={isSidebarMode}>
+    <SubscriptionProvider warehouseId={currentWarehouseId}>
     <div className="flex min-h-screen w-full overflow-x-hidden">
        {/* Conditional Sidebar */}
        {isSidebarMode && (
@@ -266,6 +268,7 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
             </main>
        </div>
     </div>
+    </SubscriptionProvider>
     </LayoutProvider>
   );
 }

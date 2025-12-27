@@ -32,7 +32,30 @@ export async function createWarehouse(name: string, location: string, capacity: 
 
             span.setAttribute("warehouseName", name);
 
-            // 1. Create Warehouse via Secure RPC
+            // 1. Plan Verification (Multi-Warehouse check)
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('warehouse_id')
+                .eq('id', user.id)
+                .single();
+
+            if (profile?.warehouse_id) {
+                const { data: sub } = await supabase
+                    .from('subscriptions')
+                    .select('*, plans(*)')
+                    .eq('warehouse_id', profile.warehouse_id)
+                    .single();
+                
+                const tier = sub?.plans?.tier || 'free';
+                if (tier === 'free' || tier === 'starter') {
+                    return { 
+                        message: 'Upgrade Required: Multi-warehouse support is available on the Professional plan and above.', 
+                        success: false 
+                    };
+                }
+            }
+
+            // 2. Create Warehouse via Secure RPC
             const { data: warehouseId, error } = await supabase.rpc('create_new_warehouse', {
                 p_name: name,
                 p_location: location,

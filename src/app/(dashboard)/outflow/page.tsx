@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowForm } from "@/components/outflow/outflow-form";
 import { getRecentOutflows } from "@/lib/queries";
-import { OutflowListClient } from "./outflow-list-client";
+import { OutflowManager } from "./outflow-manager";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +18,8 @@ export default async function OutflowPage() {
           { label: 'Outflow' }
         ]}
       />
-      <OutflowForm records={[]} />
-
-      {/* Recent Withdrawals with Search/Filter */}
-      <OutflowListClient outflows={recentOutflows} />
+      
+      <OutflowManager initialOutflows={recentOutflows} />
     </>
   );
 }

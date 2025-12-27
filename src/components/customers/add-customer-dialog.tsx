@@ -20,13 +20,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { useUnifiedToast } from '@/components/shared/toast-provider';
 import { useCustomers } from '@/contexts/customer-context';
+import { FormError } from '../shared/form-error';
 
 // Local SubmitButton removed in favor of shared component
 
 export function AddCustomerDialog() {
-  const { toast } = useToast();
+  const { success: toastSuccess, error: toastError } = useUnifiedToast();
   const { refreshCustomers } = useCustomers();
   const [isOpen, setIsOpen] = useState(false);
   const lastHandledRef = useRef<any>(null);
@@ -38,18 +39,14 @@ export function AddCustomerDialog() {
     if (state.message && state !== lastHandledRef.current) {
       lastHandledRef.current = state;
       if (state.success) {
-        toast({ title: 'Success', description: state.message });
+        toastSuccess('Success', state.message);
         refreshCustomers(true);
         setIsOpen(false); 
       } else {
-        toast({
-          title: 'Error',
-          description: state.message,
-          variant: 'destructive',
-        });
+        toastError('Error', state.message);
       }
     }
-  }, [state, toast, refreshCustomers]);
+  }, [state, toastSuccess, toastError, refreshCustomers]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -68,6 +65,7 @@ export function AddCustomerDialog() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <FormError message={!state.success ? state.message : undefined} />
             <div className="grid gap-2">
               <Label htmlFor="name">
                 Name

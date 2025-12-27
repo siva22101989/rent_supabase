@@ -6,7 +6,8 @@ export type PortfolioItem = {
     warehouseName: string;
     warehouseLocation: string;
     totalBags: number;
-    estimatedValue: number; // Placeholder for now usually
+    totalPaid: number;
+    totalBilled: number;
     records: any[];
 };
 
@@ -30,15 +31,16 @@ export const getCustomerPortfolio = async () => {
 
     const customerIds = customers.map(c => c.id);
 
-    // 2. Fetch Storage Records for these customers
+    // 2. Fetch Storage Records and their Payments
     const { data: records } = await supabase
         .from('storage_records')
         .select(`
             *,
-            crops (name)
+            crops (name),
+            payments (*)
         `)
         .in('customer_id', customerIds)
-        .is('storage_end_date', null); // Active records only
+        .order('storage_start_date', { ascending: false });
 
     if (!records) return [];
 
@@ -56,7 +58,8 @@ export const getCustomerPortfolio = async () => {
                 warehouseName: wName,
                 warehouseLocation: wLoc,
                 totalBags: 0,
-                estimatedValue: 0,
+                totalPaid: 0,
+                totalBilled: 0,
                 records: []
             };
         }
@@ -65,10 +68,30 @@ export const getCustomerPortfolio = async () => {
     records.forEach(r => {
         const whId = r.warehouse_id;
         if (portfolio[whId]) {
-            portfolio[whId].records.push(r);
-            portfolio[whId].totalBags += (r.bags_stored || 0);
+            // Calculate payments for this record
+            const recordPayments = r.payments || [];
+            const recordPaid = recordPayments.reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
+            
+            // For now, exposure is estimated or calculated based on rent triggers if implemented.
+            // If the schema hasn't fully automated billing yet, we show what's recorded.
+            const recordBilled = (r.total_rent_due || 0);
+
+            const enrichedRecord = {
+                ...r,
+                paid: recordPaid,
+                billed: recordBilled,
+                is_active: r.storage_end_date === null
+            };
+
+            portfolio[whId].records.push(enrichedRecord);
+            
+            if (enrichedRecord.is_active) {
+                portfolio[whId].totalBags += (r.bags_stored || 0);
+            }
+            portfolio[whId].totalPaid += recordPaid;
+            portfolio[whId].totalBilled += recordBilled;
         }
     });
 
-    return Object.values(portfolio);
+    return Object.values(portfolio).sort((a, b) => b.totalBags - a.totalBags);
 };

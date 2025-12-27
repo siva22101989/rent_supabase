@@ -96,6 +96,28 @@ npm run dev
 
 Visit `http://localhost:3000`.
 
+Visit `http://localhost:3000`.
+
+## 🧪 Testing & Security
+
+Start the test suite with:
+
+```bash
+# Run Unit & Integration Tests (Vitest)
+npm run test
+
+# Run End-to-End Tests (Playwright)
+npm run test:e2e
+
+# Run Security Audit (Application Level)
+npm run test:security
+
+# Run RLS Penetration Testing (Requires local DB)
+npm run security:verify-rls
+```
+
+All billing logic is regression-tested against 10+ critical scenarios including leap years and complex boundaries.
+
 ---
 
 ## 🔮 Roadmap / "Missing" Pro Features

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useOptimistic, useTransition } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ArrowDownToDot } from "lucide-react";
@@ -27,6 +27,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
             result = result.filter(i =>
                 i.customerName?.toLowerCase().includes(search) ||
                 i.commodity?.toLowerCase().includes(search) ||
+                i.recordNumber?.toLowerCase().includes(search) ||
                 i.id?.toLowerCase().includes(search)
             );
         }
@@ -68,7 +69,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                             <div className="flex-1">
                                 <MobileCard.Title>{record.customerName}</MobileCard.Title>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {record.date.toLocaleDateString()} • Inflow #{record.id}
+                                    {record.date.toLocaleDateString()} • Inflow #{record.recordNumber || record.id.slice(0, 8)}
                                 </p>
                             </div>
                             <MobileCard.Badge>{record.bags} Bags</MobileCard.Badge>
@@ -104,7 +105,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                             return (
                                 <TableRow key={record.id}>
                                     <TableCell>{record.date.toLocaleDateString()}</TableCell>
-                                    <TableCell className="font-medium font-mono">{record.id}</TableCell>
+                                    <TableCell className="font-medium font-mono">{record.recordNumber || record.id.slice(0, 8)}</TableCell>
                                     <TableCell>{record.customerName}</TableCell>
                                     <TableCell>{record.commodity}</TableCell>
                                     <TableCell className="text-right">{record.bags}</TableCell>

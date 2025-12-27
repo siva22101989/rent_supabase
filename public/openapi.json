@@ -1,0 +1,180 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Rent Management System API",
+    "description": "Comprehensive documentation for internal REST endpoints and logical Server Actions.",
+    "version": "1.1.0"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "REST API server"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Check system health",
+        "description": "Returns the status of the database, authentication, and general system health.",
+        "responses": {
+          "200": {
+            "description": "System is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "System is unhealthy or degraded"
+          }
+        }
+      }
+    },
+    "/storage/update": {
+      "post": {
+        "summary": "Internal storage record update",
+        "description": "Updates storage records via background process or internal webhook.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "recordId": { "type": "string" },
+                  "status": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Record updated successfully"
+          }
+        }
+      }
+    },
+    "/actions/addCustomer": {
+      "post": {
+        "tags": ["Server Actions"],
+        "summary": "Create Customer (Logical)",
+        "description": "Logical representation of the `addCustomer` server action.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/NewCustomer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/actions/addInflow": {
+      "post": {
+        "tags": ["Server Actions"],
+        "summary": "Create Inflow Record (Logical)",
+        "description": "Logical representation of the `addInflow` server action.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customerId": { "type": "string" },
+                  "commodity": { "type": "string" },
+                  "bags": { "type": "integer" },
+                  "inflowType": { "type": "string", "enum": ["Direct", "Plot"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Inflow record created"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "degraded", "unhealthy"]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checks": {
+            "type": "object",
+            "properties": {
+              "database": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string" },
+                  "responseTime": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "NewCustomer": {
+        "type": "object",
+        "required": ["name", "phone", "address"],
+        "properties": {
+          "name": { "type": "string", "minLength": 3 },
+          "phone": { "type": "string", "minLength": 10 },
+          "address": { "type": "string", "minLength": 5 },
+          "email": { "type": "string", "format": "email" },
+          "fatherName": { "type": "string" },
+          "village": { "type": "string" }
+        }
+      },
+      "FormState": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "success": { "type": "boolean" },
+          "data": { "type": "object" }
+        }
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-KEY"
+      }
+    }
+  }
+}

@@ -16,6 +16,7 @@ import { UserWarehouse } from '@/lib/definitions';
 import { switchWarehouse } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { CreateWarehouseDialog } from '@/components/warehouses/create-warehouse-dialog';
 
 interface WarehouseSwitcherProps {
   warehouses: UserWarehouse[];
@@ -26,6 +27,7 @@ export function WarehouseSwitcher({ warehouses, currentWarehouseId }: WarehouseS
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   const currentWarehouse = warehouses.find(w => w.warehouseId === currentWarehouseId);
 
@@ -107,14 +109,13 @@ export function WarehouseSwitcher({ warehouses, currentWarehouseId }: WarehouseS
         <DropdownMenuSeparator />
         <DropdownMenuItem 
             className="cursor-pointer text-muted-foreground"
-            onSelect={() => {
-                toast({ title: "Coming Soon", description: "Create Warehouse feature is under development." });
-            }}
+            onSelect={() => setIsDialogOpen(true)}
         >
           <PlusCircle className="mr-2 h-5 w-5" />
           Create Warehouse
         </DropdownMenuItem>
       </DropdownMenuContent>
+      <CreateWarehouseDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </DropdownMenu>
   );
 }

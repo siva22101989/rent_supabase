@@ -21,15 +21,16 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { useUnifiedToast } from '@/components/shared/toast-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { expenseCategories } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
+import { FormError } from '../shared/form-error';
 
 // Local SubmitButton removed in favor of shared component
 
 export function AddExpenseDialog() {
-  const { toast } = useToast();
+  const { success: toastSuccess, error: toastError } = useUnifiedToast();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const lastHandledRef = useRef<any>(null);
@@ -41,18 +42,14 @@ export function AddExpenseDialog() {
     if (state.message && state !== lastHandledRef.current) {
       lastHandledRef.current = state;
       if (state.success) {
-        toast({ title: 'Success', description: state.message });
+        toastSuccess('Success', state.message);
         setIsOpen(false);
         router.refresh(); 
       } else {
-        toast({
-          title: 'Error',
-          description: state.message,
-          variant: 'destructive',
-        });
+        toastError('Error', state.message);
       }
     }
-  }, [state, toast, router]);
+  }, [state, toastSuccess, toastError, router]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -71,6 +68,7 @@ export function AddExpenseDialog() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <FormError message={!state.success ? state.message : undefined} />
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
               <Input id="date" name="date" type="date" defaultValue={state.data?.date || new Date().toISOString().split('T')[0]} required />

@@ -4,7 +4,7 @@ test.describe('Inventory Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Login before each test
     await page.goto('/login');
-    await page.getByLabel('Email').fill('siva01@gmail.com');
+    await page.getByLabel('Email').fill('nikhilpnkr@gmail.com');
     await page.getByLabel('Password').fill('123456');
     await page.getByRole('button', { name: 'Login' }).click();
     await expect(page).toHaveURL('/', { timeout: 10000 });

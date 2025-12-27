@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { getRecentInflows } from "@/lib/queries";
-import { InflowListClient } from "./inflow-list-client";
+import { InflowManager } from "./inflow-manager";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,11 +24,8 @@ export default async function InflowPage() {
       >
         <AddCustomerDialog />
       </PageHeader>
-      <InflowForm nextSerialNumber={nextSerialNumber} />
-
-
-      {/* Recent Inflows with Search/Filter */}
-      <InflowListClient inflows={records} />
+      
+      <InflowManager initialInflows={records} nextSerialNumber={nextSerialNumber} />
     </>
   );
 }

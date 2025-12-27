@@ -11,15 +11,21 @@ import { Loader2 } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { SubmitButton } from "@/components/ui/submit-button";
 
+import { WarehouseSwitcher } from "./warehouse-switcher";
+
 type WarehouseTabProps = {
     warehouse: any;
+    allWarehouses?: any[];
 };
 
-// Local SubmitButton removed in favor of shared component
-
-export function WarehouseSettingsTab({ warehouse }: WarehouseTabProps) {
+export function WarehouseSettingsTab({ warehouse, allWarehouses = [] }: WarehouseTabProps) {
     return (
         <div className="grid gap-6">
+            {/* Switcher at the top for easy access */}
+            {allWarehouses.length > 1 && (
+                 <WarehouseSwitcher warehouses={allWarehouses} currentWarehouseId={warehouse.id} />
+            )}
+
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <div className="space-y-1">

@@ -338,7 +338,7 @@ function AdminUsersTableComponent({ users }: AdminUsersTableProps) {
                 {selectedUserIds.length > 0 && (
                     <div className="bg-muted p-2 rounded-md flex items-center justify-between mb-2">
                         <span className="text-xs font-medium">{selectedUserIds.length} users selected</span>
-                        <Button variant="ghost" size="xs" onClick={() => setSelectedUserIds([])} className="h-7 text-xs">
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedUserIds([])} className="h-7 text-xs">
                             Clear
                         </Button>
                     </div>

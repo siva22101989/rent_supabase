@@ -1,7 +1,7 @@
-
 import { createClient } from '@/utils/supabase/server';
 export const dynamic = 'force-dynamic';
 import { getUserWarehouse } from '@/lib/queries';
+import { getUserWarehouses } from '@/lib/warehouse-actions'; // Use actions to get structured data
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +43,9 @@ export default async function SettingsPage() {
     .select('*')
     .eq('warehouse_id', warehouseId)
     .order('name');
+
+  // Fetch All user warehouses for switcher
+  const userWarehouses = await getUserWarehouses();
 
   return (
     <>
@@ -113,7 +116,7 @@ export default async function SettingsPage() {
             </TabsContent>
             
             <TabsContent value="warehouse" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
-                <WarehouseSettingsTab warehouse={warehouse} />
+                <WarehouseSettingsTab warehouse={warehouse} allWarehouses={userWarehouses} />
             </TabsContent>
             
             <TabsContent value="crops" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">

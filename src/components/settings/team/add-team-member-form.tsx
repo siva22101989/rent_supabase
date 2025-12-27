@@ -1,5 +1,3 @@
-'use client';
-
 import { useActionState, useEffect, useRef } from 'react';
 import { createTeamMember, type FormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -15,6 +13,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useTeamMembers } from '@/hooks/use-team-members';
+import { getUserWarehouses } from '@/lib/warehouse-actions'; // Use Server Action
+import { useState } from 'react';
+// import { UserWarehouse } from '@/lib/definitions'; // Shape differs
 
 const initialState: FormState = { message: '', success: false };
 
@@ -22,7 +23,16 @@ export function AddTeamMemberForm({ onSuccess }: { onSuccess?: () => void }) {
     const [state, formAction, isPending] = useActionState(createTeamMember, initialState);
     const { toast } = useToast();
     const { refreshMembers } = useTeamMembers();
+    const [warehouses, setWarehouses] = useState<any[]>([]); // Relaxed type for action result
     const lastHandledRef = useRef<any>(null);
+
+    useEffect(() => {
+        async function load() {
+            const data = await getUserWarehouses();
+            setWarehouses(data);
+        }
+        load();
+    }, []);
 
     useEffect(() => {
         if (state.message && state !== lastHandledRef.current) {
@@ -54,18 +64,36 @@ export function AddTeamMemberForm({ onSuccess }: { onSuccess?: () => void }) {
                 <Input id="email" name="email" type="email" placeholder="jane@example.com" required defaultValue={state.data?.email} />
             </div>
 
-            <div className="grid gap-2">
-                <Label htmlFor="role">Role</Label>
-                <Select name="role" defaultValue={state.data?.role || "staff"}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select Role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="staff">Staff - Can manage records</SelectItem>
-                        <SelectItem value="manager">Manager - Can manage team</SelectItem>
-                        <SelectItem value="admin">Admin - Full Access</SelectItem>
-                    </SelectContent>
-                </Select>
+            <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select name="role" defaultValue={state.data?.role || "staff"}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="staff">Staff - Can manage records</SelectItem>
+                            <SelectItem value="manager">Manager - Can manage team</SelectItem>
+                            <SelectItem value="admin">Admin - Full Access</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor="warehouseId">Assign to Warehouse</Label>
+                    <Select name="warehouseId">
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Warehouse" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {warehouses.map(w => (
+                                <SelectItem key={w.id} value={w.id}>
+                                    {w.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             <div className="grid gap-2">

@@ -18,13 +18,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
-    MoreHorizontal, 
-    Building2, 
-    MapPin, 
-    Package, 
+    MoreHorizontal,
+    Building2,
+    MapPin,
+    Package,
     ExternalLink,
     Search,
-    Download
+    Download,
+    Zap
 } from "lucide-react";
 import Link from "next/link";
 import { exportToExcel } from "@/lib/export-utils";
@@ -33,10 +34,26 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
-import { deleteWarehouseAction } from "@/lib/admin-actions";
+import { deleteWarehouseAction, assignWarehousePlan } from "@/lib/admin-actions";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { PlanTier } from '@/lib/feature-flags';
 
 interface AdminWarehousesTableProps {
     warehouses: any[];
@@ -45,6 +62,10 @@ interface AdminWarehousesTableProps {
 function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps) {
     const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState("");
+    const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+    const [selectedWarehouse, setSelectedWarehouse] = useState<{id: string, name: string, tier?: string} | null>(null);
+    const [newTier, setNewTier] = useState<string>("");
+    const [isUpdating, setIsUpdating] = useState(false);
     
     // Debounce search query to reduce filtering operations
     const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
@@ -76,6 +97,24 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
             });
         }
     }, [toast]);
+    
+    // Plan update handler
+    const handleUpdatePlan = async () => {
+        if (!selectedWarehouse || !newTier) return;
+        
+        setIsUpdating(true);
+        try {
+            const result = await assignWarehousePlan(selectedWarehouse.id, newTier);
+            if (result.success) {
+                toast({ title: "Plan Updated", description: result.message });
+                setIsPlanModalOpen(false);
+            } else {
+                toast({ title: "Error", description: result.message, variant: "destructive" });
+            }
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     // Memoize export handler
     const handleExport = useCallback(() => {
@@ -173,6 +212,13 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
                                             <Link href={`/#warehouse-${w.id}`} className="flex items-center">
                                                 <ExternalLink className="mr-2 h-4 w-4" /> View Dashboard
                                             </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => {
+                                            setSelectedWarehouse({ id: w.id, name: w.name, tier: w.subscription?.plans?.tier });
+                                            setNewTier(w.subscription?.plans?.tier || 'free');
+                                            setIsPlanModalOpen(true);
+                                        }}>
+                                            <Zap className="mr-2 h-4 w-4" /> Change Plan
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem className="text-rose-600 focus:text-rose-600" onClick={() => handleDelete(w.id, w.name)}>
@@ -278,6 +324,37 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
                 </Card>
             )}
         </div>
+        
+        {/* Plan Change Modal */}
+        <Dialog open={isPlanModalOpen} onOpenChange={setIsPlanModalOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Update Subscription Plan</DialogTitle>
+                    <DialogDescription>
+                        Manually change the plan tier for <strong>{selectedWarehouse?.name}</strong>.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Select value={newTier} onValueChange={setNewTier}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a plan tier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="free">Free Tier</SelectItem>
+                            <SelectItem value="starter">Starter Plan</SelectItem>
+                            <SelectItem value="professional">Professional Plan</SelectItem>
+                            <SelectItem value="enterprise">Enterprise Plan</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsPlanModalOpen(false)}>Cancel</Button>
+                    <Button onClick={handleUpdatePlan} disabled={isUpdating}>
+                        {isUpdating ? "Updating..." : "Save Changes"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
     );
 }

@@ -9,10 +9,11 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
 import type { StorageRecord, Payment } from './definitions';
-import { expenseCategories } from './definitions';
+import { expenseCategories, roleHierarchy } from './definitions';
 import { getNextInvoiceNumber } from '@/lib/sequence-utils';
 import * as Sentry from "@sentry/nextjs";
 import { logError } from '@/lib/error-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const { logger } = Sentry;
 
@@ -70,6 +71,9 @@ export async function addCustomer(prevState: FormState, formData: FormData): Pro
             name: "addCustomer",
         },
         async (span) => {
+            const phone = formData.get('phone') as string;
+            await checkRateLimit(phone || 'anon', 'addCustomer', { limit: 5 });
+
             const rawData = {
                 name: formData.get('name'),
                 email: formData.get('email'),
@@ -166,131 +170,168 @@ const CustomerSchema = z.object({
 /**
  * Update Customer
  */
-export async function updateCustomer(customerId: string, formData: FormData) {
-    const supabase = await createClient();
-    const warehouseId = await getUserWarehouse();
+export async function updateCustomer(customerId: string, formData: FormData): Promise<FormState> {
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "updateCustomer",
+        },
+        async (span) => {
+            await checkRateLimit(customerId || 'anon', 'updateCustomer', { limit: 10 });
+            span.setAttribute("customerId", customerId);
 
-    if (!warehouseId) {
-        return { message: 'No warehouse found for user', success: false };
-    }
+            const supabase = await createClient();
+            const warehouseId = await getUserWarehouse();
 
-    const validatedFields = CustomerSchema.safeParse({
-        name: formData.get('name'),
-        phone: formData.get('phone'),
-        email: formData.get('email'),
-        address: formData.get('address'),
-        fatherName: formData.get('fatherName'),
-        village: formData.get('village'),
-    });
+            if (!warehouseId) {
+                return { message: 'No warehouse found for user', success: false };
+            }
 
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
-    }
+            const rawData = {
+                name: formData.get('name'),
+                phone: formData.get('phone'),
+                email: formData.get('email'),
+                address: formData.get('address'),
+                fatherName: formData.get('fatherName'),
+                village: formData.get('village'),
+            };
 
-    // Transform to database column names (snake_case)
-    const updateData = {
-        name: validatedFields.data.name,
-        phone: validatedFields.data.phone,
-        email: validatedFields.data.email || '',
-        address: validatedFields.data.address,
-        father_name: validatedFields.data.fatherName || '',
-        village: validatedFields.data.village || ''
-    };
+            const validatedFields = CustomerSchema.safeParse(rawData);
 
-    const { data, error } = await supabase
-        .from('customers')
-        .update(updateData)
-        .eq('id', customerId)
-        .eq('warehouse_id', warehouseId)
-        .select()
-        .single();
+            if (!validatedFields.success) {
+                const errors = validatedFields.error.flatten().fieldErrors;
+                const message = Object.values(errors).flat().join(', ');
+                return { message: `Invalid data: ${message}`, success: false };
+            }
 
-    if (error) {
-        logError(error, { 
-            operation: 'update_customer', 
-            warehouseId, 
-            metadata: { customerId, updateData } 
-        });
-        return { message: `Failed to update customer: ${error.message}`, success: false };
-    }
+            // Transform to database column names (snake_case)
+            const updateData = {
+                name: validatedFields.data.name,
+                phone: validatedFields.data.phone,
+                email: validatedFields.data.email || '',
+                address: validatedFields.data.address,
+                father_name: validatedFields.data.fatherName || '',
+                village: validatedFields.data.village || ''
+            };
 
-    revalidatePath('/customers');
-    revalidatePath(`/customers/${customerId}`);
-    return { message: 'Customer updated successfully!', success: true };
+            const { data, error } = await supabase
+                .from('customers')
+                .update(updateData)
+                .eq('id', customerId)
+                .eq('warehouse_id', warehouseId)
+                .select()
+                .single();
+
+            if (error) {
+                logError(error, { 
+                    operation: 'update_customer', 
+                    warehouseId, 
+                    metadata: { customerId, updateData } 
+                });
+                return { message: `Failed to update customer: ${error.message}`, success: false };
+            }
+
+            revalidatePath('/customers');
+            revalidatePath(`/customers/${customerId}`);
+            return { message: 'Customer updated successfully!', success: true };
+        }
+    );
 }
 
 /**
  * Delete Customer (only if no storage records exist)
  */
-export async function deleteCustomer(customerId: string) {
-    const supabase = await createClient();
-    const warehouseId = await getUserWarehouse();
+export async function deleteCustomer(customerId: string): Promise<FormState> {
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "deleteCustomer",
+        },
+        async (span) => {
+            await checkRateLimit(customerId || 'anon', 'deleteCustomer', { limit: 5 });
+            span.setAttribute("customerId", customerId);
 
-    if (!warehouseId) {
-        return { message: 'No warehouse found for user', success: false };
-    }
+            const supabase = await createClient();
+            const warehouseId = await getUserWarehouse();
 
-    // Check if customer has any storage records
-    const { data: records, error: checkError } = await supabase
-        .from('storage_records')
-        .select('id')
-        .eq('customer_id', customerId)
-        .limit(1);
+            if (!warehouseId) {
+                return { message: 'No warehouse found for user', success: false };
+            }
 
-    if (checkError) {
-        logError(checkError, { operation: 'check_customer_records', warehouseId, metadata: { customerId } });
-        return { message: 'Failed to check customer records', success: false };
-    }
+            // Check if customer has any storage records
+            const { data: records, error: checkError } = await supabase
+                .from('storage_records')
+                .select('id')
+                .eq('customer_id', customerId)
+                .limit(1);
 
-    if (records && records.length > 0) {
-        return { 
-            message: 'Cannot delete customer with existing storage records. This preserves your audit trail.', 
-            success: false 
-        };
-    }
+            if (checkError) {
+                logError(checkError, { operation: 'check_customer_records', warehouseId, metadata: { customerId } });
+                return { message: 'Failed to check customer records', success: false };
+            }
 
-    // Delete customer
-    const { error } = await supabase
-        .from('customers')
-        .delete()
-        .eq('id', customerId)
-        .eq('warehouse_id', warehouseId);
+            if (records && records.length > 0) {
+                return { 
+                    message: 'Cannot delete customer with existing storage records. This preserves your audit trail.', 
+                    success: false 
+                };
+            }
 
-    if (error) {
-        logError(error, { operation: 'delete_customer', warehouseId, metadata: { customerId } });
-        return { message: 'Failed to delete customer', success: false };
-    }
+            // Delete customer
+            const { error } = await supabase
+                .from('customers')
+                .delete()
+                .eq('id', customerId)
+                .eq('warehouse_id', warehouseId);
 
-    revalidatePath('/customers');
-    redirect('/customers');
+            if (error) {
+                logError(error, { operation: 'delete_customer', warehouseId, metadata: { customerId } });
+                return { message: 'Failed to delete customer', success: false };
+            }
+
+            revalidatePath('/customers');
+            redirect('/customers');
+        }
+    );
 }
 
 export async function changePassword(prevState: FormState, formData: FormData): Promise<FormState> {
-    const password = formData.get('password') as string;
-    const confirmPassword = formData.get('confirmPassword') as string;
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "changePassword",
+        },
+        async (span) => {
+            const password = formData.get('password') as string;
+            const confirmPassword = formData.get('confirmPassword') as string;
 
-    if (!password || !confirmPassword) {
-        return { message: 'Please fill in all fields', success: false };
-    }
+            // Simple anonymous rate limit for password changes by IP (effectively)
+            await checkRateLimit('anon-pwd', 'changePassword', { limit: 3 });
 
-    if (password !== confirmPassword) {
-        return { message: 'Passwords do not match', success: false };
-    }
+            if (!password || !confirmPassword) {
+                return { message: 'Please fill in all fields', success: false };
+            }
 
-    if (password.length < 6) {
-        return { message: 'Password must be at least 6 characters', success: false };
-    }
+            if (password !== confirmPassword) {
+                return { message: 'Passwords do not match', success: false };
+            }
 
-    const supabase = await createClient();
-    const { error } = await supabase.auth.updateUser({ password: password });
+            if (password.length < 6) {
+                return { message: 'Password must be at least 6 characters', success: false };
+            }
 
-    if (error) {
-        return { message: error.message, success: false };
-    }
+            const supabase = await createClient();
+            const { error } = await supabase.auth.updateUser({ password: password });
 
-    return { message: 'Password updated successfully', success: true };
+            if (error) {
+                logger.error("Password change failed", { error: error.message });
+                return { message: error.message, success: false };
+            }
+
+            logger.info("Password updated successfully");
+            return { message: 'Password updated successfully', success: true };
+        }
+    );
 }
 
 const FinalizeDryingSchema = z.object({
@@ -385,6 +426,9 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
             name: "addInflow",
         },
         async (span) => {
+            const customerId = formData.get('customerId') as string;
+            await checkRateLimit(customerId || 'anon', 'addInflow', { limit: 10 });
+
             const rawData = {
                 customerId: formData.get('customerId'),
                 commodityDescription: formData.get('commodityDescription'),
@@ -516,8 +560,16 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                     commodity: rest.commodityDescription 
                 });
 
-                // Update Lot Capacity handled by DB Trigger
 
+                // Update Lot Capacity Manually (Reliability Fix)
+                if (rest.lotId) {
+                    const supabase = await createClient();
+                    const { data: lotToUpdate } = await supabase.from('warehouse_lots').select('current_stock').eq('id', rest.lotId).single();
+                    if (lotToUpdate) {
+                        const newStock = (lotToUpdate.current_stock || 0) + inflowBags;
+                        await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', rest.lotId);
+                    }
+                }
                 
                 // Check for Low Capacity Warning (>90%)
                 if (rest.lotId) {
@@ -595,7 +647,9 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                 finalRent: formData.get('finalRent'),
                 amountPaidNow: formData.get('amountPaidNow'),
             };
-            span.setAttribute("recordId", rawData.recordId as string);
+            const recordIdForLimit = rawData.recordId as string;
+            await checkRateLimit(recordIdForLimit || 'anon', 'addOutflow', { limit: 10 });
+            span.setAttribute("recordId", recordIdForLimit);
 
             const validatedFields = OutflowSchema.safeParse(rawData);
 
@@ -658,8 +712,15 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                 
                 await updateStorageRecord(recordId, recordUpdate);
 
-                // Update Lot Capacity handled by DB Trigger
-
+                // Update Lot Capacity Manually (Reliability Fix)
+                if (originalRecord.lotId) {
+                    const supabase = await createClient();
+                    const { data: lotToUpdate } = await supabase.from('warehouse_lots').select('current_stock').eq('id', originalRecord.lotId).single();
+                    if (lotToUpdate) {
+                        const newStock = Math.max(0, (lotToUpdate.current_stock || 0) - bagsToWithdraw);
+                        await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', originalRecord.lotId);
+                    }
+                }
 
                 // Save Withdrawal Transaction Audit
                 const { saveWithdrawalTransaction } = await import('@/lib/data');
@@ -1159,9 +1220,9 @@ export async function createTeamMember(prevState: FormState, formData: FormData)
   }
 
   const { email, password, fullName, role } = validatedFields.data;
+  const warehouseId = formData.get('warehouseId') as string;
 
-  // 1. Check if current user is logged in (Basic Auth Check)
-  // Ideally, we check if they are 'admin' role in DB, but for now just being logged in is the gate.
+  // 1. Check if current user is logged in
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -1173,8 +1234,7 @@ export async function createTeamMember(prevState: FormState, formData: FormData)
     const { createAdminClient } = await import('@/utils/supabase/admin');
     const supabaseAdmin = createAdminClient();
     
-    // We set email_confirm: true so they can login immediately without email link
-    const { data: newUser, error } = await supabaseAdmin.auth.admin.createUser({
+    const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -1185,20 +1245,31 @@ export async function createTeamMember(prevState: FormState, formData: FormData)
       }
     });
 
-    if (error) {
-      return { message: error.message, success: false };
+    if (authError) {
+      return { message: authError.message, success: false };
     }
     
-    // 3. User created in Auth. The Trigger should handle profile creation in public schema.
-    
-    // Revalidate logic (if we list users somewhere)
-    // revalidatePath('/settings/team'); 
+    // 3. Create Warehouse Assignment
+    // If no warehouseId provided, use the creator's current warehouse
+    let targetWarehouseId = warehouseId;
+    if (!targetWarehouseId) {
+        const { data: profile } = await supabase.from('profiles').select('warehouse_id').eq('id', user.id).single();
+        targetWarehouseId = profile?.warehouse_id;
+    }
+
+    if (targetWarehouseId && newUser.user) {
+        await supabaseAdmin.from('warehouse_assignments').insert({
+            user_id: newUser.user.id,
+            warehouse_id: targetWarehouseId,
+            role: role
+        });
+    }
 
     return { message: `User ${email} created successfully!`, success: true };
 
   } catch (err: any) {
     console.error('Create User Error:', err);
-    return { message: err.message || 'Server Error: Check SUPABASE_SERVICE_ROLE_KEY', success: false };
+    return { message: err.message || 'Server Error', success: false };
   }
 }
 
@@ -1234,15 +1305,6 @@ export async function updateUserProfile(prevState: FormState, formData: FormData
     return { message: "Profile updated successfully", success: true };
 }
 
-const roleHierarchy: Record<string, number> = {
-    'super_admin': 100,
-    'owner': 90,
-    'admin': 80,
-    'manager': 50,
-    'staff': 10,
-    'suspended': 0,
-    'customer': 0
-};
 
 export async function updateTeamMember(userId: string, formData: FormData) {
     const role = formData.get('role') as string;
@@ -1386,7 +1448,7 @@ export async function switchWarehouse(warehouseId: string) {
 
     // Verify access
     const { data: membership } = await supabase
-        .from('user_warehouses')
+        .from('warehouse_assignments')
         .select('role')
         .eq('user_id', user.id)
         .eq('warehouse_id', warehouseId)

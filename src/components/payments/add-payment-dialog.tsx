@@ -21,7 +21,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { useUnifiedToast } from '@/components/shared/toast-provider';
+import { FormError } from '../shared/form-error';
 import type { StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
@@ -34,7 +35,7 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
   onClose?: () => void;
   autoOpen?: boolean;
 }) {
-  const { toast } = useToast();
+  const { success: toastSuccess, error: toastError } = useUnifiedToast();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(autoOpen);
   const [paymentType, setPaymentType] = useState<'Rent/Other' | 'Hamali'>('Rent/Other');
@@ -54,20 +55,16 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
     if (state.message && state !== lastHandledRef.current) {
       lastHandledRef.current = state;
       if (state.success) {
-        toast({ title: 'Success', description: state.message });
+        toastSuccess('Success', state.message);
         setIsOpen(false);
         onClose?.();
         router.refresh();
       } else {
         router.refresh();
-        toast({
-          title: 'Error',
-          description: state.message,
-          variant: 'destructive',
-        });
+        toastError('Error', state.message);
       }
     }
-  }, [state, toast, router, onClose]);
+  }, [state, toastSuccess, toastError, router, onClose]);
   
   const recordDisplay = record.recordNumber || `REC-${record.id.substring(0, 8)}`;
   const title = paymentType === 'Hamali' ? 'Add Extra Hamali Charges' : 'Record Payment';
@@ -95,7 +92,8 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-             <div className="grid gap-2">
+            <FormError message={!state.success ? state.message : undefined} />
+            <div className="grid gap-2">
                 <Label>Type</Label>
                 <RadioGroup 
                     defaultValue={state.data?.paymentType || "Rent/Other"}

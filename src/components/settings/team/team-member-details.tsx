@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useTeamMembers } from '@/hooks/use-team-members';
+import { WarehouseAccessManager } from "./warehouse-access-manager";
 
 interface TeamMemberDetailsProps {
     member: TeamMember;
@@ -110,6 +111,13 @@ export function TeamMemberDetails({ member, currentUserRole = 'staff' }: TeamMem
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Warehouse Access Management */}
+            {(currentUserRole === 'owner' || currentUserRole === 'super_admin') && (
+                <div className="pt-6 border-t">
+                    <WarehouseAccessManager userId={member.id} currentUserRole={currentUserRole} />
+                </div>
+            )}
 
             {/* Danger Zone - Only if can edit */}
             {canEdit && (

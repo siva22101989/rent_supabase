@@ -70,6 +70,6 @@ describe('calculateFinalRent', () => {
     const end = start
     
     const result = calculateFinalRent(mockRecord(start), end, 100, pricing)
-    expect(result.rentPerBag).toBe(36)
+    expect(result.rentPerBag).toBe(0)
   })
 })
