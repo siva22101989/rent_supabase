@@ -1661,8 +1661,7 @@ export async function logLoginActivity() {
     try {
         const { logActivity } = await import('@/lib/logger');
         const supabase = await createClient();
-        const data = OutflowSchema.parse({
-r } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) return;
         
