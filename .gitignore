@@ -44,6 +44,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+tsc_output.txt
+typecheck_*.txt
+
+# storybook
+storybook-static/
 
 .genkit/*
 .env*
