@@ -12,10 +12,8 @@ import { isSMSEnabled } from '@/lib/sms-settings-actions';
  * Send welcome SMS when inflow is created
  */
 export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettings: boolean = false) {
-    console.log(`[SMS-DEBUG] sendInflowWelcomeSMS called for record: ${storageRecordId} (Bypass: ${bypassSettings})`);
     // Check settings
     const enabled = await isSMSEnabled('inflow_welcome');
-    console.log(`[SMS-DEBUG] Inflow SMS Enabled: ${enabled}`);
     
     if (!enabled && !bypassSettings) {
         return { success: false, error: 'SMS disabled in settings' };
@@ -45,7 +43,6 @@ export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettin
         const customer = Array.isArray(record.customers) ? record.customers[0] : record.customers;
         
         // Send SMS
-        console.log(`[SMS-DEBUG] Sending Inflow SMS to ${customer.phone}`);
         const result = await textBeeService.sendInflowWelcome({
             customerName: customer.name,
             phone: customer.phone,
@@ -53,7 +50,6 @@ export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettin
             bags: record.bags_stored || 0,
             recordNumber: record.record_number || record.id.substring(0, 8),
         });
-        console.log(`[SMS-DEBUG] TextBee Result:`, result);
         
         // Log SMS
         if (result.success) {
@@ -81,10 +77,8 @@ export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettin
  * Send confirmation SMS when outflow is processed
  */
 export async function sendOutflowConfirmationSMS(transactionId: string, bypassSettings: boolean = false) {
-    console.log(`[SMS-DEBUG] sendOutflowConfirmationSMS called for transaction: ${transactionId} (Bypass: ${bypassSettings})`);
     // Check settings
     const enabled = await isSMSEnabled('outflow_confirmation');
-    console.log(`[SMS-DEBUG] Outflow SMS Enabled: ${enabled}`);
     
     if (!enabled && !bypassSettings) {
         return { success: false, error: 'SMS disabled in settings' };
@@ -119,7 +113,6 @@ export async function sendOutflowConfirmationSMS(transactionId: string, bypassSe
         const customer = Array.isArray(record.customers) ? record.customers[0] : record.customers;
         
         // Send SMS
-        console.log(`[SMS-DEBUG] Sending Outflow SMS to ${customer.phone}`);
         const result = await textBeeService.sendOutflowConfirmation({
             customerName: customer.name,
             phone: customer.phone,
@@ -128,7 +121,6 @@ export async function sendOutflowConfirmationSMS(transactionId: string, bypassSe
             recordNumber: record.record_number || transaction.record_id.substring(0, 8),
             invoiceNumber: transaction.invoice_number || transaction.id.substring(0, 8),
         });
-        console.log(`[SMS-DEBUG] TextBee Result:`, result);
         
         // Log SMS
         if (result.success) {
