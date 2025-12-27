@@ -91,22 +91,34 @@ export async function switchWarehouse(warehouseId: string): Promise<ActionState>
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { message: 'Unauthorized', success: false };
 
-    // Verify Access
-    const { data: access } = await supabase
-        .from('warehouse_assignments')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('warehouse_id', warehouseId)
-        .single();
+    // Check user profile for super_admin
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    const isSuperAdmin = profile?.role === 'super_admin';
 
-    if (!access) return { message: 'Access Denied', success: false };
+    let role = 'staff'; // Default fallback
+
+    if (isSuperAdmin) {
+        // Super Admin bypasses assignment check
+        role = 'super_admin';
+    } else {
+        // Verify Access for normal users
+        const { data: access } = await supabase
+            .from('warehouse_assignments')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('warehouse_id', warehouseId)
+            .single();
+
+        if (!access) return { message: 'Access Denied', success: false };
+        role = access.role;
+    }
 
     // Update Profile
     const { error } = await supabase
         .from('profiles')
         .update({ 
             warehouse_id: warehouseId,
-            role: access.role // Sync role
+            role: role // Sync role (Super Admin stays Super Admin)
         })
         .eq('id', user.id);
 
@@ -121,7 +133,29 @@ export async function getUserWarehouses() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    // Join assignments with warehouses
+    // Check if Super Admin
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    
+    if (profile?.role === 'super_admin') {
+        // Fetch ALL warehouses
+        const { data, error } = await supabase
+            .from('warehouses')
+            .select('id, name, location');
+        
+        if (error) {
+            console.error("Fetch all warehouses error:", error);
+            return [];
+        }
+
+        return data.map((w: any) => ({
+            id: w.id,
+            role: 'super_admin',
+            name: w.name,
+            location: w.location || ''
+        }));
+    }
+
+    // Normal User: Join assignments with warehouses
     const { data, error } = await supabase
         .from('warehouse_assignments')
         .select(`

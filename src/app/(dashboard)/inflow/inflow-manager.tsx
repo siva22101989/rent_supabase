@@ -7,9 +7,10 @@ import { InflowListClient } from './inflow-list-client';
 interface InflowManagerProps {
     initialInflows: any[];
     nextSerialNumber: string;
+    smsEnabledDefault: boolean;
 }
 
-export function InflowManager({ initialInflows, nextSerialNumber }: InflowManagerProps) {
+export function InflowManager({ initialInflows, nextSerialNumber, smsEnabledDefault }: InflowManagerProps) {
     const [optimisticInflows, addOptimisticInflow] = useOptimistic(
         initialInflows,
         (state, newInflow: any) => [newInflow, ...state]
@@ -19,6 +20,7 @@ export function InflowManager({ initialInflows, nextSerialNumber }: InflowManage
         <>
             <InflowForm 
                 nextSerialNumber={nextSerialNumber} 
+                smsEnabledDefault={smsEnabledDefault}
                 onSuccess={(newInflow) => {
                     // This will be called by InflowForm when submission starts
                     addOptimisticInflow(newInflow);

@@ -20,7 +20,9 @@ import { AdminUsersTable } from '@/components/admin/users-table';
 // import { GlobalActivityFeed } from '@/components/admin/activity-feed'; // Replaced
 import { ActivityLogsTable } from '@/components/admin/activity-logs-table';
 import { PlatformAnalyticsCharts } from '@/components/admin/analytics-charts';
-
+import { getAdminAllSubscriptions, getAllPlans } from '@/lib/subscription-actions';
+import { SubscriptionsTable } from '@/components/admin/subscriptions-table';
+import { CreditCard } from 'lucide-react';
 export default async function SuperAdminDashboard({
   searchParams,
 }: {
@@ -62,6 +64,10 @@ export default async function SuperAdminDashboard({
   const warehouses = await getAllWarehousesAdmin();
   const users = await getAllUsersAdmin();
   const analyticsData = await getPlatformAnalytics();
+  
+  // Fetch Subscription Data
+  const subscriptions = await getAdminAllSubscriptions();
+  const plans = await getAllPlans();
 
   // Fetch Logs with Filters
   const limit = 50;
@@ -117,6 +123,12 @@ export default async function SuperAdminDashboard({
             >
               <BarChart3 className="mr-2 h-4 w-4" /> Analytics
             </TabsTrigger>
+            <TabsTrigger 
+              value="subscriptions" 
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+            >
+              <CreditCard className="mr-2 h-4 w-4" /> Subscriptions
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -146,6 +158,14 @@ export default async function SuperAdminDashboard({
 
         <TabsContent value="analytics" className="mt-0 pt-4">
           <PlatformAnalyticsCharts data={analyticsData} />
+        </TabsContent>
+
+        <TabsContent value="subscriptions" className="mt-0 pt-4">
+             <div className="mb-4">
+              <h3 className="text-lg font-semibold tracking-tight">Subscription Management</h3>
+              <p className="text-sm text-muted-foreground">Manually manage warehouse plans and expiry dates.</p>
+            </div>
+            <SubscriptionsTable initialData={subscriptions} plans={plans} />
         </TabsContent>
       </Tabs>
     </div>

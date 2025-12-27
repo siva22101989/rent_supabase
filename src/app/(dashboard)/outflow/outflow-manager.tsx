@@ -6,9 +6,10 @@ import { OutflowListClient } from './outflow-list-client';
 
 interface OutflowManagerProps {
     initialOutflows: any[];
+    smsEnabledDefault: boolean;
 }
 
-export function OutflowManager({ initialOutflows }: OutflowManagerProps) {
+export function OutflowManager({ initialOutflows, smsEnabledDefault }: OutflowManagerProps) {
     const [optimisticOutflows, addOptimisticOutflow] = useOptimistic(
         initialOutflows,
         (state, newOutflow: any) => [newOutflow, ...state]
@@ -18,6 +19,7 @@ export function OutflowManager({ initialOutflows }: OutflowManagerProps) {
         <>
             <OutflowForm 
                 records={[]} // Still needs the dropdown records if applicable, or we fetch them in the manager
+                smsEnabledDefault={smsEnabledDefault}
                 onSuccess={(newOutflow) => {
                     addOptimisticOutflow(newOutflow);
                 }}

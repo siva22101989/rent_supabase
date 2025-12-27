@@ -1,12 +1,14 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowForm } from "@/components/outflow/outflow-form";
 import { getRecentOutflows } from "@/lib/queries";
+import { isSMSEnabled } from "@/lib/sms-settings-actions";
 import { OutflowManager } from "./outflow-manager";
 
 export const dynamic = 'force-dynamic';
 
 export default async function OutflowPage() {
   const recentOutflows = await getRecentOutflows(100); // Fetch more for filtering
+  const smsEnabled = await isSMSEnabled('outflow_confirmation');
   
   return (
     <>
@@ -19,7 +21,7 @@ export default async function OutflowPage() {
         ]}
       />
       
-      <OutflowManager initialOutflows={recentOutflows} />
+      <OutflowManager initialOutflows={recentOutflows} smsEnabledDefault={smsEnabled} />
     </>
   );
 }

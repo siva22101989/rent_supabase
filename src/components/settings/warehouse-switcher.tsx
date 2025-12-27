@@ -6,7 +6,7 @@ import { Check, Warehouse as WarehouseIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTransition } from "react";
 import { switchWarehouse } from "@/lib/warehouse-actions";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 interface WarehouseSwitcherProps {
     warehouses: any[];

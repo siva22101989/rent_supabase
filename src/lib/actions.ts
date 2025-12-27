@@ -605,6 +605,13 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                     `/inflow/receipt/${savedRecord.id}`
                 );
 
+                // Send SMS Notification
+                const sendSms = formData.get('sendSms') === 'true';
+                if (sendSms) {
+                    const { sendInflowWelcomeSMS } = await import('@/lib/sms-event-actions');
+                    await sendInflowWelcomeSMS(savedRecord.id, true);
+                }
+
                 logger.info("Inflow record created successfully", { recordId: savedRecord.id });
                 revalidatePath('/storage');
                 redirect(`/inflow/receipt/${savedRecord.id}`);
@@ -724,7 +731,14 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
 
                 // Save Withdrawal Transaction Audit
                 const { saveWithdrawalTransaction } = await import('@/lib/data');
-                await saveWithdrawalTransaction(recordId, bagsToWithdraw, new Date(withdrawalDate), finalRent);
+                const transactionId = await saveWithdrawalTransaction(recordId, bagsToWithdraw, new Date(withdrawalDate), finalRent);
+
+                // Send SMS Notification
+                const sendSms = formData.get('sendSms') === 'true';
+                if (transactionId && sendSms) {
+                    const { sendOutflowConfirmationSMS } = await import('@/lib/sms-event-actions');
+                    await sendOutflowConfirmationSMS(transactionId, true);
+                }
 
                 const { createNotification } = await import('@/lib/logger');
                 

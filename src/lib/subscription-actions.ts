@@ -81,3 +81,89 @@ export async function startSubscriptionAction(
     }
   );
 }
+
+// --- Admin Actions ---
+
+export async function getAdminAllSubscriptions() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Auth Check
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
+    if (!profile || (profile.role !== 'super_admin' && profile.role !== 'owner')) {
+        return [];
+    }
+
+    // Fetch all warehouses with their subscriptions
+    // Note: Supabase returns an array for one-to-many, but usually subscriptions are 1-1 logically here.
+    const { data, error } = await supabase
+        .from('warehouses')
+        .select(`
+            id,
+            name,
+            location,
+            subscriptions (
+                id,
+                status,
+                current_period_end,
+                plan_id,
+                plans (
+                    id,
+                    name,
+                    tier
+                )
+            )
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching admin subscriptions:', error);
+        return [];
+    }
+
+    return data.map((w: any) => ({
+        warehouseId: w.id,
+        warehouseName: w.name,
+        location: w.location,
+        // If it's an array, take the first one or find the active one.
+        // Assuming 1 active sub per warehouse for simplicity
+        subscription: Array.isArray(w.subscriptions) ? w.subscriptions[0] : w.subscriptions
+    }));
+}
+
+export async function getAllPlans() {
+    const supabase = await createClient();
+    // Use 'price' column as seen in SQL output. 
+    // If price is text/numeric, this order should work.
+    const { data } = await supabase.from('plans').select('*').order('created_at', { ascending: true });
+    return data || [];
+}
+
+export async function updateSubscriptionAdmin(
+    warehouseId: string, 
+    planId: string, 
+    status: 'active' | 'incomplete' | 'past_due' | 'canceled' | 'unpaid',
+    endDate?: string
+): Promise<SubscriptionState> {
+    const supabase = await createClient();
+    
+    // Upsert subscription
+    // If no ID exists, it creates one. If exists (by warehouse_id constraint), it updates.
+    // Ensure table has unique constraint on warehouse_id
+    const { error } = await supabase
+        .from('subscriptions')
+        .upsert({
+            warehouse_id: warehouseId,
+            plan_id: planId,
+            status: status,
+            current_period_end: endDate ? new Date(endDate).toISOString() : null,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'warehouse_id' });
+
+    if (error) {
+        return { success: false, message: error.message };
+    }
+
+    revalidatePath('/admin');
+    return { success: true, message: 'Subscription updated successfully' };
+}

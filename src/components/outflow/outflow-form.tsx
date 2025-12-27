@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState, useRef } from 'react';
+import { useActionState, useEffect, useState, useRef, startTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import * as Sentry from "@sentry/nextjs";
@@ -19,6 +19,7 @@ import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useCustomers } from '@/contexts/customer-context';
 import { useStaticData } from '@/hooks/use-static-data';
 
@@ -27,14 +28,16 @@ import { getStorageRecordAction } from '@/lib/actions';
 
 export function OutflowForm({ 
     records = [],
-    onSuccess
+    onSuccess,
+    smsEnabledDefault
 }: { 
     records?: StorageRecord[],
-    onSuccess?: (outflow: any) => void
+    onSuccess?: (outflow: any) => void,
+    smsEnabledDefault: boolean
 }) {
     const { success: toastSuccess, error: toastError } = useUnifiedToast();
     const initialState: OutflowFormState = { message: '', success: false };
-    const [state, formAction] = useActionState(addOutflow, initialState);
+    const [state, formAction, isPending] = useActionState(addOutflow, initialState);
 
     // Hooks for data
     const { customers, isLoading: customersLoading } = useCustomers();
@@ -55,6 +58,7 @@ export function OutflowForm({
     const [rentPerBag, setRentPerBag] = useState({ rentPerBag: 0 });
     const [hamaliPending, setHamaliPending] = useState(0);
     const [isLoadingRecord, setIsLoadingRecord] = useState(false);
+    const [sendSms, setSendSms] = useState(smsEnabledDefault);
 
     // Filtered logic removed in favor of Async Search
     const totalPayable = finalRent + hamaliPending;
@@ -174,13 +178,15 @@ export function OutflowForm({
    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         // Basic prediction for optimistic UI
         if (onSuccess && selectedRecord) {
-            onSuccess({
-                id: 'optimistic-' + Date.now(),
-                date: withdrawalDate,
-                customerName: selectedRecord.customerName || 'Customer', // Corrected property name
-                commodity: selectedRecord.commodityDescription || 'Product',
-                bags: bagsToWithdraw,
-                totalAmount: totalPayable
+            startTransition(() => {
+                onSuccess({
+                    id: 'optimistic-' + Date.now(),
+                    date: withdrawalDate,
+                    customerName: selectedRecord.customerName || 'Customer', // Corrected property name
+                    commodity: selectedRecord.commodityDescription || 'Product',
+                    bags: bagsToWithdraw,
+                    totalAmount: totalPayable
+                });
             });
         }
     };
@@ -202,6 +208,7 @@ export function OutflowForm({
                         {/* Hidden Inputs for Form Action */}
                         <input type="hidden" name="customerId" value={selectedRecord?.customerId || ''} />
                         <input type="hidden" name="recordId" value={selectedRecordId} />
+                        <input type="hidden" name="sendSms" value={String(sendSms)} />
                     </div>
                     
                     {isLoadingRecord && (
@@ -294,8 +301,12 @@ export function OutflowForm({
                         </>
                     )}
                 </CardContent>
-                <CardFooter>
-                    <SubmitButton className="w-full">Process Outflow</SubmitButton>
+                <CardFooter className="flex justify-between space-x-4">
+                    <div className="flex items-center space-x-2 mr-auto">
+                        <Switch id="send-outflow-sms" checked={sendSms} onCheckedChange={setSendSms} />
+                        <Label htmlFor="send-outflow-sms">Send SMS Notification</Label>
+                    </div>
+                    <SubmitButton isLoading={isPending}>Process Outflow</SubmitButton>
                 </CardFooter>
             </Card>
         </form>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect, useState, useRef, Suspense } from 'react';
+import { useActionState, useEffect, useState, useRef, Suspense, startTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useSearchParams, useRouter } from 'next/navigation';
 import * as Sentry from "@sentry/nextjs";
@@ -19,6 +19,7 @@ import { useFeatureGate, FEATURES } from '@/lib/feature-flags';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 
 // Local SubmitButton removed in favor of shared component
 
@@ -28,10 +29,12 @@ import { useStaticData } from "@/hooks/use-static-data";
 
 function InflowFormInner({ 
     nextSerialNumber,
-    onSuccess 
+    onSuccess,
+    smsEnabledDefault
 }: { 
     nextSerialNumber: string,
-    onSuccess?: (inflow: any) => void
+    onSuccess?: (inflow: any) => void,
+    smsEnabledDefault: boolean
 }) {
     const { success: toastSuccess, error: toastError } = useUnifiedToast();
     const searchParams = useSearchParams();
@@ -45,7 +48,7 @@ function InflowFormInner({
     const lastHandledRef = useRef<any>(null);
 
     const initialState: InflowFormState = { message: '', success: false };
-    const [state, formAction] = useActionState(addInflow, initialState);
+    const [state, formAction, isPending] = useActionState(addInflow, initialState);
 
     const [bags, setBags] = useState(0);
     const [rate, setRate] = useState(0);
@@ -56,6 +59,7 @@ function InflowFormInner({
     const [plotBags, setPlotBags] = useState(0);
     const [selectedLotId, setSelectedLotId] = useState('');
     const [selectedCropId, setSelectedCropId] = useState('');
+    const [sendSms, setSendSms] = useState(smsEnabledDefault);
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
     const selectedLot = lots?.find(l => l.id === selectedLotId);
@@ -147,12 +151,14 @@ function InflowFormInner({
         } else {
             setError(null);
             if (onSuccess) {
-                onSuccess({
-                    id: 'optimistic-' + Date.now(),
-                    date: new Date(formData.get('storageStartDate') as string),
-                    customerName: selectedCustomer?.name || 'Customer',
-                    commodity: selectedCrop?.name || 'Product',
-                    bags: tParams.type === 'Direct' ? tParams.bags : tParams.plotBags
+                startTransition(() => {
+                    onSuccess({
+                        id: 'optimistic-' + Date.now(),
+                        date: new Date(formData.get('storageStartDate') as string),
+                        customerName: selectedCustomer?.name || 'Customer',
+                        commodity: selectedCrop?.name || 'Product',
+                        bags: tParams.type === 'Direct' ? tParams.bags : tParams.plotBags
+                    });
                 });
             }
         }
@@ -372,22 +378,28 @@ function InflowFormInner({
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter>
-                    <SubmitButton className="w-full">Create Storage Record</SubmitButton>
+                <CardFooter className="flex justify-between space-x-4">
+                    <div className="flex items-center space-x-2 mr-auto">
+                        <Switch id="send-sms" checked={sendSms} onCheckedChange={setSendSms} />
+                        <Label htmlFor="send-sms">Send SMS Notification</Label>
+                    </div>
+                    <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
+                    <SubmitButton isLoading={isPending}>Create Storage Record</SubmitButton>
                 </CardFooter>
             </Card>
+            {/* Hidden Fields */}
+            <input type="hidden" name="customerId" value={selectedCustomerId} />
+            <input type="hidden" name="inflowType" value={inflowType} />
+            <input type="hidden" name="sendSms" value={String(sendSms)} />
         </form>
     </div>
   );
 }
 
-export function InflowForm(props: { 
-    nextSerialNumber: string,
-    onSuccess?: (inflow: any) => void 
-}) {
+export function InflowForm({ nextSerialNumber, onSuccess, smsEnabledDefault }: { nextSerialNumber: string, onSuccess?: (inflow: any) => void, smsEnabledDefault: boolean }) {
     return (
-        <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>}>
-            <InflowFormInner {...props} />
+        <Suspense fallback={<Card className="w-full animate-pulse h-96" />}>
+            <InflowFormInner nextSerialNumber={nextSerialNumber} onSuccess={onSuccess} smsEnabledDefault={smsEnabledDefault} />
         </Suspense>
     );
 }
