@@ -1,7 +1,8 @@
 import { getActiveStorageRecords, getStorageStats, getCustomers } from "@/lib/queries";
 import { StoragePageClient } from "./page-client";
 
-export const dynamic = 'force-dynamic';
+// Revalidate every 60 seconds - storage data changes moderately
+export const revalidate = 60;
 
 export default async function StoragePage() {
   // Parallel Fetching for optimization

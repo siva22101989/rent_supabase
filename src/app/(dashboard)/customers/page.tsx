@@ -1,7 +1,8 @@
 import { getCustomersWithBalance } from "@/lib/queries";
 import { CustomersPageClient } from "./page-client";
 
-export const dynamic = 'force-dynamic';
+// Revalidate every 60 seconds - customer data changes moderately
+export const revalidate = 60;
 
 export default async function CustomersPage({
   searchParams,

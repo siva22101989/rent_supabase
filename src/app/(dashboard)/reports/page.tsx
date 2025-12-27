@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FileText, TrendingUp, BarChart3, DollarSign, Package } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
+// Revalidate every 5 minutes - reports are less time-sensitive
+export const revalidate = 300;
 
 export default async function ReportsPage() {
   return (

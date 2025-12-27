@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-export const dynamic = 'force-dynamic';
+// Revalidate every 30 seconds for fresh dashboard data
+export const revalidate = 30;
 import { getDashboardMetrics, getAvailableLots, getWarehouseDetails, getRecentInflows, getRecentOutflows } from "@/lib/queries";
 import { Progress } from "@/components/ui/progress";
 // import { DashboardCharts } from "@/components/dashboard/dashboard-charts"; // Replaced by new Stats
