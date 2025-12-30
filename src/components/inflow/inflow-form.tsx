@@ -83,22 +83,6 @@ function InflowFormInner({
     const selectedCrop = crops?.find(c => c.id === selectedCropId);
     const selectedUnloading = unloadingRecords.find(u => u.id === selectedUnloadingId);
 
-    // Fetch unloading records
-    useEffect(() => {
-        async function fetchUnloadingRecords() {
-            try {
-                const response = await fetch('/api/unloading-records');
-                if (response.ok) {
-                    const data = await response.json();
-                    setUnloadingRecords(data);
-                }
-            } catch (error) {
-                console.error('Error fetching unloading records:', error);
-            }
-        }
-        fetchUnloadingRecords();
-    }, []);
-
     // Auto-populate from selected unloading record
     useEffect(() => {
         if (selectedUnloading) {
