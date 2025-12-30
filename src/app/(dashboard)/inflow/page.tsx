@@ -55,10 +55,10 @@ export default async function InflowPage() {
         <AddCustomerDialog />
       </PageHeader>
       
-      <Tabs defaultValue="arrivals" className="space-y-6">
+      <Tabs defaultValue="inflow" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="arrivals">Truck Arrivals</TabsTrigger>
           <TabsTrigger value="inflow">Plot/Quick Inflow</TabsTrigger>
+          <TabsTrigger value="arrivals">Truck Arrivals</TabsTrigger>
         </TabsList>
  
         <TabsContent value="arrivals" className="space-y-6">

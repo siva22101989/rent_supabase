@@ -19,7 +19,6 @@ import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
 import { useCustomers } from '@/contexts/customer-context';
 import { useStaticData } from '@/hooks/use-static-data';
 
@@ -301,11 +300,7 @@ export function OutflowForm({
                         </>
                     )}
                 </CardContent>
-                <CardFooter className="flex justify-between space-x-4">
-                    <div className="flex items-center space-x-2 mr-auto">
-                        <Switch id="send-outflow-sms" checked={sendSms} onCheckedChange={setSendSms} />
-                        <Label htmlFor="send-outflow-sms">Send SMS Notification</Label>
-                    </div>
+                <CardFooter className="flex justify-end">
                     <SubmitButton isLoading={isPending}>Process Outflow</SubmitButton>
                 </CardFooter>
             </Card>

@@ -22,7 +22,7 @@ export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettin
     try {
         const supabase = await createClient();
         
-        // Get storage record with customer details
+        // Get storage record with customer and warehouse details
         const { data: record, error } = await supabase
             .from('storage_records')
             .select(`
@@ -30,6 +30,12 @@ export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettin
                 customers (
                     name,
                     phone
+                ),
+                warehouse_lots (
+                    name
+                ),
+                warehouses (
+                    name
                 )
             `)
             .eq('id', storageRecordId)
@@ -41,14 +47,28 @@ export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettin
         }
         
         const customer = Array.isArray(record.customers) ? record.customers[0] : record.customers;
+        const warehouse = Array.isArray(record.warehouses) ? record.warehouses[0] : record.warehouses;
+        const lot = Array.isArray(record.warehouse_lots) ? record.warehouse_lots[0] : record.warehouse_lots;
         
-        // Send SMS
+        // Format storage date
+        const storageDate = record.storage_start_date 
+            ? new Date(record.storage_start_date).toLocaleDateString('en-IN', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric' 
+              })
+            : undefined;
+        
+        // Send SMS with detailed information
         const result = await textBeeService.sendInflowWelcome({
+            warehouseName: warehouse?.name || 'Warehouse',
             customerName: customer.name,
             phone: customer.phone,
             commodity: record.commodity_description || 'Storage',
             bags: record.bags_stored || 0,
             recordNumber: record.record_number || record.id.substring(0, 8),
+            storageDate,
+            location: lot?.name,
         });
         
         // Log SMS
@@ -87,7 +107,7 @@ export async function sendOutflowConfirmationSMS(transactionId: string, bypassSe
     try {
         const supabase = await createClient();
         
-        // Get transaction with record and customer details
+        // Get transaction with record, customer, and warehouse details
         const { data: transaction, error } = await supabase
             .from('withdrawal_transactions')
             .select(`
@@ -95,9 +115,13 @@ export async function sendOutflowConfirmationSMS(transactionId: string, bypassSe
                 storage_records (
                     record_number,
                     commodity_description,
+                    warehouse_id,
                     customers (
                         name,
                         phone
+                    ),
+                    warehouses (
+                        name
                     )
                 )
             `)
@@ -111,15 +135,20 @@ export async function sendOutflowConfirmationSMS(transactionId: string, bypassSe
         
         const record = transaction.storage_records;
         const customer = Array.isArray(record.customers) ? record.customers[0] : record.customers;
+        const warehouse = Array.isArray(record.warehouses) ? record.warehouses[0] : record.warehouses;
         
-        // Send SMS
+        // Send SMS with detailed financial information
         const result = await textBeeService.sendOutflowConfirmation({
+            warehouseName: warehouse?.name || 'Warehouse',
             customerName: customer.name,
             phone: customer.phone,
             commodity: record.commodity_description || 'Storage',
             bags: transaction.bags_withdrawn || 0,
             recordNumber: record.record_number || transaction.record_id.substring(0, 8),
             invoiceNumber: transaction.invoice_number || transaction.id.substring(0, 8),
+            rentAmount: transaction.rent_collected,
+            hamaliAmount: transaction.hamali_charged,
+            totalAmount: (transaction.rent_collected || 0) + (transaction.hamali_charged || 0),
         });
         
         // Log SMS
@@ -156,7 +185,7 @@ export async function sendPaymentConfirmationSMS(paymentId: string) {
     try {
         const supabase = await createClient();
         
-        // Get payment with record and customer details
+        // Get payment with record, customer, and warehouse details
         const { data: payment, error } = await supabase
             .from('payments')
             .select(`
@@ -166,6 +195,9 @@ export async function sendPaymentConfirmationSMS(paymentId: string) {
                     customers (
                         name,
                         phone
+                    ),
+                    warehouses (
+                        name
                     )
                 )
             `)
@@ -179,9 +211,11 @@ export async function sendPaymentConfirmationSMS(paymentId: string) {
         
         const record = payment.storage_records;
         const customer = Array.isArray(record.customers) ? record.customers[0] : record.customers;
+        const warehouse = Array.isArray(record.warehouses) ? record.warehouses[0] : record.warehouses;
         
         // Send SMS
         const result = await textBeeService.sendPaymentConfirmation({
+            warehouseName: warehouse?.name || 'Warehouse',
             customerName: customer.name,
             phone: customer.phone,
             amount: payment.amount,

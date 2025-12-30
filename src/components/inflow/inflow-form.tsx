@@ -19,7 +19,6 @@ import { useFeatureGate, FEATURES } from '@/lib/feature-flags';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Switch } from '@/components/ui/switch';
 
 // Local SubmitButton removed in favor of shared component
 
@@ -212,8 +211,10 @@ function InflowFormInner({
 
                     {/* Unloading Record Selector */}
                     {unloadingRecords.length > 0 && (
-                        <div className="space-y-2 p-4 bg-accent/50 rounded-lg border">
-                            <Label htmlFor="unloadingRecord">Select from Unloading Record (Optional)</Label>
+                        <div className="space-y-2 p-3 sm:p-4 bg-accent/50 rounded-lg border">
+                            <Label htmlFor="unloadingRecord" className="text-sm">
+                                Select from Unloading Record (Optional)
+                            </Label>
                             <Select 
                                 value={selectedUnloadingId} 
                                 onValueChange={(value) => {
@@ -225,24 +226,33 @@ function InflowFormInner({
                                     }
                                 }}
                             >
-                                <SelectTrigger id="unloadingRecord">
+                                <SelectTrigger id="unloadingRecord" className="text-sm">
                                     <SelectValue placeholder="Choose from truck arrivals..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="_none_">-- None (Manual Entry) --</SelectItem>
                                     {unloadingRecords.map(record => (
-                                        <SelectItem key={record.id} value={record.id}>
-                                            {record.customer?.name} - {record.commodity_description} - {record.bags_remaining} bags available
+                                        <SelectItem key={record.id} value={record.id} className="text-sm">
+                                            <span className="block truncate">
+                                                {record.customer?.name} - {record.commodity_description}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {record.bags_remaining} bags
+                                            </span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                             {selectedUnloading && (
-                                <p className="text-xs text-muted-foreground">
-                                    Available: {selectedUnloading.bags_remaining} bags | 
-                                    Unloaded: {new Date(selectedUnloading.unload_date).toLocaleDateString()}
-                                    {selectedUnloading.lorry_tractor_no && ` | ${selectedUnloading.lorry_tractor_no}`}
-                                </p>
+                                <div className="text-xs text-muted-foreground space-y-1">
+                                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                        <span>Available: {selectedUnloading.bags_remaining} bags</span>
+                                        <span>Unloaded: {new Date(selectedUnloading.unload_date).toLocaleDateString()}</span>
+                                    </div>
+                                    {selectedUnloading.lorry_tractor_no && (
+                                        <div className="break-all">{selectedUnloading.lorry_tractor_no}</div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}
@@ -443,11 +453,7 @@ function InflowFormInner({
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-between space-x-4">
-                    <div className="flex items-center space-x-2 mr-auto">
-                        <Switch id="send-sms" checked={sendSms} onCheckedChange={setSendSms} />
-                        <Label htmlFor="send-sms">Send SMS Notification</Label>
-                    </div>
+                <CardFooter className="flex justify-end gap-4">
                     <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
                     <SubmitButton isLoading={isPending}>Create Storage Record</SubmitButton>
                 </CardFooter>
