@@ -28,16 +28,18 @@ export async function sendPaymentReminderSMS(customerId: string, recordId?: stri
     try {
         const supabase = await createClient();
         
-        // Get customer details
+        // Get customer details along with warehouse name
         const { data: customer, error: customerError } = await supabase
             .from('customers')
-            .select('*')
+            .select('*, warehouses(name)')
             .eq('id', customerId)
             .single();
         
         if (customerError || !customer) {
             return { success: false, error: 'Customer not found' };
         }
+        
+        const warehouse = Array.isArray(customer.warehouses) ? customer.warehouses[0] : customer.warehouses;
         
         // Get customer's balance from view
         const { data: balanceData } = await supabase
@@ -66,6 +68,7 @@ export async function sendPaymentReminderSMS(customerId: string, recordId?: stri
         
         // Send SMS via TextBee
         const result = await textBeeService.sendPaymentReminder({
+            warehouseName: warehouse?.name || 'Warehouse',
             customerName: customer.name,
             phone: customer.phone,
             amount: balanceData.balance,
