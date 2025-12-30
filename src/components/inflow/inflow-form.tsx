@@ -277,11 +277,25 @@ function InflowFormInner({
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="fatherName">Father's Name</Label>
-                                <Input id="fatherName" name="fatherName" defaultValue={selectedCustomer.fatherName} />
+                                <Input 
+                                    key={`father-${selectedCustomerId}`}
+                                    id="fatherName" 
+                                    name="fatherName" 
+                                    defaultValue={(selectedCustomer as any).father_name || selectedCustomer.fatherName || ''} 
+                                    readOnly
+                                    className="bg-muted"
+                                />
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="village">Village</Label>
-                                <Input id="village" name="village" defaultValue={selectedCustomer.village} />
+                                <Input 
+                                    key={`village-${selectedCustomerId}`}
+                                    id="village" 
+                                    name="village" 
+                                    defaultValue={selectedCustomer.village || ''} 
+                                    readOnly
+                                    className="bg-muted"
+                                />
                             </div>
                         </div>
                     )}

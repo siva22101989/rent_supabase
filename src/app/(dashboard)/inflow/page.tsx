@@ -24,11 +24,18 @@ export default async function InflowPage() {
     const warehouseId = await getUserWarehouse();
     
     // Fetch customers, crops, and lots
-    const { data: customers } = await supabase
+    const { data: customersRaw } = await supabase
         .from('customers')
-        .select('id, name')
+        .select('id, name, father_name, village')
         .eq('warehouse_id', warehouseId)
         .order('name');
+    
+    const customers = (customersRaw || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        fatherName: c.father_name || '',
+        village: c.village || ''
+    }));
     
     const { data: crops } = await supabase
         .from('crops')
