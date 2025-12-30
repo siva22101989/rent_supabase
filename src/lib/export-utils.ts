@@ -830,6 +830,47 @@ export function generateCustomReportPDF(
         `;
     }
 
+    // 8. Lot Inventory Report
+    else if (reportType === 'lot-inventory') {
+        title = 'Lot Inventory Report';
+        let currentLot = '';
+        const rows = data.data.map((r: any) => {
+            const showLot = r.lot_name !== currentLot;
+            if (showLot) currentLot = r.lot_name;
+            
+            return `
+                <tr>
+                    <td style="${showLot ? 'font-weight: bold; border-top: 2px solid #ddd;' : 'border-top: none; color: transparent;'}">${r.lot_name}</td>
+                    <td>${r.customer_name}</td>
+                    <td>${r.crop_name}</td>
+                    <td style="text-align: right">${r.total_bags}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const totalBags = data.data.reduce((sum: number, r: any) => sum + r.total_bags, 0);
+
+        content = `
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Lot</th>
+                        <th style="width: 35%">Customer</th>
+                        <th style="width: 30%">Commodity</th>
+                        <th style="width: 20%; text-align: right">Bags stored</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                    <tr style="font-weight: bold; background-color: #f0f0f0;">
+                        <td colspan="3" style="text-align: right;">Total Bags in Warehouse:</td>
+                        <td style="text-align: right;">${totalBags}</td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+    }
+
     const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -1013,6 +1054,14 @@ export function exportCustomReportToExcel(
             'Billed Total': c.totalDues,
             'Paid Total': c.totalPaid,
             'Balance Due': c.balance
+        }));
+    } else if (reportType === 'lot-inventory') {
+        filename = 'lot-inventory';
+        exportData = data.data.map((r: any) => ({
+            'Lot': r.lot_name,
+            'Customer': r.customer_name,
+            'Commodity': r.crop_name,
+            'Bags stored': r.total_bags
         }));
     }
 

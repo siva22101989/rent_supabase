@@ -446,6 +446,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                 khataAmount: formData.get('khataAmount'),
                 lotId: formData.get('lotId'),
                 cropId: formData.get('cropId'),
+                unloadingRecordId: formData.get('unloadingRecordId'),
             };
             span.setAttribute("customerId", rawData.customerId as string);
             span.setAttribute("lotId", rawData.lotId as string);
@@ -568,6 +569,38 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                     if (lotToUpdate) {
                         const newStock = (lotToUpdate.current_stock || 0) + inflowBags;
                         await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', rest.lotId);
+                    }
+                }
+                
+                // Deduct from unloading record if applicable
+                const unloadingRecordId = rawData.unloadingRecordId as string | null;
+                if (unloadingRecordId && unloadingRecordId !== '_none_') {
+                    const supabase = await createClient();
+                    
+                    // Get current unloading record
+                    const { data: unloadingRecord } = await supabase
+                        .from('unloading_records')
+                        .select('bags_remaining')
+                        .eq('id', unloadingRecordId)
+                        .single();
+                    
+                    if (unloadingRecord) {
+                        const newRemaining = Math.max(0, unloadingRecord.bags_remaining - inflowBags);
+                        
+                        // Update bags_remaining
+                        await supabase
+                            .from('unloading_records')
+                            .update({ 
+                                bags_remaining: newRemaining,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', unloadingRecordId);
+                        
+                        logger.info("Deducted bags from unloading record", { 
+                            unloadingRecordId, 
+                            deducted: inflowBags, 
+                            newRemaining 
+                        });
                     }
                 }
                 

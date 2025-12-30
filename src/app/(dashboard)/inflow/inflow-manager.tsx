@@ -8,9 +8,21 @@ interface InflowManagerProps {
     initialInflows: any[];
     nextSerialNumber: string;
     smsEnabledDefault: boolean;
+    customers: any[];
+    crops: any[];
+    lots: any[];
+    unloadedRecords: any[];
 }
 
-export function InflowManager({ initialInflows, nextSerialNumber, smsEnabledDefault }: InflowManagerProps) {
+export function InflowManager({ 
+    initialInflows, 
+    nextSerialNumber, 
+    smsEnabledDefault,
+    customers,
+    crops,
+    lots,
+    unloadedRecords
+}: InflowManagerProps) {
     const [optimisticInflows, addOptimisticInflow] = useOptimistic(
         initialInflows,
         (state, newInflow: any) => [newInflow, ...state]
@@ -21,8 +33,11 @@ export function InflowManager({ initialInflows, nextSerialNumber, smsEnabledDefa
             <InflowForm 
                 nextSerialNumber={nextSerialNumber} 
                 smsEnabledDefault={smsEnabledDefault}
+                customers={customers}
+                crops={crops}
+                lots={lots}
+                initialUnloadingRecords={unloadedRecords}
                 onSuccess={(newInflow) => {
-                    // This will be called by InflowForm when submission starts
                     addOptimisticInflow(newInflow);
                 }}
             />

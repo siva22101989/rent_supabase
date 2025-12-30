@@ -27,24 +27,39 @@ import { Switch } from '@/components/ui/switch';
 import { useCustomers } from "@/contexts/customer-context";
 import { useStaticData } from "@/hooks/use-static-data";
 
+interface InflowFormInnerProps {
+    nextSerialNumber: string;
+    onSuccess?: (inflow: any) => void;
+    smsEnabledDefault: boolean;
+    customers: any[];
+    crops: any[];
+    lots: any[];
+    initialUnloadingRecords?: any[];
+}
+
 function InflowFormInner({ 
-    nextSerialNumber,
-    onSuccess,
-    smsEnabledDefault
-}: { 
-    nextSerialNumber: string,
-    onSuccess?: (inflow: any) => void,
-    smsEnabledDefault: boolean
-}) {
+    nextSerialNumber, 
+    onSuccess, 
+    smsEnabledDefault,
+    customers: propCustomers,
+    crops: propCrops,
+    lots: propLots,
+    initialUnloadingRecords = []
+}: InflowFormInnerProps) {
     const { success: toastSuccess, error: toastError } = useUnifiedToast();
     const searchParams = useSearchParams();
     const queryCustomerId = searchParams.get('customerId');
     
-    // Hooks for data
-    const { customers, isLoading: customersLoading } = useCustomers();
-    const { crops, lots, loading: staticLoading, refresh } = useStaticData();
+    // Use props as initial data if available, otherwise fallback to hooks
+    const { customers: hookCustomers, isLoading: customersLoading } = useCustomers();
+    const { crops: hookCrops, lots: hookLots, loading: staticLoading, refresh } = useStaticData();
+    
+    const customers = propCustomers.length > 0 ? propCustomers : hookCustomers;
+    const crops = propCrops.length > 0 ? propCrops : hookCrops;
+    const lots = propLots.length > 0 ? propLots : hookLots;
+
     const router = useRouter();
-    const isLoading = customersLoading || staticLoading;
+    const isLoading = (propCustomers.length === 0 && customersLoading) || (propCrops.length === 0 && staticLoading);
     const lastHandledRef = useRef<any>(null);
 
     const initialState: InflowFormState = { message: '', success: false };
@@ -60,10 +75,39 @@ function InflowFormInner({
     const [selectedLotId, setSelectedLotId] = useState('');
     const [selectedCropId, setSelectedCropId] = useState('');
     const [sendSms, setSendSms] = useState(smsEnabledDefault);
+    const [unloadingRecords, setUnloadingRecords] = useState<any[]>(initialUnloadingRecords);
+    const [selectedUnloadingId, setSelectedUnloadingId] = useState('');
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
     const selectedLot = lots?.find(l => l.id === selectedLotId);
     const selectedCrop = crops?.find(c => c.id === selectedCropId);
+    const selectedUnloading = unloadingRecords.find(u => u.id === selectedUnloadingId);
+
+    // Fetch unloading records
+    useEffect(() => {
+        async function fetchUnloadingRecords() {
+            try {
+                const response = await fetch('/api/unloading-records');
+                if (response.ok) {
+                    const data = await response.json();
+                    setUnloadingRecords(data);
+                }
+            } catch (error) {
+                console.error('Error fetching unloading records:', error);
+            }
+        }
+        fetchUnloadingRecords();
+    }, []);
+
+    // Auto-populate from selected unloading record
+    useEffect(() => {
+        if (selectedUnloading) {
+            setSelectedCustomerId(selectedUnloading.customer_id);
+            if (selectedUnloading.crop_id) {
+                setSelectedCropId(selectedUnloading.crop_id);
+            }
+        }
+    }, [selectedUnloadingId]);
 
     // Auto-restoration from state.data on error
     useEffect(() => {
@@ -180,6 +224,43 @@ function InflowFormInner({
                          <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-4 border border-destructive/20">
                             {error}
                          </div>
+                    )}
+
+                    {/* Unloading Record Selector */}
+                    {unloadingRecords.length > 0 && (
+                        <div className="space-y-2 p-4 bg-accent/50 rounded-lg border">
+                            <Label htmlFor="unloadingRecord">Select from Unloading Record (Optional)</Label>
+                            <Select 
+                                value={selectedUnloadingId} 
+                                onValueChange={(value) => {
+                                    setSelectedUnloadingId(value);
+                                    if (!value) {
+                                        // Clear selection
+                                        setSelectedCustomerId('');
+                                        setSelectedCropId('');
+                                    }
+                                }}
+                            >
+                                <SelectTrigger id="unloadingRecord">
+                                    <SelectValue placeholder="Choose from truck arrivals..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="_none_">-- None (Manual Entry) --</SelectItem>
+                                    {unloadingRecords.map(record => (
+                                        <SelectItem key={record.id} value={record.id}>
+                                            {record.customer?.name} - {record.commodity_description} - {record.bags_remaining} bags available
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {selectedUnloading && (
+                                <p className="text-xs text-muted-foreground">
+                                    Available: {selectedUnloading.bags_remaining} bags | 
+                                    Unloaded: {new Date(selectedUnloading.unload_date).toLocaleDateString()}
+                                    {selectedUnloading.lorry_tractor_no && ` | ${selectedUnloading.lorry_tractor_no}`}
+                                </p>
+                            )}
+                        </div>
                     )}
 
                     <div className="space-y-2">
@@ -390,16 +471,35 @@ function InflowFormInner({
             {/* Hidden Fields */}
             <input type="hidden" name="customerId" value={selectedCustomerId} />
             <input type="hidden" name="inflowType" value={inflowType} />
+            <input type="hidden" name="unloadingRecordId" value={selectedUnloadingId || ''} />
             <input type="hidden" name="sendSms" value={String(sendSms)} />
         </form>
     </div>
   );
 }
 
-export function InflowForm({ nextSerialNumber, onSuccess, smsEnabledDefault }: { nextSerialNumber: string, onSuccess?: (inflow: any) => void, smsEnabledDefault: boolean }) {
+interface InflowFormProps {
+    nextSerialNumber: string;
+    onSuccess?: (inflow: any) => void;
+    smsEnabledDefault: boolean;
+    customers: Array<{ id: string; name: string }>;
+    crops: Array<{ id: string; name: string }>;
+    lots: Array<{ id: string; name: string; capacity: number; current_stock: number; commodity_description?: string }>;
+    initialUnloadingRecords?: any[];
+}
+
+export function InflowForm({ nextSerialNumber, onSuccess, smsEnabledDefault, customers, crops, lots, initialUnloadingRecords = [] }: InflowFormProps) {
     return (
         <Suspense fallback={<Card className="w-full animate-pulse h-96" />}>
-            <InflowFormInner nextSerialNumber={nextSerialNumber} onSuccess={onSuccess} smsEnabledDefault={smsEnabledDefault} />
+            <InflowFormInner 
+                nextSerialNumber={nextSerialNumber} 
+                onSuccess={onSuccess} 
+                smsEnabledDefault={smsEnabledDefault} 
+                customers={customers}
+                crops={crops}
+                lots={lots}
+                initialUnloadingRecords={initialUnloadingRecords}
+            />
         </Suspense>
     );
 }

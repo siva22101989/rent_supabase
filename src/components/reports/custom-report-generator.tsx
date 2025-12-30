@@ -105,6 +105,7 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
                                 <SelectItem value="inflow-register">Inflow Register (Date Range)</SelectItem>
                                 <SelectItem value="outflow-register">Outflow Register (Date Range)</SelectItem>
                                 <SelectItem value="payment-register">Payment Register (Date Range)</SelectItem>
+                                <SelectItem value="lot-inventory">Lot Inventory (Patti mapping)</SelectItem>
                                 <SelectItem value="transaction-history">Recent Transactions (Last 1000)</SelectItem>
                             </SelectContent>
                         </Select>
@@ -115,6 +116,7 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
                             {reportType === 'inflow-register' && 'Log of items received during the selected period.'}
                             {reportType === 'outflow-register' && 'Log of items withdrawn during the selected period.'}
                             {reportType === 'payment-register' && 'Log of payments received during the selected period.'}
+                            {reportType === 'lot-inventory' && 'Mapping of lots to customers and items currently in stock.'}
                             {reportType === 'transaction-history' && 'Log of recent inflows and outflows (last 1000 records).'}
                         </p>
                     </div>

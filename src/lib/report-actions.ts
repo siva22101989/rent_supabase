@@ -211,7 +211,57 @@ export async function fetchReportData(
     };
   }
 
-  // 7. Transaction History (Fallback / Last 1000)
+  // 7. Lot Inventory Report
+  if (reportType === 'lot-inventory') {
+    const { data: records } = await supabase
+      .from('storage_records')
+      .select(`
+        bags_stored,
+        warehouse_lots (name),
+        customers (name),
+        crops (name)
+      `)
+      .eq('warehouse_id', warehouseId)
+      .is('storage_end_date', null);
+
+    if (!records) return { type: 'lot-inventory', data: [] };
+
+    // Group in memory: Lot -> Customer -> Crop -> Total Bags
+    const groupedData: any[] = [];
+    const map = new Map<string, number>();
+
+    records.forEach((r: any) => {
+      const lotName = r.warehouse_lots?.name || 'Unassigned';
+      const customerName = r.customers?.name || 'Unknown';
+      const cropName = r.crops?.name || 'Unknown';
+      const key = `${lotName}|${customerName}|${cropName}`;
+      
+      map.set(key, (map.get(key) || 0) + (r.bags_stored || 0));
+    });
+
+    map.forEach((totalBags, key) => {
+      const [lot_name, customer_name, crop_name] = key.split('|');
+      groupedData.push({
+        lot_name,
+        customer_name,
+        crop_name,
+        total_bags: totalBags
+      });
+    });
+
+    // Sort by lot name and then customer name
+    groupedData.sort((a, b) => {
+      if (a.lot_name !== b.lot_name) return a.lot_name.localeCompare(b.lot_name);
+      return a.customer_name.localeCompare(b.customer_name);
+    });
+
+    return {
+      type: 'lot-inventory',
+      data: groupedData
+    };
+  }
+
+  // 8. Transaction History (Fallback / Last 1000)
   if (reportType === 'transaction-history') {
     const { data: records } = await supabase
       .from('storage_records')
