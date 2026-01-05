@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Package } from 'lucide-react'
+import { GrainFlowLogo } from '@/components/layout/grain-flow-logo'
 
 export function Logo() {
   const pathname = usePathname()
@@ -28,10 +28,10 @@ export function Logo() {
       className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer" 
       aria-label="Back to dashboard"
     >
-      <div className="bg-primary text-primary-foreground p-2 rounded-lg">
-        <Package size={24} />
+      <div className="bg-white p-1 rounded-full border border-border shadow-sm">
+        <GrainFlowLogo className="h-8 w-8" />
       </div>
-      <span className="font-headline font-semibold text-xl text-primary hidden sm:inline">BagBill</span>
+      <span className="font-headline font-bold text-xl text-primary hidden sm:inline tracking-tight">Grain Flow</span>
     </Link>
   )
 }
