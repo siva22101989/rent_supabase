@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Package } from 'lucide-react';
 
 interface UnloadedInventoryProps {
@@ -12,9 +13,10 @@ interface UnloadedInventoryProps {
         bags_remaining: number;
         lorry_tractor_no?: string;
     }>;
+    onMoveToStorage?: (id: string) => void;
 }
 
-export function UnloadedInventory({ records }: UnloadedInventoryProps) {
+export function UnloadedInventory({ records, onMoveToStorage }: UnloadedInventoryProps) {
     if (records.length === 0) {
         return (
             <Card>
@@ -45,17 +47,32 @@ export function UnloadedInventory({ records }: UnloadedInventoryProps) {
                     {records.map((record) => (
                         <div
                             key={record.id}
-                            className="p-4 border rounded-lg hover:bg-accent/50 transition-colors space-y-2"
+                            className="p-4 border rounded-lg hover:bg-accent/50 transition-colors space-y-2 relative group"
                         >
-                            <div className="flex flex-wrap items-center gap-2">
-                                <h4 className="font-semibold text-sm sm:text-base">{record.customer.name}</h4>
-                                <Badge variant="secondary" className="text-xs">
-                                    {record.bags_remaining} bags
-                                </Badge>
+                            <div className="flex justify-between items-start">
+                                <div className="space-y-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h4 className="font-semibold text-sm sm:text-base">{record.customer.name}</h4>
+                                        <Badge variant="secondary" className="text-xs">
+                                            {record.bags_remaining} bags
+                                        </Badge>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-muted-foreground break-words">
+                                        {record.commodity_description}
+                                    </p>
+                                </div>
+                                {onMoveToStorage && (
+                                    <Button 
+                                        size="sm" 
+                                        variant="default" 
+                                        onClick={() => onMoveToStorage(record.id)}
+                                        className="h-8 text-xs shrink-0"
+                                    >
+                                        Store
+                                    </Button>
+                                )}
                             </div>
-                            <p className="text-xs sm:text-sm text-muted-foreground break-words">
-                                {record.commodity_description}
-                            </p>
+
                             <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                 <span>{new Date(record.unload_date).toLocaleDateString()}</span>
                                 {record.lorry_tractor_no && (

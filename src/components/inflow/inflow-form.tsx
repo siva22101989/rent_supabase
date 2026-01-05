@@ -34,6 +34,7 @@ interface InflowFormInnerProps {
     crops: any[];
     lots: any[];
     initialUnloadingRecords?: any[];
+    selectedUnloadingId?: string;
 }
 
 function InflowFormInner({ 
@@ -43,7 +44,8 @@ function InflowFormInner({
     customers: propCustomers,
     crops: propCrops,
     lots: propLots,
-    initialUnloadingRecords = []
+    initialUnloadingRecords = [],
+    selectedUnloadingId: propSelectedUnloadingId
 }: InflowFormInnerProps) {
     const { success: toastSuccess, error: toastError } = useUnifiedToast();
     const searchParams = useSearchParams();
@@ -52,7 +54,7 @@ function InflowFormInner({
     // Use props as initial data if available, otherwise fallback to hooks
     const { customers: hookCustomers, isLoading: customersLoading } = useCustomers();
     const { crops: hookCrops, lots: hookLots, loading: staticLoading, refresh } = useStaticData();
-    
+
     const customers = propCustomers.length > 0 ? propCustomers : hookCustomers;
     const crops = propCrops.length > 0 ? propCrops : hookCrops;
     const lots = propLots.length > 0 ? propLots : hookLots;
@@ -75,7 +77,16 @@ function InflowFormInner({
     const [selectedCropId, setSelectedCropId] = useState('');
     const [sendSms, setSendSms] = useState(smsEnabledDefault);
     const [unloadingRecords, setUnloadingRecords] = useState<any[]>(initialUnloadingRecords);
-    const [selectedUnloadingId, setSelectedUnloadingId] = useState('');
+    const [selectedUnloadingId, setSelectedUnloadingId] = useState(propSelectedUnloadingId || '');
+
+    // Sync prop changes
+    useEffect(() => {
+        if (propSelectedUnloadingId) {
+             setSelectedUnloadingId(propSelectedUnloadingId);
+        }
+    }, [propSelectedUnloadingId]);
+    
+    // ... (rest of logic) ...
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
     const selectedLot = lots?.find(l => l.id === selectedLotId);
@@ -89,8 +100,11 @@ function InflowFormInner({
             if (selectedUnloading.crop_id) {
                 setSelectedCropId(selectedUnloading.crop_id);
             }
+            if (selectedUnloading.bags_remaining) {
+                setBags(selectedUnloading.bags_remaining);
+            }
         }
-    }, [selectedUnloadingId]);
+    }, [selectedUnloading]);
 
     // Sync unloading records when prop updates (e.g. after adding new truck arrival)
     useEffect(() => {
@@ -276,7 +290,13 @@ function InflowFormInner({
 
                     <div className="space-y-2">
                         <Label htmlFor="customerId">Customer <span className="text-destructive">*</span></Label>
-                        <Select name="customerId" required onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
+                        <Select 
+                            key={selectedCustomerId || 'customer-select'} 
+                            name="customerId" 
+                            required 
+                            onValueChange={setSelectedCustomerId} 
+                            value={selectedCustomerId}
+                        >
                             <SelectTrigger id="customerId">
                                 <SelectValue placeholder="Select a customer" />
                             </SelectTrigger>
@@ -510,9 +530,19 @@ interface InflowFormProps {
     crops: Array<{ id: string; name: string }>;
     lots: Array<{ id: string; name: string; capacity: number; current_stock: number; commodity_description?: string }>;
     initialUnloadingRecords?: any[];
+    selectedUnloadingId?: string;
 }
 
-export function InflowForm({ nextSerialNumber, onSuccess, smsEnabledDefault, customers, crops, lots, initialUnloadingRecords = [] }: InflowFormProps) {
+export function InflowForm({ 
+    nextSerialNumber, 
+    onSuccess, 
+    smsEnabledDefault, 
+    customers, 
+    crops, 
+    lots, 
+    initialUnloadingRecords = [],
+    selectedUnloadingId
+}: InflowFormProps) {
     return (
         <Suspense fallback={<Card className="w-full animate-pulse h-96" />}>
             <InflowFormInner 
@@ -523,6 +553,7 @@ export function InflowForm({ nextSerialNumber, onSuccess, smsEnabledDefault, cus
                 crops={crops}
                 lots={lots}
                 initialUnloadingRecords={initialUnloadingRecords}
+                selectedUnloadingId={selectedUnloadingId}
             />
         </Suspense>
     );

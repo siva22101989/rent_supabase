@@ -12,6 +12,7 @@ interface InflowManagerProps {
     crops: any[];
     lots: any[];
     unloadedRecords: any[];
+    selectedUnloadingId?: string;
 }
 
 export function InflowManager({ 
@@ -21,7 +22,8 @@ export function InflowManager({
     customers,
     crops,
     lots,
-    unloadedRecords
+    unloadedRecords,
+    selectedUnloadingId
 }: InflowManagerProps) {
     const [optimisticInflows, addOptimisticInflow] = useOptimistic(
         initialInflows,
@@ -37,6 +39,7 @@ export function InflowManager({
                 crops={crops}
                 lots={lots}
                 initialUnloadingRecords={unloadedRecords}
+                selectedUnloadingId={selectedUnloadingId}
                 onSuccess={(newInflow) => {
                     addOptimisticInflow(newInflow);
                 }}

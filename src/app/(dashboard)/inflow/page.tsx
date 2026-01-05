@@ -1,15 +1,11 @@
 import { PageHeader } from "@/components/shared/page-header";
-import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { getRecentInflows } from "@/lib/queries";
 import { isSMSEnabled } from "@/lib/sms-settings-actions";
-import { InflowManager } from "./inflow-manager";
-import { UnloadingForm } from "@/components/inflow/unloading-form";
-import { UnloadedInventory } from "@/components/inflow/unloaded-inventory";
 import { getUnloadedInventory } from "@/lib/unloading-actions";
 import { createClient } from "@/utils/supabase/server";
 import { getUserWarehouse } from "@/lib/queries/warehouses";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InflowDashboard } from "./inflow-dashboard";
 
 export const dynamic = 'force-dynamic';
 
@@ -62,36 +58,15 @@ export default async function InflowPage() {
         <AddCustomerDialog />
       </PageHeader>
       
-      <Tabs defaultValue="inflow" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="inflow">Plot/Quick Inflow</TabsTrigger>
-          <TabsTrigger value="arrivals">Truck Arrivals</TabsTrigger>
-        </TabsList>
- 
-        <TabsContent value="arrivals" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <UnloadingForm 
-              customers={customers || []} 
-              crops={crops || []} 
-            />
-            <UnloadedInventory 
-              records={unloadedRecords as any} 
-            />
-          </div>
-        </TabsContent>
- 
-        <TabsContent value="inflow">
-          <InflowManager 
-            initialInflows={records} 
-            nextSerialNumber={nextSerialNumber} 
-            smsEnabledDefault={smsEnabled} 
-            customers={customers || []}
-            crops={crops || []}
-            lots={lots || []}
-            unloadedRecords={unloadedRecords || []}
-          />
-        </TabsContent>
-      </Tabs>
+      <InflowDashboard 
+          initialInflows={records}
+          nextSerialNumber={nextSerialNumber}
+          smsEnabled={smsEnabled}
+          customers={customers || []}
+          crops={crops || []}
+          lots={lots || []}
+          unloadedRecords={unloadedRecords}
+      />
     </>
   );
 }
