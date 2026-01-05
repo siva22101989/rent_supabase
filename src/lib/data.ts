@@ -199,7 +199,6 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     loadBags: r.load_bags,
     khataAmount: r.khata_amount,
     recordNumber: r.record_number,
-    recordNumber: r.record_number,
     outflowInvoiceNo: r.outflow_invoice_no,
     notes: r.notes,
     updatedAt: r.updated_at ? new Date(r.updated_at) : undefined
@@ -245,7 +244,6 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     plotBags: r.plot_bags,
     loadBags: r.load_bags,
     khataAmount: r.khata_amount,
-    khataAmount: r.khata_amount,
     outflowInvoiceNo: r.outflow_invoice_no,
     notes: r.notes,
     updatedAt: r.updated_at ? new Date(r.updated_at) : undefined
@@ -287,8 +285,6 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
     billing_cycle: record.billingCycle || '6-Month Initial',
     hamali_payable: record.hamaliPayable,
     total_rent_billed: record.totalRentBilled,
-    warehouse_id: warehouseId,
-    lot_id: record.lotId,
     warehouse_id: warehouseId,
     lot_id: record.lotId,
     crop_id: record.cropId,
