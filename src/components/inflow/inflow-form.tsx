@@ -393,9 +393,15 @@ function InflowFormInner({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="cropId">Product / Crop <span className="text-destructive">*</span></Label>
-                            <Select name="cropId" required onValueChange={val => {
-                                setSelectedCropId(val);
-                            }} value={selectedCropId}>
+                            <Select 
+                                key={selectedCropId || 'crop-select'} 
+                                name="cropId" 
+                                required 
+                                onValueChange={val => {
+                                    setSelectedCropId(val);
+                                }} 
+                                value={selectedCropId}
+                            >
                                 <SelectTrigger id="cropId">
                                     <SelectValue placeholder="Select Crop" />
                                 </SelectTrigger>
@@ -411,7 +417,13 @@ function InflowFormInner({
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="lotId">Lot No. <span className="text-destructive">*</span></Label>
-                            <Select name="lotId" required onValueChange={setSelectedLotId} value={selectedLotId}>
+                            <Select 
+                                key={selectedLotId || 'lot-select'} 
+                                name="lotId" 
+                                required 
+                                onValueChange={setSelectedLotId} 
+                                value={selectedLotId}
+                            >
                                 <SelectTrigger id="lotId">
                                     <SelectValue placeholder="Select Lot" />
                                 </SelectTrigger>
