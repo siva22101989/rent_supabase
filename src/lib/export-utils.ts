@@ -1,6 +1,7 @@
 // import * as XLSX from 'xlsx'; // Removed for lazy loading
 import type { StorageRecord, Customer, Payment } from './definitions';
 import { formatCurrency } from './utils';
+import { format } from 'date-fns';
 
 /**
  * Generate Customer Statement using browser print dialog
@@ -543,6 +544,72 @@ export async function exportFinancialReportToExcel(data: {
 }
 
 /**
+ * Export Unloading Register
+ */
+export function exportUnloadingRegisterToExcel(records: any[]) {
+    const data = records.map(r => ({
+        'Date': r.unload_date ? new Date(r.unload_date).toLocaleDateString() : '-',
+        'Customer': r.customer?.name || 'Unknown',
+        'Commodity': r.commodity_description,
+        'Lorry No': r.lorry_tractor_no || '-',
+        'Bags Unloaded': r.bags_unloaded,
+        'Hamali Amount': r.hamali_amount || 0,
+        'Notes': r.notes || '-'
+    }));
+    exportToExcel(data, 'unloading-register', 'Unloading');
+}
+
+/**
+ * Export Hamali Revenue
+ */
+export function exportHamaliRevenueToExcel(records: any[]) {
+     const data = records.map(r => ({
+        'Customer': r.customer?.name || 'Unknown',
+        'Start Date': new Date(r.storageStartDate).toLocaleDateString(),
+        'End Date': r.storageEndDate ? new Date(r.storageEndDate).toLocaleDateString() : 'Active',
+        'Bags Stored': r.bagsStored,
+        'Active Bags': r.storageEndDate ? 0 : r.bagsStored,
+        'Hamali Payable': r.hamaliPayable || 0,
+        'Total Billed': r.totalBilled || 0,
+        'Amount Paid': r.amountPaid || 0,
+        'Balance Due': r.balanceDue || 0
+    }));
+    exportToExcel(data, 'hamali-revenue', 'Hamali Revenue');
+}
+
+/**
+ * Export Pending Breakdown
+ */
+export function exportPendingBreakdownToExcel(data: any[]) {
+    const rows = data.map(r => ({
+        'Customer': r.name,
+        'Phone': r.phone,
+        'Rent Billed': r.rentBilled,
+        'Rent Paid': r.rentPaid,
+        'Rent Due': r.rentPending,
+        'Hamali Billed': r.hamaliBilled,
+        'Hamali Paid': r.hamaliPaid,
+        'Hamali Due': r.hamaliPending,
+        'Total Pending': r.totalPending
+    }));
+    exportToExcel(rows, 'pending-dues-breakdown', 'Pending Dues');
+}
+
+/**
+ * Export Unloading Expenses
+ */
+export function exportUnloadingExpensesToExcel(expenses: any[]) {
+    const data = expenses.map(e => ({
+        'Date': new Date(e.date).toLocaleDateString(),
+        'Description': e.description,
+        'Amount': e.amount,
+        'Category': e.category,
+        'Payment Mode': e.payment_mode
+    }));
+    exportToExcel(data, 'unloading-expenses', 'Expenses');
+}
+
+/**
  * Generate Custom Report PDF using browser print
  */
 export function generateCustomReportPDF(
@@ -1078,3 +1145,83 @@ function formatDateRange(period?: { startDate?: string, endDate?: string }) {
     const end = period.endDate ? new Date(period.endDate).toLocaleDateString() : '...';
     return `(${start} - ${end})`;
 }
+
+/**
+ * Generates a generic Tally XML for Sales Vouchers (Invoices)
+ * This is a simplified format compatible with Tally generic import
+ */
+export const generateTallyXML = (records: any[]) => {
+  let xml = `<ENVELOPE>
+    <HEADER>
+        <TALLYREQUEST>Import Data</TALLYREQUEST>
+    </HEADER>
+    <BODY>
+        <IMPORTDATA>
+            <REQUESTDESC>
+                <REPORTNAME>Vouchers</REPORTNAME>
+                <STATICVARIABLES>
+                    <SVCURRENTCOMPANY>Company Name</SVCURRENTCOMPANY>
+                </STATICVARIABLES>
+            </REQUESTDESC>
+            <REQUESTDATA>`;
+
+  records.forEach((record: any) => {
+    // Basic mapping
+    const dateStr = record.date ? format(new Date(record.date), 'yyyyMMdd') : format(new Date(), 'yyyyMMdd');
+    
+    xml += `
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+            <DATE>${dateStr}</DATE>
+            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>${escapeXml(record.invoiceNo || 'Auto')}</VOUCHERNUMBER>
+            <PARTYLEDGERNAME>${escapeXml(record.customerName || 'Cash')}</PARTYLEDGERNAME>
+            <EFFECTIVEDATE>${dateStr}</EFFECTIVEDATE>
+            <ALLLEDGERENTRIES.LIST>
+                <LEDGERNAME>${escapeXml(record.customerName || 'Cash')}</LEDGERNAME>
+                <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+                <AMOUNT>-${record.amount}</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+                <LEDGERNAME>Storage Rent</LEDGERNAME>
+                <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+                <AMOUNT>${record.amount}</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+        </VOUCHER>
+    </TALLYMESSAGE>`;
+  });
+
+  xml += `
+            </REQUESTDATA>
+        </IMPORTDATA>
+    </BODY>
+</ENVELOPE>`;
+
+  return xml;
+};
+
+// Helper to download text files (CSV, XML)
+export const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+function escapeXml(unsafe: string) {
+    return unsafe.replace(/[<>&'"]/g, (c) => {
+        switch (c) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case '\'': return '&apos;';
+            case '"': return '&quot;';
+            default: return c;
+        }
+    });
+}
+

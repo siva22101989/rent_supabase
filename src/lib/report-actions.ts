@@ -211,6 +211,89 @@ export async function fetchReportData(
     };
   }
 
+  // 6b. Rent Pending Breakdown (Detailed)
+  if (reportType === 'rent-pending-breakdown') {
+      // Similar to pending-dues but returns raw details per customer for table display
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('id, name, phone, village')
+        .eq('warehouse_id', warehouseId)
+        .order('name');
+        
+      if (!customers) return { type: 'rent-pending-breakdown', data: [] };
+  
+      const { data: records } = await supabase
+        .from('storage_records')
+        .select(`
+          *,
+          payments (amount, type)
+        `)
+        .eq('warehouse_id', warehouseId);
+      
+      const reportData = customers.map(c => {
+         const userRecords = records?.filter((r: any) => r.customer_id === c.id) || [];
+         let rentBilled = 0;
+         let hamaliBilled = 0;
+         let rentPaid = 0;
+         let hamaliPaid = 0;
+         let otherPaid = 0; // Payments without type or 'other'
+         
+         userRecords.forEach((r: any) => {
+           rentBilled += (r.total_rent_billed || 0);
+           hamaliBilled += (r.hamali_payable || 0); // Assuming hamali_payable is numeric
+           
+           (r.payments || []).forEach((p: any) => {
+               if (p.type === 'rent') rentPaid += p.amount;
+               else if (p.type === 'hamali') hamaliPaid += p.amount;
+               else otherPaid += p.amount;
+           });
+         });
+         
+         // Logic: 
+         // Rent Pending = Rent Billed - Rent Paid.
+         // Hamali Pending = Hamali Billed - Hamali Paid.
+         // If payments are generic (no type), we assume they cover oldest dues or proportionally.
+         // For simplicity: We will assign 'otherPaid' to Hamali first, then Rent. (or vice versa).
+         // Let's assume generic payments cover Hamali first.
+         
+         let remainingOther = otherPaid;
+         
+         let hamaliPending = hamaliBilled - hamaliPaid;
+         if (remainingOther > 0 && hamaliPending > 0) {
+             const deduct = Math.min(remainingOther, hamaliPending);
+             hamaliPending -= deduct;
+             remainingOther -= deduct;
+             hamaliPaid += deduct; // Effectively treated as Hamali payment
+         }
+         
+         let rentPending = rentBilled - rentPaid;
+         if (remainingOther > 0 && rentPending > 0) {
+             const deduct = Math.min(remainingOther, rentPending);
+             rentPending -= deduct;
+             remainingOther -= deduct;
+             rentPaid += deduct;
+         }
+         
+         const totalPending = rentPending + hamaliPending;
+         
+         return {
+           ...c,
+           rentBilled,
+           hamaliBilled,
+           rentPaid,
+           hamaliPaid,
+           rentPending,
+           hamaliPending,
+           totalPending
+         };
+      }).filter(c => c.totalPending > 1);
+  
+      return {
+        type: 'rent-pending-breakdown',
+        data: reportData
+      };
+  }
+
   // 7. Lot Inventory Report
   if (reportType === 'lot-inventory') {
     const { data: records } = await supabase
@@ -277,6 +360,89 @@ export async function fetchReportData(
       type: 'transaction-history',
       data: records
     };
+  }
+
+  // 9. Hamali Register (Revenue)
+  if (reportType === 'hamali-register') {
+    let query = supabase
+      .from('storage_records')
+      .select(`
+        *,
+        customers (name)
+      `)
+      .eq('warehouse_id', warehouseId)
+      .gt('hamali_payable', 0)
+      .order('storage_start_date', { ascending: false });
+
+    if (filters?.startDate) query = query.gte('storage_start_date', filters.startDate);
+    if (filters?.endDate) {
+        const nextDay = new Date(filters.endDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        query = query.lt('storage_start_date', nextDay.toISOString());
+    }
+
+    const { data: records } = await query;
+    
+    // Map snake_case to camelCase for UI compatibility and flatten customer
+    const mappedRecords = records?.map((r: any) => ({
+        ...r,
+        storageStartDate: r.storage_start_date,
+        storageEndDate: r.storage_end_date,
+        bagsStored: r.bags_stored,
+        bagsIn: r.bags_in || r.bags_stored, // Fallback if bags_in not tracked directly
+        bagsOut: r.bags_out || 0,
+        hamaliPayable: r.hamali_payable,
+        totalRentBilled: r.total_rent_billed,
+        customerId: r.customer_id,
+        // Ensure customer object is accessible as 'customer' (standard) or use joined 'customers'
+        customer: r.customers || r.customer,
+        payments: r.payments || []
+    }));
+
+    return { type: 'hamali-register', data: mappedRecords, period: filters };
+  }
+
+  // 10. Unloading Register (Operational)
+  if (reportType === 'unloading-register') {
+    let query = supabase
+        .from('unloading_records')
+        .select(`
+            *,
+            customer:customers(name),
+            crop:crops(name)
+        `)
+        .eq('warehouse_id', warehouseId)
+        .order('unload_date', { ascending: false });
+    
+    if (filters?.startDate) query = query.gte('unload_date', filters.startDate);
+    if (filters?.endDate) {
+        const nextDay = new Date(filters.endDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        query = query.lt('unload_date', nextDay.toISOString());
+    }
+
+    const { data: records } = await query;
+    return { type: 'unloading-register', data: records, period: filters };
+  }
+
+  // 11. Unloading Expenses
+  if (reportType === 'unloading-expenses') {
+      let query = supabase
+          .from('expenses')
+          .select('*')
+          .eq('warehouse_id', warehouseId)
+          .eq('category', 'Hamali')
+          .order('date', { ascending: false });
+      
+      if (filters?.startDate) query = query.gte('date', filters.startDate);
+      if (filters?.endDate) {
+          const nextDay = new Date(filters.endDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          query = query.lt('date', nextDay.toISOString());
+      }
+      
+      const { data: expenses } = await query;
+      return { type: 'unloading-expenses', data: expenses, period: filters };
   }
   
   return null;

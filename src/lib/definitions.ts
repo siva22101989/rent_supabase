@@ -48,6 +48,7 @@ export type StorageRecord = {
   recordNumber?: string;
   outflowInvoiceNo?: string;
   customerName?: string;
+  notes?: string;
   updatedAt?: Date | string;
 };
 

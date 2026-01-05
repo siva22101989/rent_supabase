@@ -330,6 +330,41 @@ Bags Withdrawn: ${bags}`;
         : { success: false, error: 'Failed to send' }
     );
   }
+
+  /**
+   * Send drying finalization SMS
+   */
+  async sendDryingConfirmation({
+    warehouseName,
+    customerName,
+    phone,
+    commodity,
+    bags,
+    recordNumber,
+    hamali,
+  }: {
+    warehouseName: string;
+    customerName: string;
+    phone: string;
+    commodity: string;
+    bags: number;
+    recordNumber: string;
+    hamali: number;
+  }): Promise<SMSResponse> {
+    const message = `${warehouseName}
+Drying Finalized
+Record: ${recordNumber}
+Customer: ${customerName}
+Item: ${commodity}
+Final Bags: ${bags}
+Hamali: Rs.${hamali.toLocaleString('en-IN')}
+Stock Updated.`;
+
+    return this.sendSMS({
+      to: phone,
+      message,
+    });
+  }
 }
 
 // Singleton instance

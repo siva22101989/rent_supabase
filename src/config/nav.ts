@@ -9,7 +9,8 @@ import {
     Package,
     IndianRupee,
     CreditCard,
-    Shield
+    Shield,
+    QrCode
 } from 'lucide-react';
 
 export const navItems = [
@@ -18,6 +19,7 @@ export const navItems = [
     { label: 'Inflow', href: '/inflow', icon: Truck },
     { label: 'Outflow', href: '/outflow', icon: ArrowRight },
     { label: 'Storage', href: '/storage', icon: Package },
+    { label: 'Scan QR', href: '/scan', icon: QrCode },
     { label: 'Customers', href: '/customers', icon: Users },
     { label: 'Payments', href: '/payments/pending', icon: IndianRupee },
     { label: 'Expenses', href: '/expenses', icon: CreditCard },

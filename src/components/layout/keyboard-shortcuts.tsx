@@ -73,6 +73,15 @@ export function KeyboardShortcuts() {
   };
 
   return (
+    <>
+       {/* Mobile Trigger */}
+       <div 
+        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-lg md:hidden hover:bg-primary/90 active:scale-95 transition-all"
+        onClick={() => setOpen(true)}
+      >
+        <Search className="h-5 w-5" />
+      </div>
+
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="p-0 overflow-hidden max-w-[450px]">
         <DialogTitle className="sr-only">Command Menu</DialogTitle>
@@ -87,17 +96,17 @@ export function KeyboardShortcuts() {
               <CommandItem onSelect={() => runCommand(() => router.push('/'))}>
                 <LayoutDashboard className="mr-2 h-4 w-4" />
                 <span>Dashboard</span>
-                <span className="ml-auto text-xs tracking-widest text-muted-foreground">G then D</span>
+                <span className="ml-auto text-xs tracking-widest text-muted-foreground">Cmd+D</span>
               </CommandItem>
               <CommandItem onSelect={() => runCommand(() => router.push('/storage'))}>
                 <Database className="mr-2 h-4 w-4" />
                 <span>Storage</span>
-                <span className="ml-auto text-xs tracking-widest text-muted-foreground">G then S</span>
+                <span className="ml-auto text-xs tracking-widest text-muted-foreground">Cmd+S</span>
               </CommandItem>
               <CommandItem onSelect={() => runCommand(() => router.push('/customers'))}>
                 <Users className="mr-2 h-4 w-4" />
                 <span>Customers</span>
-                <span className="ml-auto text-xs tracking-widest text-muted-foreground">G then C</span>
+                <span className="ml-auto text-xs tracking-widest text-muted-foreground">Cmd+C</span>
               </CommandItem>
               <CommandItem onSelect={() => runCommand(() => router.push('/reports'))}>
                 <FileText className="mr-2 h-4 w-4" />
@@ -106,6 +115,10 @@ export function KeyboardShortcuts() {
                <CommandItem onSelect={() => runCommand(() => router.push('/settings'))}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
+              </CommandItem>
+               <CommandItem onSelect={() => runCommand(() => router.push('/settings?tab=billing'))}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Billing</span>
               </CommandItem>
             </CommandGroup>
             <CommandGroup heading="Theme">
@@ -126,5 +139,6 @@ export function KeyboardShortcuts() {
         </Command>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

@@ -164,6 +164,13 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                         <div class="label">HAMALI PAYABLE</div>
                         <div class="value">: ₹${record.hamaliPayable || 0}</div>
                     </div>
+
+                    ${record.notes ? `
+                    <div class="info-row">
+                        <div class="label">NOTES</div>
+                        <div class="value">: ${record.notes}</div>
+                    </div>
+                    ` : ''}
                 </div>
                 
                 <div class="no-print">
@@ -248,6 +255,12 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                         <span className="w-1/3 font-bold">HAMALI PAYABLE</span>
                         <span>: ₹{record.hamaliPayable || 0}</span>
                     </div>
+                    {record.notes && (
+                        <div className="flex">
+                            <span className="w-1/3 font-bold">NOTES</span>
+                            <span>: {record.notes}</span>
+                        </div>
+                    )}
                 </div>
             </div>
             

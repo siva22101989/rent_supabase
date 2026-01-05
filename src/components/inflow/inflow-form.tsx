@@ -92,6 +92,11 @@ function InflowFormInner({
         }
     }, [selectedUnloadingId]);
 
+    // Sync unloading records when prop updates (e.g. after adding new truck arrival)
+    useEffect(() => {
+        setUnloadingRecords(initialUnloadingRecords);
+    }, [initialUnloadingRecords]);
+
     // Auto-restoration from state.data on error
     useEffect(() => {
         if (state.data) {
@@ -140,9 +145,16 @@ function InflowFormInner({
         const bagsValue = inflowType === 'Plot' ? plotBags : bags;
         const rateValue = rate || 0;
         
-        const calculatedHamali = (bagsValue || 0) * rateValue;
+        let calculatedHamali = (bagsValue || 0) * rateValue;
+
+        // Add Unloading Share if selected
+        if (selectedUnloading && selectedUnloading.hamali_amount && selectedUnloading.bags_unloaded > 0) {
+            const unloadingRate = selectedUnloading.hamali_amount / selectedUnloading.bags_unloaded;
+            calculatedHamali += (bagsValue || 0) * unloadingRate;
+        }
+
         setHamali(calculatedHamali);
-    }, [bags, plotBags, rate, inflowType]);
+    }, [bags, plotBags, rate, inflowType, selectedUnloading]);
 
 
     const [error, setError] = useState<string | null>(null);
@@ -150,12 +162,12 @@ function InflowFormInner({
     const handleValidation = (e: React.FormEvent<HTMLFormElement>) => {
         const formData = new FormData(e.currentTarget);
         const tParams = {
-            customerId: formData.get('customerId'),
-            lot: formData.get('lotId'),
-            crop: formData.get('cropId'),
-            bags: Number(formData.get('bagsStored')),
-            plotBags: Number(formData.get('plotBags')),
-            type: formData.get('inflowType'),
+            customerId: selectedCustomerId,
+            lot: selectedLotId,
+            crop: selectedCropId,
+            bags: (inflowType === 'Direct' ? bags : 0),
+            plotBags: (inflowType === 'Plot' ? plotBags : 0),
+            type: inflowType,
         };
 
         let errMsg: string | null = null;
@@ -165,9 +177,14 @@ function InflowFormInner({
         else if (!tParams.crop) errMsg = 'Please select a Crop.';
         
         else if (tParams.type === 'Direct') {
-             if (tParams.bags <= 0) errMsg = 'Number of bags must be greater than 0.';
+             if (!tParams.bags || tParams.bags <= 0) errMsg = 'Number of bags must be valid and greater than 0.';
         } else if (tParams.type === 'Plot') {
-             if (tParams.plotBags <= 0) errMsg = 'Plot bags must be greater than 0.';
+             if (!tParams.plotBags || tParams.plotBags <= 0) errMsg = 'Plot bags must be valid and greater than 0.';
+        }
+
+        const dateVal = formData.get('storageStartDate');
+        if (!dateVal || isNaN(Date.parse(dateVal.toString()))) {
+             errMsg = 'Please enter a valid date.';
         }
 
         if (errMsg) {
@@ -447,9 +464,12 @@ function InflowFormInner({
                     <div className="space-y-4">
                         <h4 className="font-medium">Billing Summary</h4>
                         <div className="space-y-2">
-                             <div className="flex justify-between items-center text-sm">
+                            <div className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">Total Hamali Payable</span>
-                                <span className="font-mono">₹{hamali.toFixed(2)}</span>
+                                <div className="text-right">
+                                    <span className="font-mono block">₹{hamali.toFixed(2)}</span>
+                                    {selectedUnloading && <span className="text-[10px] text-muted-foreground block leading-tight">(Includes Unloading)</span>}
+                                </div>
                             </div>
                             <div className="flex justify-between items-center font-semibold text-base">
                                 <span className="text-destructive">Hamali Pending</span>

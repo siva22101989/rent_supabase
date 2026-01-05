@@ -33,7 +33,24 @@ export function UnloadingForm({ customers, crops }: UnloadingFormProps) {
             bagsUnloaded: parseInt(formData.get('bagsUnloaded') as string),
             lorryTractorNo: formData.get('lorryTractorNo') as string || undefined,
             notes: formData.get('notes') as string || undefined,
+            hamaliAmount: formData.get('hamaliAmount') ? parseFloat(formData.get('hamaliAmount') as string) : 0,
         };
+
+        if (!data.customerId) {
+            toast({ title: 'Error', description: 'Please select a customer.', variant: 'destructive' });
+            setIsLoading(false);
+            return;
+        }
+        if (!data.cropId) {
+            toast({ title: 'Error', description: 'Please select a commodity.', variant: 'destructive' });
+            setIsLoading(false);
+            return;
+        }
+        if (!data.bagsUnloaded || isNaN(data.bagsUnloaded) || data.bagsUnloaded <= 0) {
+            toast({ title: 'Error', description: 'Please enter a valid number of bags.', variant: 'destructive' });
+            setIsLoading(false);
+            return;
+        }
 
         const result = await recordUnloading(data);
 
@@ -111,7 +128,50 @@ export function UnloadingForm({ customers, crops }: UnloadingFormProps) {
                                 min="1"
                                 required
                                 placeholder="e.g., 1000"
+                                onChange={(e) => {
+                                    const bags = parseInt(e.target.value) || 0;
+                                    const rateInput = document.getElementById('hamaliRate') as HTMLInputElement;
+                                    const rate = parseFloat(rateInput?.value) || 0;
+                                    const total = rate * bags;
+                                    const totalInput = document.getElementById('hamaliTotalDisplay') as HTMLInputElement;
+                                    const hiddenInput = document.getElementsByName('hamaliAmount')[0] as HTMLInputElement;
+                                    if (totalInput) totalInput.value = total.toString();
+                                    if (hiddenInput) hiddenInput.value = total.toString();
+                                }}
                             />
+                        </div>
+
+                        {/* Hamali Rate & Total */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="hamaliRate">Hamali Rate (₹/bag)</Label>
+                                <Input
+                                    type="number"
+                                    id="hamaliRate"
+                                    min="0"
+                                    step="any"
+                                    placeholder="e.g. 5"
+                                    onChange={(e) => {
+                                        const rate = parseFloat(e.target.value) || 0;
+                                        const bags = parseInt((document.getElementsByName('bagsUnloaded')[0] as HTMLInputElement)?.value) || 0;
+                                        const total = rate * bags;
+                                        const totalInput = document.getElementById('hamaliTotalDisplay') as HTMLInputElement;
+                                        const hiddenInput = document.getElementsByName('hamaliAmount')[0] as HTMLInputElement;
+                                        if (totalInput) totalInput.value = total.toString();
+                                        if (hiddenInput) hiddenInput.value = total.toString();
+                                    }}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Total Hamali (₹)</Label>
+                                <Input
+                                    id="hamaliTotalDisplay"
+                                    readOnly
+                                    className="bg-muted"
+                                    placeholder="0"
+                                />
+                                <input type="hidden" name="hamaliAmount" />
+                            </div>
                         </div>
 
                         {/* Lorry/Tractor No */}

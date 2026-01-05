@@ -11,7 +11,8 @@ import { CropSettingsTab } from "@/components/settings/crop-settings-tab";
 import { Button } from "@/components/ui/button";
 import { DataManagementTab } from "@/components/settings/data-management-tab";
 import { SMSSettingsCard } from "@/components/settings/sms-settings-card";
-import { User, Warehouse, Wheat, Users, Database, MessageSquare } from "lucide-react";
+import { SubscriptionSettingsTab } from "@/components/settings/subscription-settings-tab";
+import { User, Warehouse, Wheat, Users, Database, MessageSquare, CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 
 export default async function SettingsPage() {
@@ -106,6 +107,13 @@ export default async function SettingsPage() {
                   <MessageSquare className="w-4 h-4" />
                   <span className="whitespace-nowrap">SMS</span>
               </TabsTrigger>
+              <TabsTrigger 
+                  value="billing" 
+                  className="flex-grow basis-[45%] md:basis-auto lg:flex-1 min-w-[100px] flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary text-sm md:text-base"
+              >
+                  <CreditCard className="w-4 h-4" />
+                  <span className="whitespace-nowrap">Billing</span>
+              </TabsTrigger>
           </TabsList>
           
           <div className="px-3 md:px-0">
@@ -125,6 +133,10 @@ export default async function SettingsPage() {
 
             <TabsContent value="data" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
                 <DataManagementTab />
+            </TabsContent>
+
+            <TabsContent value="billing" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
+                <SubscriptionSettingsTab />
             </TabsContent>
 
             <TabsContent value="notifications" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">

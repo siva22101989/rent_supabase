@@ -11,6 +11,7 @@ export async function recordUnloading(formData: {
     bagsUnloaded: number;
     lorryTractorNo?: string;
     notes?: string;
+    hamaliAmount?: number;
 }) {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
@@ -31,6 +32,7 @@ export async function recordUnloading(formData: {
                 bags_remaining: formData.bagsUnloaded, // Initially all bags are remaining
                 lorry_tractor_no: formData.lorryTractorNo || null,
                 notes: formData.notes || null,
+                hamali_amount: formData.hamaliAmount || 0,
             })
             .select()
             .single();
@@ -112,6 +114,24 @@ export async function movePlotToStorage(formData: {
         }
 
         // 2. Create storage record for moved bags
+        // 1.1 Calculate Unloading Hamali (FIFO)
+        let totalUnloadingHamali = 0;
+        let remainingToCalc = formData.bagsToMove;
+        
+        for (const record of plotRecords) {
+            if (remainingToCalc <= 0) break;
+            const deduction = Math.min(remainingToCalc, record.bags_remaining_in_plot);
+            
+            // Calculate proportional hamali cost
+            if (record.hamali_amount && record.bags_unloaded > 0) {
+                const costPerBag = record.hamali_amount / record.bags_unloaded;
+                totalUnloadingHamali += costPerBag * deduction;
+            }
+            
+            remainingToCalc -= deduction;
+        }
+
+        // 2. Create storage record for moved bags
         const { data: storageRecord, error: storageError } = await supabase
             .from('storage_records')
             .insert({
@@ -124,6 +144,8 @@ export async function movePlotToStorage(formData: {
                 lot_id: formData.lotId,
                 inflow_type: 'plot',
                 storage_start_date: new Date().toISOString(),
+                hamali_payable: Math.round(totalUnloadingHamali), // Store as billable amount
+                notes: `Moved from Plot. Hamali (Unloading Share): ₹${Math.round(totalUnloadingHamali)}.`,
             })
             .select()
             .single();

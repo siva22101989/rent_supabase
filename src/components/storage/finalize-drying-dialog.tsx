@@ -46,19 +46,21 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
   // Calculate total hamali based on current rate and RAW bags (Input quantity)
   const totalHamali = Math.round(rawBags * hamaliRate);
 
+  /* New State */
+  const [sendSms, setSendSms] = useState(true);
+
+  // ... (inside handleSubmit)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (finalBags <= 0) {
-        toast({ title: "Error", description: "Bags must be greater than 0", variant: "destructive" });
-        return;
-    }
+    // ... validation ...
 
     startTransition(async () => {
         const formData = new FormData();
         formData.append('recordId', record.id);
         formData.append('finalBags', finalBags.toString());
         formData.append('hamaliPayable', totalHamali.toString());
+        formData.append('sendSms', sendSms.toString()); // Pass boolean
 
         const result = await finalizePlotDrying({ message: '', success: false }, formData);
 
@@ -140,6 +142,18 @@ export function FinalizeDryingDialog({ record }: FinalizeDryingDialogProps) {
                 </div>
             </div>
 
+            <div className="flex items-center space-x-2 py-4">
+                <input
+                    type="checkbox"
+                    id="sendSms"
+                    checked={sendSms}
+                    onChange={(e) => setSendSms(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-stone-600 focus:ring-stone-600"
+                />
+                <Label htmlFor="sendSms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Send SMS to Customer
+                </Label>
+            </div>
 
                 <div className="grid gap-1">
                     <Label className="text-muted-foreground text-xs uppercase tracking-wider text-red-700">Loss</Label>

@@ -174,7 +174,24 @@ export function OutflowForm({
         setWithdrawalDate(dateValue);
     }
 
-   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        if (!selectedRecordId) {
+            e.preventDefault();
+             // Standard unified toast from context
+             toastError('Error', 'Please select a storage record to withdraw from.');
+             return;
+        }
+        if (bagsToWithdraw <= 0 || isNaN(bagsToWithdraw)) {
+            e.preventDefault();
+            toastError('Error', 'Please enter a valid number of bags.');
+            return;
+        }
+         if (selectedRecord && bagsToWithdraw > selectedRecord.bagsStored) {
+            e.preventDefault();
+            toastError('Error', `Cannot withdraw more than stored (${selectedRecord.bagsStored} bags).`);
+            return;
+        }
+
         // Basic prediction for optimistic UI
         if (onSuccess && selectedRecord) {
             startTransition(() => {

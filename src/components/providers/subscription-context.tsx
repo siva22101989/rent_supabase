@@ -7,10 +7,19 @@ import { getSubscriptionAction } from '@/lib/subscription-actions';
 
 interface Subscription {
   plan: {
+    name: string;
+    display_name: string;
     tier: PlanTier;
     features: any;
   };
   status: string;
+  warehouse_id: string;
+  current_period_end?: string | Date | null;
+  usage: {
+    total_records: number;
+    monthly_records: number;
+    total_users: number;
+  };
 }
 
 interface SubscriptionContextType {
@@ -40,15 +49,28 @@ export function SubscriptionProvider({
     try {
       const data = await getSubscriptionAction(warehouseId);
       if (data) {
+        // Safe fallback if joined plan data is missing
+        const planData = data.plans || { 
+            name: 'free', 
+            display_name: 'Free', 
+            tier: 'free', 
+            features: {} 
+        };
+
         setSubscription({
-          plan: data.plans,
-          status: data.status,
+          plan: planData,
+          status: data.status || 'inactive',
+          warehouse_id: data.warehouse_id,
+          current_period_end: data.current_period_end,
+          usage: data.usage || { total_records: 0, monthly_records: 0, total_users: 0 }
         });
       } else {
         // Fallback to free if no subscription found
         setSubscription({
-          plan: { tier: 'free', features: {} },
-          status: 'active'
+          plan: { tier: 'free', features: {}, name: 'free', display_name: 'Free' },
+          status: 'active',
+          warehouse_id: warehouseId,
+          usage: { total_records: 0, monthly_records: 0, total_users: 0 }
         });
       }
     } catch (err) {

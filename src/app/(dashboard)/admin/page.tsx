@@ -19,7 +19,7 @@ import { AdminWarehousesTable } from '@/components/admin/warehouses-table';
 import { AdminUsersTable } from '@/components/admin/users-table';
 // import { GlobalActivityFeed } from '@/components/admin/activity-feed'; // Replaced
 import { ActivityLogsTable } from '@/components/admin/activity-logs-table';
-import { PlatformAnalyticsCharts } from '@/components/admin/analytics-charts';
+import { AnalyticsSection } from '@/components/admin/analytics-section';
 import { getAdminAllSubscriptions, getAllPlans } from '@/lib/subscription-actions';
 import { SubscriptionsTable } from '@/components/admin/subscriptions-table';
 import { CreditCard } from 'lucide-react';
@@ -157,7 +157,7 @@ export default async function SuperAdminDashboard({
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-0 pt-4">
-          <PlatformAnalyticsCharts data={analyticsData} />
+          <AnalyticsSection data={analyticsData} />
         </TabsContent>
 
         <TabsContent value="subscriptions" className="mt-0 pt-4">

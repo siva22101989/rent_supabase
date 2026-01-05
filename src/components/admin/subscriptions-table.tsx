@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Table,
     TableBody,
@@ -34,6 +35,7 @@ import { Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { updateSubscriptionAdmin } from '@/lib/subscription-actions';
 import { useUnifiedToast } from '@/components/shared/toast-provider';
+import { CodeGenerator } from './code-generator';
 
 interface SubscriptionData {
     warehouseId: string;
@@ -116,7 +118,11 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
     };
 
     return (
-        <div className="rounded-md border">
+        <div className="space-y-4">
+            <div className="flex justify-end">
+                <CodeGenerator plans={plans} />
+            </div>
+            <div className="rounded-md border">
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -173,46 +179,60 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
                         </DialogDescription>
                     </DialogHeader>
                     
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="plan" className="text-right">Plan</Label>
-                            <Select value={editPlanId} onValueChange={setEditPlanId}>
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select Plan" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {plans.map(p => (
-                                        <SelectItem key={p.id} value={p.id}>{p.name} - {p.tier}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="status" className="text-right">Status</Label>
-                            <Select value={editStatus} onValueChange={setEditStatus}>
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="active">Active</SelectItem>
-                                    <SelectItem value="incomplete">Incomplete</SelectItem>
-                                    <SelectItem value="past_due">Past Due</SelectItem>
-                                    <SelectItem value="canceled">Canceled</SelectItem>
-                                    <SelectItem value="unpaid">Unpaid</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="date" className="text-right">Expiry Date</Label>
-                            <Input 
-                                id="date" 
-                                type="date" 
-                                className="col-span-3" 
-                                value={editEndDate} 
-                                onChange={(e) => setEditEndDate(e.target.value)} 
-                            />
-                        </div>
-                    </div>
+                    <Tabs defaultValue="details" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="details">Details</TabsTrigger>
+                            <TabsTrigger value="payments">Payments</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="details" className="py-4 space-y-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="plan" className="text-right">Plan</Label>
+                                <Select value={editPlanId} onValueChange={setEditPlanId}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="Select Plan" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {plans.map(p => (
+                                            <SelectItem key={p.id} value={p.id}>{p.name} - {p.tier}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="status" className="text-right">Status</Label>
+                                <Select value={editStatus} onValueChange={setEditStatus}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="Select Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="active">Active</SelectItem>
+                                        <SelectItem value="incomplete">Incomplete</SelectItem>
+                                        <SelectItem value="past_due">Past Due</SelectItem>
+                                        <SelectItem value="canceled">Canceled</SelectItem>
+                                        <SelectItem value="unpaid">Unpaid</SelectItem>
+                                        <SelectItem value="trailing_trial">Trialing</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="date" className="text-right">Expiry Date</Label>
+                                <Input 
+                                    id="date" 
+                                    type="date" 
+                                    className="col-span-3" 
+                                    value={editEndDate} 
+                                    onChange={(e) => setEditEndDate(e.target.value)} 
+                                />
+                            </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="payments" className="py-4">
+                            <div className="text-sm text-center text-muted-foreground py-8 border rounded-md border-dashed">
+                                Payment history will be displayed here soon.
+                            </div>
+                        </TabsContent>
+                    </Tabs>
 
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading}>
@@ -225,5 +245,6 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
                 </DialogContent>
             </Dialog>
         </div>
+    </div>
     );
 }

@@ -344,3 +344,68 @@ export async function searchActiveStorageRecords(query: string, limit = 50) {
       bags: r.bags_stored
   }));
 }
+
+export async function getPaginatedStorageRecords(
+    page: number = 1, 
+    limit: number = 20, 
+    search?: string,
+    status: 'active' | 'all' | 'released' = 'active'
+): Promise<{ records: StorageRecord[], totalCount: number, totalPages: number }> {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+    
+    if (!warehouseId) return { records: [], totalCount: 0, totalPages: 0 };
+
+    // Common query builder
+    const buildQuery = (isSearchByCustomerName = false) => {
+        let query = supabase
+            .from('storage_records')
+            .select(`
+                *,
+                payments (*),
+                customer:customers${isSearchByCustomerName ? '!inner' : ''}(name)
+            `, { count: 'exact' })
+            .eq('warehouse_id', warehouseId);
+
+        if (status === 'active') {
+            query = query.is('storage_end_date', null);
+        } else if (status === 'released') {
+            query = query.not('storage_end_date', 'is', null);
+        }
+        return query;
+    };
+
+    let query = buildQuery();
+
+    // Filter by Search
+    if (search) {
+        if (!isNaN(Number(search))) {
+             query = query.eq('record_number', search);
+        } else {
+             // Search by Customer Name
+             query = buildQuery(true) // Switch to inner join
+                    .ilike('customer.name', `%${search}%`);
+        }
+    }
+
+    // Pagination
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    query = query
+        .order('storage_start_date', { ascending: false })
+        .range(from, to);
+
+    const { data: records, error, count } = await query;
+
+    if (error) {
+        logError(error, { operation: 'fetch_paginated_records', warehouseId });
+        return { records: [], totalCount: 0, totalPages: 0 };
+    }
+
+    return {
+        records: mapRecords(records || []),
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+    };
+}

@@ -199,7 +199,9 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     loadBags: r.load_bags,
     khataAmount: r.khata_amount,
     recordNumber: r.record_number,
+    recordNumber: r.record_number,
     outflowInvoiceNo: r.outflow_invoice_no,
+    notes: r.notes,
     updatedAt: r.updated_at ? new Date(r.updated_at) : undefined
   }));
 }
@@ -243,7 +245,9 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     plotBags: r.plot_bags,
     loadBags: r.load_bags,
     khataAmount: r.khata_amount,
+    khataAmount: r.khata_amount,
     outflowInvoiceNo: r.outflow_invoice_no,
+    notes: r.notes,
     updatedAt: r.updated_at ? new Date(r.updated_at) : undefined
   };
 };
@@ -285,7 +289,10 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
     total_rent_billed: record.totalRentBilled,
     warehouse_id: warehouseId,
     lot_id: record.lotId,
-    crop_id: record.cropId
+    warehouse_id: warehouseId,
+    lot_id: record.lotId,
+    crop_id: record.cropId,
+    notes: record.notes
   };
 
   // 1. Insert Storage Record
@@ -342,7 +349,9 @@ export const updateStorageRecord = async (id: string, data: Partial<StorageRecor
     if (data.totalRentBilled !== undefined) dbData.total_rent_billed = data.totalRentBilled;
     if (data.plotBags !== undefined) dbData.plot_bags = data.plotBags;
     if (data.loadBags !== undefined) dbData.load_bags = data.loadBags;
+    if (data.loadBags !== undefined) dbData.load_bags = data.loadBags;
     if (data.outflowInvoiceNo) dbData.outflow_invoice_no = data.outflowInvoiceNo;
+    if (data.notes !== undefined) dbData.notes = data.notes;
 
     const { error } = await supabase
         .from('storage_records')
@@ -477,6 +486,22 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
              const newStock = Math.max(0, (lot.current_stock || 0) - (record.bags_stored || 0));
              await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', record.lot_id);
          }
+    }
+
+
+    // Explicitly delete dependent records (Cascade Delete Policy)
+    // 1. Delete Payments linked to this record
+    const { error: paymentError } = await supabase.from('payments').delete().eq('storage_record_id', id);
+    if (paymentError) {
+        logError(paymentError, { operation: 'delete_storage_record_cascade_payments', warehouseId: record.warehouse_id, metadata: { recordId: id } });
+        throw new Error(`Failed to delete associated payments: ${paymentError.message}`);
+    }
+
+    // 2. Delete Withdrawal Transactions linked to this record
+    const { error: txError } = await supabase.from('withdrawal_transactions').delete().eq('storage_record_id', id);
+    if (txError) {
+        logError(txError, { operation: 'delete_storage_record_cascade_transactions', warehouseId: record.warehouse_id, metadata: { recordId: id } });
+        throw new Error(`Failed to delete associated transactions: ${txError.message}`);
     }
 
     const { error } = await supabase.from('storage_records').delete().eq('id', id);

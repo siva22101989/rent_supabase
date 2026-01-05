@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import { FileText } from 'lucide-react';
 import { calculateFinalRent } from '@/lib/billing';
 import { formatCurrency, toDate } from '@/lib/utils';
+import { QRCodeSVG } from 'qrcode.react';
 
 type OutflowReceiptProps = {
   record: StorageRecord;
@@ -70,7 +71,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
             <html>
             <head>
                 <meta charset="UTF-8">
-                <title>Outflow Bill - ${record.outflowInvoiceNo || record.id}</title>
+                <title>Storage Invoice - ${record.outflowInvoiceNo || record.id}</title>
                 <style>
                     @media print {
                         @page { margin: 1cm; }
@@ -194,7 +195,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                         <div class="company-info">${warehouseEmail} | ${warehousePhone}</div>
                     </div>
                     <div class="bill-info">
-                        <h2>Outflow Bill</h2>
+                        <h2>Storage Invoice</h2>
                         <div style="font-size: 12px; margin-top: 10px;">
                             <div><strong>Bill #:</strong> ${record.outflowInvoiceNo || 'Pending'}</div>
                             <div><strong>Date:</strong> ${formattedEndDate}</div>
@@ -302,7 +303,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                         <p className="text-sm text-muted-foreground">{warehouse?.email || 'contact@yourwarehouse.com'} | {warehouse?.phone || '(123) 456-7890'}</p>
                     </div>
                     <div className="text-right">
-                        <h2 className="text-xl font-semibold uppercase text-muted-foreground">Outflow Bill</h2>
+                        <h2 className="text-xl font-semibold uppercase text-muted-foreground">Storage Invoice</h2>
                         <p className="text-sm"><span className="font-medium">Bill #</span>: {record.outflowInvoiceNo || 'Pending'}</p>
                         <p className="text-sm"><span className="font-medium">Date:</span> {formattedEndDate}</p>
                     </div>
@@ -321,6 +322,21 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                         <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
                         <p><span className="font-medium">Date In:</span> {formattedStartDate}</p>
                         <p><span className="font-medium">Storage Duration:</span> {duration.months} months ({duration.days} days)</p>
+                    </div>
+                </div>
+
+                {/* QR Code for Quick Access */}
+                <div className="flex justify-center mb-8 print:hidden">
+                    <div className="flex flex-col items-center gap-2 p-4 border rounded-lg bg-muted/30">
+                        <p className="text-xs text-muted-foreground font-semibold">SCAN FOR QUICK ACCESS</p>
+                        <div className="bg-white p-2 rounded border-2 border-primary">
+                            <QRCodeSVG 
+                                value={record.id}
+                                size={100}
+                                level="H"
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground font-mono">{record.id}</p>
                     </div>
                 </div>
 

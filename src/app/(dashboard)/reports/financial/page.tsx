@@ -6,6 +6,7 @@ import {
     getCollectionMetrics
 } from '@/lib/analytics';
 import { FinancialDashboardClient } from './page-client';
+import { fetchReportData } from '@/lib/report-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,13 +16,21 @@ export default async function FinancialReportsPage() {
         monthlyTrends,
         topCustomers,
         agingAnalysis,
-        collectionMetrics
+        collectionMetrics,
+        hamaliRegisterRaw,
+        unloadingRegisterRaw,
+        unloadingExpensesRaw,
+        rentPendingRaw
     ] = await Promise.all([
         getRevenueMetrics(),
         getMonthlyRevenueTrends(),
         getTopCustomersByRevenue(10),
         getAgingAnalysis(),
-        getCollectionMetrics()
+        getCollectionMetrics(),
+        fetchReportData('hamali-register'),
+        fetchReportData('unloading-register'),
+        fetchReportData('unloading-expenses'),
+        fetchReportData('rent-pending-breakdown')
     ]);
 
     return (
@@ -31,6 +40,10 @@ export default async function FinancialReportsPage() {
             topCustomers={topCustomers}
             agingAnalysis={agingAnalysis}
             collectionMetrics={collectionMetrics}
+            hamaliRecords={hamaliRegisterRaw?.data || []}
+            unloadingRecords={unloadingRegisterRaw?.data || []}
+            unloadingExpenses={unloadingExpensesRaw?.data || []}
+            rentPendingBreakdown={rentPendingRaw?.data || []}
         />
     );
 }

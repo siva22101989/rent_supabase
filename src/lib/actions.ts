@@ -389,6 +389,25 @@ export async function finalizePlotDrying(prevState: FormState, formData: FormDat
         hamaliPayable: hamaliPayable // Update Hamali
     });
 
+    // Send SMS logic
+    const sendSms = formData.get('sendSms') === 'true';
+    if (sendSms) {
+        const { sendDryingConfirmationSMS } = await import('@/lib/sms-event-actions');
+        // We pass true to bypassSettings? No, user said "only if inflow sms option is enabled".
+        // My implementation of sendDryingConfirmationSMS CHECKS the setting.
+        // So passing 'true' to bypassSettings would IGNORE the setting.
+        // I should pass 'false' (default) or not pass it, relying on internal check.
+        // But wait, the checkbox is "user intent". The setting is "global config".
+        // Logic: specific action (Checkbox) AND global config (Setting).
+        // My function `sendDryingConfirmationSMS` checks setting unless `bypassSettings` is true.
+        // So I should call it with `false` (default) so it respects the setting.
+        // BUT if I want the checkbox to be the ONLY gate if setting is ON...
+        // Yes, call with `false`.
+        // However, if the setting is OFF, the SMS won't send even if Checkbox is ON. This is correct behavior per "add that condition too".
+        
+        await sendDryingConfirmationSMS(recordId);
+    }
+
     revalidatePath('/storage');
     return { message: `Drying finalized. Stock updated to ${finalBags} bags.`, success: true, recordId };
 }
@@ -494,12 +513,14 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                 }
                 span.setAttribute("inflowBags", inflowBags);
 
-                // Capacity Check
+                // Capacity Check & Location Fetch
+                let lotName = rest.location ?? '';
                 if (rest.lotId) {
                     const supabase = await createClient();
-                    const { data: lot } = await supabase.from('warehouse_lots').select('capacity, current_stock').eq('id', rest.lotId).single();
+                    const { data: lot } = await supabase.from('warehouse_lots').select('capacity, current_stock, name').eq('id', rest.lotId).single();
                     
                     if (lot) {
+                        lotName = lot.name; // Securely get location name
                         const capacity = lot.capacity || 1000;
                         const current = lot.current_stock || 0;
                         const available = capacity - current;
@@ -515,13 +536,34 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                     }
                 }
 
+                // Calculate Hamali Payable (Inflow + Unloading Carry-over)
+                let hamaliPayable = inflowBags * (hamaliRate || 0);
 
-                const hamaliPayable = inflowBags * (hamaliRate || 0);
+                // Add proportionate share from Unloading Record if selected
+                if (rawData.unloadingRecordId && rawData.unloadingRecordId !== '_none_') {
+                    const supabase = await createClient();
+                    const { data: uRecord } = await supabase
+                        .from('unloading_records')
+                        .select('hamali_amount, bags_unloaded')
+                        .eq('id', rawData.unloadingRecordId)
+                        .single();
+                    
+                    if (uRecord && uRecord.hamali_amount && uRecord.bags_unloaded > 0) {
+                        const costPerBag = uRecord.hamali_amount / uRecord.bags_unloaded;
+                        const carryOverAmount = costPerBag * inflowBags;
+                        hamaliPayable += carryOverAmount;
+                        logger.info("Added unloading hamali carry-over", { 
+                            inflowBags, 
+                            costPerBag, 
+                            carryOverAmount,
+                            totalHamali: hamaliPayable 
+                        });
+                    }
+                }
                 const payments: Payment[] = [];
                 if (hamaliPaid && hamaliPaid > 0) {
                     payments.push({ amount: hamaliPaid, date: new Date(storageStartDate), type: 'hamali' });
                 }
-                
                 
                 // Generate Invoice Number (ID)
                 const newRecordId = await getNextInvoiceNumber('inflow');
@@ -546,10 +588,13 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                     inflowType: inflowType ?? 'Direct',
                     plotBags: finalPlotBags,
                     loadBags: finalLoadBags,
-                    location: rest.location ?? '',
+                    location: lotName, // Use trusted name
                     khataAmount: rest.khataAmount ?? 0,
                     lotId: rest.lotId,
                     cropId: rest.cropId,
+                    notes: (rawData.unloadingRecordId && rawData.unloadingRecordId !== '_none_')
+                        ? `Quick Inflow. Hamali: ₹${inflowBags * (hamaliRate || 0)} (Inflow) + ₹${Math.round(hamaliPayable - (inflowBags * (hamaliRate || 0)))} (Unloading Share).`
+                        : undefined,
                 };
 
                 const savedRecord = await saveStorageRecord(newRecord);
@@ -1082,8 +1127,8 @@ export async function deleteStorageRecordAction(recordId: string): Promise<FormS
     revalidatePath('/storage');
     revalidatePath('/payments/pending');
     return { message: 'Record deleted successfully.', success: true };
-  } catch (error) {
-    return { message: 'Failed to delete record.', success: false };
+  } catch (error: any) {
+    return { message: error.message || 'Failed to delete record.', success: false };
   }
 }
 

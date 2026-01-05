@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,59 +19,102 @@ import { FileText } from 'lucide-react';
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { useDebounce } from "@uidotdev/usehooks";
-import { ActionsMenu } from "@/components/dashboard/actions-menu";
+import { useEffect, useState } from 'react';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Printer } from "lucide-react";
+import { ExportButton } from "@/components/shared/export-button";
+import { exportStorageRecordsToExcel, generateTallyXML, downloadFile } from "@/lib/export-utils";
+import { ActionsMenu } from '@/components/dashboard/actions-menu';
 
 
-const ITEMS_PER_PAGE = 25;
+export function StoragePageClient({ 
+  records, 
+  totalPages, 
+  currentPage, 
+  initialStats, 
+  customers 
+}: { 
+  records: StorageRecord[], 
+  totalPages: number, 
+  currentPage: number,
+  initialStats: { totalInflow: number, totalOutflow: number, balanceStock: number }, 
+  customers: Customer[] 
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  
+  // Local state for immediate input feedback
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const debouncedSearch = useDebounce(searchTerm, 300);
+  const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
 
-export function StoragePageClient({ activeRecords, initialStats, customers }: { activeRecords: StorageRecord[], initialStats: { totalInflow: number, totalOutflow: number, balanceStock: number }, customers: Customer[] }) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebounce(searchQuery, 300);
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+        setSelectedRecords(new Set(records.map(r => r.id)));
+    } else {
+        setSelectedRecords(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+      const newSelected = new Set(selectedRecords);
+      if (checked) {
+          newSelected.add(id);
+      } else {
+          newSelected.delete(id);
+      }
+      setSelectedRecords(newSelected);
+  };
+
+  const handlePrintLabels = () => {
+      const ids = Array.from(selectedRecords).join(',');
+      router.push(`/storage/print-labels?ids=${ids}`);
+  };
+
+  const handleExportExcel = () => {
+    const recordsToExport = records.filter(r => selectedRecords.has(r.id));
+    exportStorageRecordsToExcel(recordsToExport);
+  };
+
+  const handleExportTally = () => {
+      const recordsToExport = selectedRecords.size > 0 
+        ? records.filter(r => selectedRecords.has(r.id))
+        : records;
+      const xml = generateTallyXML(recordsToExport);
+      downloadFile(xml, 'tally-import.xml', 'text/xml');
+  };
+
+  // Sync search with URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (debouncedSearch) {
+      params.set('q', debouncedSearch);
+    } else {
+      params.delete('q');
+    }
+    // Reset to page 1 on search
+    if (debouncedSearch !== searchParams.get('q')) {
+        params.set('page', '1');
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  }, [debouncedSearch, pathname, router, searchParams]);
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', page.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const stats = useMemo(() => {
-    // We utilize initialStats for the big numbers, but we could also refine them based on filter if needed.
-    // For now, let's keep the dashboard-style stats static as they represent the Warehouse totals.
-    // The "Estimated Rent" however should be based on the currently displayed/filtered active records.
     return {
         ...initialStats,
-        estimatedRent: activeRecords.reduce((total, record) => {
+        estimatedRent: records.reduce((total, record) => {
              const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
              return total + rent;
         }, 0)
     }
-  }, [activeRecords, initialStats]);
-
-  // Filter records based on search
-  const filteredRecords = useMemo(() => {
-    if (!debouncedSearch) return activeRecords;
-    const query = debouncedSearch.toLowerCase();
-    return activeRecords.filter(r => 
-      r.commodityDescription?.toLowerCase().includes(query) ||
-      r.customerName?.toLowerCase().includes(query) ||
-      r.location?.toLowerCase().includes(query) ||
-      r.recordNumber?.toString().includes(query)
-    );
-  }, [activeRecords, searchQuery]);
-
-  // Sort by date descending
-  const sortedRecords = useMemo(() => 
-    [...filteredRecords].sort((a, b) => 
-      new Date(b.storageStartDate).getTime() - new Date(a.storageStartDate).getTime()
-    ),
-    [filteredRecords]
-  );
-
-  // Calculate pagination
-  const totalPages = Math.ceil(sortedRecords.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedRecords = sortedRecords.slice(startIndex, endIndex);
-
-  const handleSearch = (value: string) => {
-    setSearchQuery(value);
-    setCurrentPage(1);
-  };
+  }, [records, initialStats]);
 
   return (
     <>
@@ -119,7 +163,7 @@ export function StoragePageClient({ activeRecords, initialStats, customers }: { 
             <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(stats.estimatedRent)}</div>
                 <p className="text-xs text-muted-foreground">
-                    Based on current active stock
+                    Based on visible records
                 </p>
             </CardContent>
         </Card>
@@ -128,30 +172,67 @@ export function StoragePageClient({ activeRecords, initialStats, customers }: { 
       {/* Detailed Stock Register */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <h3 className="text-lg font-medium">Detailed Stock Register ({filteredRecords.length} active)</h3>
+          <h3 className="text-lg font-medium">Detailed Stock Register</h3>
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by customer, commodity, location..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search by customer..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
+            />
+          </div>
+          <div className="hidden sm:block">
+            <ExportButton 
+                onExportExcel={() => exportStorageRecordsToExcel(records)} 
+                onExportTally={handleExportTally}
+                label="Export View"
+                variant="outline"
             />
           </div>
         </div>
         
+        </div>
+
+        {/* Floating Action Bar */}
+        {selectedRecords.size > 0 && (
+            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border shadow-lg rounded-full px-6 py-2 z-50 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+                <span className="text-sm font-medium">{selectedRecords.size} selected</span>
+                <div className="h-4 w-px bg-border" />
+                <Button size="sm" onClick={handlePrintLabels}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print Labels
+                </Button>
+                <ExportButton 
+                    onExportExcel={handleExportExcel}
+                    onExportTally={handleExportTally}
+                    label="Export"
+                    variant="outline"
+                />
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 rounded-full ml-2"
+                    onClick={() => setSelectedRecords(new Set())}
+                >
+                    <span className="sr-only">Clear selection</span>
+                    <ArrowDown className="h-4 w-4 rotate-180" />
+                </Button>
+            </div>
+        )}
+        
         {/* Mobile Card View */}
         <div className="md:hidden space-y-4">
-          {paginatedRecords.length === 0 ? (
+          {records.length === 0 ? (
             <EmptyState
               icon={Warehouse}
-              title={searchQuery ? "No results found" : "No active storage records"}
-              description={searchQuery ? `No records match "${searchQuery}". Try a different search term.` : "Get started by adding your first inflow to create storage records."}
-              actionLabel={searchQuery ? undefined : "Add First Inflow"}
-              actionHref={searchQuery ? undefined : "/inflow"}
+              title={searchTerm ? "No results found" : "No active storage records"}
+              description={searchTerm ? `No records match "${searchTerm}".` : "Get started by adding your first inflow."}
+              actionLabel={searchTerm ? undefined : "Add First Inflow"}
+              actionHref={searchTerm ? undefined : "/inflow"}
             />
           ) : (
-            paginatedRecords.map((record) => {
+            records.map((record) => {
               const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
               return (
                 <MobileCard key={record.id}>
@@ -212,6 +293,12 @@ export function StoragePageClient({ activeRecords, initialStats, customers }: { 
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="w-12">
+                                <Checkbox 
+                                    checked={records.length > 0 && selectedRecords.size === records.length}
+                                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                                />
+                            </TableHead>
                             <TableHead>Date In</TableHead>
                             <TableHead>Record #</TableHead>
                             <TableHead>Customer</TableHead>
@@ -223,10 +310,16 @@ export function StoragePageClient({ activeRecords, initialStats, customers }: { 
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {paginatedRecords.map((record) => {
+                        {records.map((record) => {
                             const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
                             return (
-                                <TableRow key={record.id}>
+                                <TableRow key={record.id} className={selectedRecords.has(record.id) ? "bg-muted/50" : ""}>
+                                    <TableCell>
+                                        <Checkbox 
+                                            checked={selectedRecords.has(record.id)}
+                                            onCheckedChange={(checked) => handleSelectOne(record.id, !!checked)}
+                                        />
+                                    </TableCell>
                                     <TableCell>{new Date(record.storageStartDate).toLocaleDateString()}</TableCell>
                                     <TableCell className="font-medium font-mono">#{record.recordNumber}</TableCell>
                                     <TableCell className="font-medium">{record.customerName || 'Unknown'}</TableCell>
@@ -255,15 +348,15 @@ export function StoragePageClient({ activeRecords, initialStats, customers }: { 
                                 </TableRow>
                             );
                         })}
-                        {paginatedRecords.length === 0 && (
+                        {records.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={8} className="h-64">
                                     <EmptyState
                                         icon={Warehouse}
-                                        title={searchQuery ? "No results found" : "No active storage records"}
-                                        description={searchQuery ? `No records match "${searchQuery}". Try a different search term.` : "Get started by adding your first inflow to create storage records."}
-                                        actionLabel={searchQuery ? undefined : "Add First Inflow"}
-                                        actionHref={searchQuery ? undefined : "/inflow"}
+                                        title={searchTerm ? "No results found" : "No active storage records"}
+                                        description={searchTerm ? `No records match "${searchTerm}".` : "Get started by adding your first inflow."}
+                                        actionLabel={searchTerm ? undefined : "Add First Inflow"}
+                                        actionHref={searchTerm ? undefined : "/inflow"}
                                     />
                                 </TableCell>
                             </TableRow>
@@ -277,10 +370,9 @@ export function StoragePageClient({ activeRecords, initialStats, customers }: { 
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            onPageChange={setCurrentPage}
+            onPageChange={handlePageChange}
           />
         )}
-      </div>
 
     </>
   );

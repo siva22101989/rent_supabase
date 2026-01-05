@@ -7,7 +7,27 @@ interface MobileCardProps {
   className?: string
 }
 
-export function MobileCard({ children, className = '' }: MobileCardProps) {
+export function MobileCard({ children, className = '', swipeActions }: MobileCardProps & { swipeActions?: ReactNode }) {
+  if (swipeActions) {
+    return (
+      <div className="group relative w-full overflow-hidden rounded-lg">
+        <div className="flex w-full overflow-x-auto snap-x snap-mandatory no-scrollbar">
+          {/* Main Card Content */}
+          <div className="min-w-full snap-start">
+             <Card className={`${className} h-full border-r-0 rounded-r-none`}>
+               {children}
+             </Card>
+          </div>
+          
+          {/* Swipe Actions */}
+          <div className="flex items-center min-w-max snap-end bg-background border-y border-r rounded-r-lg">
+            {swipeActions}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Card className={`${className}`}>
       {children}

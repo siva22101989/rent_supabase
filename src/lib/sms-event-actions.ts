@@ -243,3 +243,74 @@ export async function sendPaymentConfirmationSMS(paymentId: string) {
         };
     }
 }
+
+/**
+ * Send drying confirmation SMS
+ */
+export async function sendDryingConfirmationSMS(recordId: string, bypassSettings: boolean = false) {
+    // Check settings (Using 'inflow_welcome' as master switch for Inflow-related events as requested)
+    const enabled = await isSMSEnabled('inflow_welcome');
+    
+    if (!enabled && !bypassSettings) {
+        return { success: false, error: 'SMS disabled in settings' };
+    }
+
+    try {
+        const supabase = await createClient();
+        
+        // Get storage record with details
+        const { data: record, error } = await supabase
+            .from('storage_records')
+            .select(`
+                *,
+                customers (
+                    name,
+                    phone
+                ),
+                warehouses (
+                    name
+                )
+            `)
+            .eq('id', recordId)
+            .single();
+        
+        if (error || !record || !record.customers) {
+            console.error('Failed to fetch record for Drying SMS:', error);
+            return { success: false, error: 'Record not found' };
+        }
+        
+        const customer = Array.isArray(record.customers) ? record.customers[0] : record.customers;
+        const warehouse = Array.isArray(record.warehouses) ? record.warehouses[0] : record.warehouses;
+        
+        // Send SMS
+        const result = await textBeeService.sendDryingConfirmation({
+            warehouseName: warehouse?.name || 'Warehouse',
+            customerName: customer.name,
+            phone: customer.phone,
+            commodity: record.commodity_description || 'Crop',
+            bags: record.bags_stored || 0, // Should be the updated final bags
+            recordNumber: record.record_number || record.id.substring(0, 8),
+            hamali: record.hamali_payable || 0
+        });
+        
+        // Log SMS
+        if (result.success) {
+            await supabase.from('sms_logs').insert({
+                customer_id: record.customer_id,
+                phone: customer.phone,
+                message_type: 'drying_confirmation',
+                message_id: result.messageId,
+                status: 'sent',
+                record_id: recordId,
+            });
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Error sending drying SMS:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to send SMS',
+        };
+    }
+}

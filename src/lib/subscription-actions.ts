@@ -26,7 +26,41 @@ export async function getSubscriptionAction(warehouseId: string) {
     return null;
   }
 
-  return data;
+  // Parallelize fetches for performance
+  const [
+    { count: totalRecords },
+    { count: monthlyRecords },
+    { count: totalUsers }
+  ] = await Promise.all([
+    // 1. Total Storage Records
+    (await supabase)
+        .from('storage_records')
+        .select('*', { count: 'exact', head: true })
+        .eq('warehouse_id', warehouseId),
+    
+    // 2. Monthly Inflows (records created this month)
+    (await supabase)
+        .from('storage_records')
+        .select('*', { count: 'exact', head: true })
+        .eq('warehouse_id', warehouseId)
+        .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+
+    // 3. User Count (excluding customers usually, but let's count all non-customer users or just user_warehouses)
+    /* Actually 'user_warehouses' gives us the team size */
+    (await supabase)
+        .from('user_warehouses')
+        .select('*', { count: 'exact', head: true })
+        .eq('warehouse_id', warehouseId)
+  ]);
+
+  return {
+    ...data,
+    usage: {
+        total_records: totalRecords || 0,
+        monthly_records: monthlyRecords || 0,
+        total_users: totalUsers || 0
+    }
+  };
 }
 
 /**
