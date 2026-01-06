@@ -21,8 +21,12 @@ import { AdminUsersTable } from '@/components/admin/users-table';
 import { ActivityLogsTable } from '@/components/admin/activity-logs-table';
 import { AnalyticsSection } from '@/components/admin/analytics-section';
 import { getAdminAllSubscriptions, getAllPlans } from '@/lib/subscription-actions';
+import { getAllSubscriptionCodes } from '@/lib/subscription-code-actions';
+import { CodeGenerator } from '@/components/admin/code-generator';
+import { CreateWarehouseDialog } from '@/components/admin/create-warehouse-dialog';
 import { SubscriptionsTable } from '@/components/admin/subscriptions-table';
-import { CreditCard } from 'lucide-react';
+import { CodesTable } from '@/components/admin/codes-table';
+import { CreditCard, Key } from 'lucide-react';
 export default async function SuperAdminDashboard({
   searchParams,
 }: {
@@ -31,7 +35,7 @@ export default async function SuperAdminDashboard({
   const params = await searchParams;
   const q = typeof params.q === 'string' ? params.q : '';
   const page = typeof params.page === 'string' ? Number(params.page) : 1;
-  const type = typeof params.type === 'string' ? params.type : '';
+  const type = typeof params.type === 'string' ? params.type : 'important';
   
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -68,6 +72,7 @@ export default async function SuperAdminDashboard({
   // Fetch Subscription Data
   const subscriptions = await getAdminAllSubscriptions();
   const plans = await getAllPlans();
+  const allCodes = await getAllSubscriptionCodes();
 
   // Fetch Logs with Filters
   const limit = 50;
@@ -86,11 +91,7 @@ export default async function SuperAdminDashboard({
           { label: 'Admin Panel' }
         ]}
       >
-        <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-sm gap-2">
-          <Database className="h-4 w-4" />
-          <span className="hidden xs:inline">Create Warehouse</span>
-          <span className="xs:hidden">Create</span>
-        </Button>
+        <CreateWarehouseDialog />
       </PageHeader>
 
       <AdminStatsCards stats={stats} />
@@ -129,6 +130,12 @@ export default async function SuperAdminDashboard({
             >
               <CreditCard className="mr-2 h-4 w-4" /> Subscriptions
             </TabsTrigger>
+            <TabsTrigger 
+              value="codes" 
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+            >
+              <Key className="mr-2 h-4 w-4" /> Codes
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -166,6 +173,17 @@ export default async function SuperAdminDashboard({
               <p className="text-sm text-muted-foreground">Manually manage warehouse plans and expiry dates.</p>
             </div>
             <SubscriptionsTable initialData={subscriptions} plans={plans} />
+        </TabsContent>
+
+        <TabsContent value="codes" className="mt-0 pt-4">
+             <div className="mb-4">
+              <h3 className="text-lg font-semibold tracking-tight">Activation Codes</h3>
+              <p className="text-sm text-muted-foreground">Generate and manage manual activation codes.</p>
+            </div>
+            <div className="flex justify-end mb-4">
+                <CodeGenerator plans={plans} />
+            </div>
+            <CodesTable codes={allCodes} />
         </TabsContent>
       </Tabs>
     </div>

@@ -111,9 +111,9 @@ export function CodeGenerator({ plans }: CodeGeneratorProps) {
         {screen === 'form' ? (
             <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                    <Label>Plan</Label>
+                    <Label htmlFor="plan">Plan</Label>
                     <Select value={planId} onValueChange={setPlanId}>
-                        <SelectTrigger>
+                        <SelectTrigger id="plan">
                             <SelectValue placeholder="Select Plan" />
                         </SelectTrigger>
                         <SelectContent>
@@ -126,8 +126,10 @@ export function CodeGenerator({ plans }: CodeGeneratorProps) {
                 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                        <Label>Duration (Days)</Label>
+                        <Label htmlFor="duration">Duration (Days)</Label>
                         <Input 
+                            id="duration"
+                            name="duration"
                             type="number" 
                             value={duration} 
                             onChange={e => setDuration(e.target.value)}
@@ -135,8 +137,10 @@ export function CodeGenerator({ plans }: CodeGeneratorProps) {
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label>Quantity</Label>
+                        <Label htmlFor="count">Quantity</Label>
                         <Input 
+                            id="count"
+                            name="count"
                             type="number" 
                             value={count} 
                             onChange={e => setCount(e.target.value)}
@@ -147,8 +151,10 @@ export function CodeGenerator({ plans }: CodeGeneratorProps) {
                 </div>
 
                 <div className="grid gap-2">
-                    <Label>Notes (Internal)</Label>
+                    <Label htmlFor="notes">Notes (Internal)</Label>
                     <Textarea 
+                        id="notes"
+                        name="notes"
                         placeholder="e.g. Bulk order for Client X, Payment Ref #123"
                         value={notes} 
                         onChange={e => setNotes(e.target.value)}

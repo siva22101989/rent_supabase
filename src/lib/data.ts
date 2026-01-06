@@ -485,22 +485,91 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
     }
 
 
-    // Explicitly delete dependent records (Cascade Delete Policy)
-    // 1. Delete Payments linked to this record
-    const { error: paymentError } = await supabase.from('payments').delete().eq('storage_record_id', id);
+    // Soft Delete: Mark as deleted instead of removing
+    const now = new Date().toISOString();
+
+    // 1. Soft Delete linked Payments
+    const { error: paymentError } = await supabase
+        .from('payments')
+        .update({ deleted_at: now })
+        .eq('storage_record_id', id);
+
     if (paymentError) {
-        logError(paymentError, { operation: 'delete_storage_record_cascade_payments', warehouseId: record.warehouse_id, metadata: { recordId: id } });
-        throw new Error(`Failed to delete associated payments: ${paymentError.message}`);
+        logError(paymentError, { operation: 'soft_delete_payments', warehouseId: record.warehouse_id, metadata: { recordId: id } });
+        // Continue anyway
     }
 
-    // 2. Delete Withdrawal Transactions linked to this record
-    const { error: txError } = await supabase.from('withdrawal_transactions').delete().eq('storage_record_id', id);
+    // 2. Soft Delete linked Transactions
+    const { error: txError } = await supabase
+        .from('withdrawal_transactions')
+        .update({ deleted_at: now })
+        .eq('storage_record_id', id);
+
     if (txError) {
-        logError(txError, { operation: 'delete_storage_record_cascade_transactions', warehouseId: record.warehouse_id, metadata: { recordId: id } });
-        throw new Error(`Failed to delete associated transactions: ${txError.message}`);
+        logError(txError, { operation: 'soft_delete_transactions', warehouseId: record.warehouse_id, metadata: { recordId: id } });
     }
 
-    const { error } = await supabase.from('storage_records').delete().eq('id', id);
+    // 3. Mark Storage Record as deleted
+    const { error } = await supabase
+        .from('storage_records')
+        .update({ deleted_at: now })
+        .eq('id', id);
+
+    if (error) throw error;
+};
+
+export const restoreStorageRecord = async (id: string): Promise<void> => {
+    'use server';
+    const supabase = await createClient();
+    
+    // Fetch record even if deleted (need to bypass filter if RLS hides it, but normal select finds it if no RLS blocks)
+    // Note: If we update 'queries' to filter deleted_at, we can't use 'getStorageRecord' helper. 
+    // tailored query:
+    const { data: record } = await supabase.from('storage_records').select('lot_id, bags_stored, warehouse_id').eq('id', id).single();
+    
+    if (!record) return;
+
+    // Security Check
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // Check assignments (Reuse logic or assume valid if they have the ID - but better to check)
+    // ... skipping detailed role check for brevity, relying on RLS or action context? 
+    // Ideally we duplicate the auth check from delete.
+    // Let's assume the user triggering this just acted on the ID, so they likely have access.
+    // But to be safe:
+    const { data: assignment } = await supabase.from('warehouse_assignments')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('warehouse_id', record.warehouse_id)
+        .single();
+    
+    let isSuperAdmin = false;
+    if (!assignment || !['owner', 'admin'].includes(assignment.role)) {
+         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+         if (profile?.role === 'super_admin') isSuperAdmin = true;
+         else throw new Error("Access Denied");
+    }
+
+    // 1. Re-occupy Lot Space
+    if (record.lot_id) {
+         const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', record.lot_id).single();
+         if (lot) {
+             const newStock = (lot.current_stock || 0) + (record.bags_stored || 0);
+             await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', record.lot_id);
+         }
+    }
+
+    // 2. Restore linked payments and transactions
+    await supabase.from('payments').update({ deleted_at: null }).eq('storage_record_id', id);
+    await supabase.from('withdrawal_transactions').update({ deleted_at: null }).eq('storage_record_id', id);
+
+    // 3. Restore Record
+    const { error } = await supabase
+        .from('storage_records')
+        .update({ deleted_at: null })
+        .eq('id', id);
+
     if (error) throw error;
 };
 

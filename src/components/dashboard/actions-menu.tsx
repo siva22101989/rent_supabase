@@ -5,12 +5,24 @@ import { Download, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import type { Customer, StorageRecord } from "@/lib/definitions";
-import { EditStorageDialog } from "./edit-storage-dialog";
+import { EditStorageDialog } from "@/components/storage/edit-storage-dialog";
 import { BillReceiptDialog } from "./bill-receipt-dialog";
 import { toDate } from "@/lib/utils";
 import { DeleteRecordDialog } from "./delete-record-dialog";
 
-export function ActionsMenu({ record, customers }: { record: StorageRecord, customers: Customer[] }) {
+export function ActionsMenu({ 
+    record, 
+    customers, 
+    crops = [], 
+    lots = [], 
+    userRole 
+}: { 
+    record: StorageRecord, 
+    customers: Customer[], 
+    crops?: any[], 
+    lots?: any[], 
+    userRole?: string 
+}) {
     const customer = customers.find(c => c.id === record.customerId);
 
     const safeRecord = {
@@ -29,7 +41,13 @@ export function ActionsMenu({ record, customers }: { record: StorageRecord, cust
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <EditStorageDialog record={safeRecord} customers={customers}>
+                <EditStorageDialog 
+                    record={safeRecord} 
+                    customers={customers} 
+                    crops={crops} 
+                    lots={lots} 
+                    userRole={userRole}
+                >
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                         Edit
                     </DropdownMenuItem>

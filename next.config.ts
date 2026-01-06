@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.sentry-cdn.com https://*.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://*.sentry.io https://*.vercel-analytics.com; frame-ancestors 'none'; upgrade-insecure-requests;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.sentry-cdn.com https://*.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.vercel-analytics.com; frame-ancestors 'none'; upgrade-insecure-requests;",
           },
           {
             key: 'X-Frame-Options',

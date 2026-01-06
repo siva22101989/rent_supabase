@@ -77,6 +77,7 @@ export async function generateCodeAction({ planId, durationDays, notes, count = 
     }
 
     revalidatePath('/admin/subscriptions');
+    // Return code objects not just strings if possible, but strings are fine for now based on component usage
     return { success: true, count, codes: generatedCodesList };
 }
 
@@ -156,4 +157,36 @@ export async function redeemCodeAction(code: string, warehouseId: string) {
 
     revalidatePath('/settings');
     return { success: true, plan: codeRecord.plans.name, endDate: newEndDate };
+}
+
+export async function getAllSubscriptionCodes() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    // Check admin
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'super_admin') return [];
+
+    const { data, error } = await supabase
+        .from('subscription_codes')
+        .select(`
+            *,
+            plans (
+                name,
+                tier
+            ),
+            warehouses (
+                name,
+                location
+            )
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching codes:', error);
+        return [];
+    }
+
+    return data;
 }

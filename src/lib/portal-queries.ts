@@ -37,7 +37,9 @@ export const getCustomerPortfolio = async () => {
         .select(`
             *,
             crops (name),
-            payments (*)
+            warehouse_lots (name),
+            payments (*),
+            withdrawal_transactions (*)
         `)
         .in('customer_id', customerIds)
         .order('storage_start_date', { ascending: false });
@@ -74,13 +76,15 @@ export const getCustomerPortfolio = async () => {
             
             // For now, exposure is estimated or calculated based on rent triggers if implemented.
             // If the schema hasn't fully automated billing yet, we show what's recorded.
-            const recordBilled = (r.total_rent_due || 0);
+            const recordBilled = (r.total_rent_billed || 0);
 
             const enrichedRecord = {
                 ...r,
                 paid: recordPaid,
                 billed: recordBilled,
-                is_active: r.storage_end_date === null
+                is_active: r.storage_end_date === null,
+                // @ts-ignore
+                lot_name: r.warehouse_lots?.name || r.lot_id || 'N/A'
             };
 
             portfolio[whId].records.push(enrichedRecord);

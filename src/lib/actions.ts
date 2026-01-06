@@ -3,8 +3,8 @@
 
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
-import { getStorageRecords, getCustomers, getStorageRecord, getCustomer, getUserWarehouse, getAvailableCrops, getAvailableLots, getTeamMembers, getDashboardMetrics, searchActiveStorageRecords } from '@/lib/queries';
-import { saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, deleteStorageRecord, saveExpense, updateExpense, deleteExpense } from '@/lib/data';
+import { getStorageRecords, getCustomers, getStorageRecord, getCustomer, getUserWarehouse, getAvailableCrops, getAvailableLots, getTeamMembers, getDashboardMetrics, searchActiveStorageRecords, getPaginatedStorageRecords } from '@/lib/queries';
+import { saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, deleteStorageRecord, restoreStorageRecord, saveExpense, updateExpense, deleteExpense } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
@@ -18,9 +18,26 @@ import { checkRateLimit } from '@/lib/rate-limit';
 const { logger } = Sentry;
 
 // --- New Actions for Scalability ---
+export async function signOutAction() {
+  'use server';
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect('/login');
+}
+
 export async function findRecordsAction(query: string) {
     'use server';
     return await searchActiveStorageRecords(query);
+}
+
+export async function fetchStorageRecordsAction(
+  page: number = 1, 
+  limit: number = 20, 
+  search?: string, 
+  status: 'active' | 'all' | 'released' = 'active'
+) {
+    'use server';
+    return await getPaginatedStorageRecords(page, limit, search, status);
 }
 
 export async function getStorageRecordAction(id: string) {
@@ -907,6 +924,12 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
     bagsStored: number;
     hamaliPayable: number;
     storageStartDate: string;
+    // Extended fields for Admin
+    customerId?: string;
+    cropId?: string;
+    lotId?: string;
+    lorryTractorNo?: string;
+    inflowType?: 'Direct' | 'Plot';
 }) {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
@@ -927,13 +950,20 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
     }
 
     // Transform to database column names
-    const updateData = {
+    const updateData: any = {
         commodity_description: formData.commodityDescription,
         location: formData.location,
         bags_stored: formData.bagsStored,
         hamali_payable: formData.hamaliPayable,
-        storage_start_date: new Date(formData.storageStartDate)
+        storage_start_date: new Date(formData.storageStartDate),
     };
+
+    // Add extended fields if present
+    if (formData.customerId) updateData.customer_id = formData.customerId;
+    if (formData.cropId) updateData.crop_id = formData.cropId;
+    if (formData.lotId) updateData.lot_id = formData.lotId;
+    if (formData.lorryTractorNo !== undefined) updateData.lorry_tractor_no = formData.lorryTractorNo; // Allow clearing
+    if (formData.inflowType) updateData.inflow_type = formData.inflowType;
 
     const { error } = await supabase
         .from('storage_records')
@@ -1129,6 +1159,18 @@ export async function deleteStorageRecordAction(recordId: string): Promise<FormS
     return { message: 'Record deleted successfully.', success: true };
   } catch (error: any) {
     return { message: error.message || 'Failed to delete record.', success: false };
+  }
+}
+
+export async function restoreStorageRecordAction(recordId: string): Promise<FormState> {
+  try {
+    await restoreStorageRecord(recordId);
+    revalidatePath('/reports');
+    revalidatePath('/storage');
+    revalidatePath('/payments/pending');
+    return { message: 'Record restored successfully.', success: true };
+  } catch (error: any) {
+    return { message: error.message || 'Failed to restore record.', success: false };
   }
 }
 
@@ -1367,26 +1409,31 @@ export async function createTeamMember(prevState: FormState, formData: FormData)
 
 const UserProfileSchema = z.object({
     fullName: z.string().min(2, "Name must be at least 2 characters."),
+    phone: z.string().optional(),
 });
 
 export async function updateUserProfile(prevState: FormState, formData: FormData): Promise<FormState> {
     const validatedFields = UserProfileSchema.safeParse({
         fullName: formData.get('fullName'),
+        phone: formData.get('phone'),
     });
 
     if (!validatedFields.success) {
-        return { message: "Invalid name", success: false, data: { fullName: formData.get('fullName') } };
+        return { message: "Invalid data", success: false };
     }
 
-    const { fullName } = validatedFields.data;
+    const { fullName, phone } = validatedFields.data;
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) return { message: "Unauthorized", success: false };
 
     const { error } = await supabase
-        .from('profiles')
-        .update({ full_name: fullName })
+        .from('profiles') // Assuming you have a profiles table
+        .update({ 
+            full_name: fullName,
+            phone: phone || null
+        })
         .eq('id', user.id);
 
     if (error) {

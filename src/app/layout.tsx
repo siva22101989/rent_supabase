@@ -42,19 +42,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} font-body antialiased bg-background`}>
         <ThemeProvider>
-          <WarehouseProvider>
-            <StaticDataProvider>
-              <CustomerProvider>
-                <AuthListener />
-                <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
-                {children}
-                <Toaster />
-                <SpeedInsights />
-                <Analytics />
-                <KeyboardShortcuts />
-              </CustomerProvider>
-            </StaticDataProvider>
-          </WarehouseProvider>
+          <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
+          {children}
+          <Toaster />
+          <SpeedInsights />
+          <Analytics />
+          <KeyboardShortcuts />
         </ThemeProvider>
       </body>
     </html>

@@ -42,6 +42,16 @@ export function StaticDataProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     async function load() {
        try {
+           // Check if user is logged in before loading data
+           const supabase = createClient();
+           const { data: { user } } = await supabase.auth.getUser();
+           
+           if (!user) {
+               // User not authenticated, skip data loading
+               setLoading(false);
+               return;
+           }
+
            // Crops
            let cropsData = null;
            const currentCropsCache = cropsCacheRef.current;
@@ -145,7 +155,10 @@ export function StaticDataProvider({ children }: { children: React.ReactNode }) 
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
              if (currentSessionId !== lastSessionId) {
                 lastSessionId = currentSessionId;
-                refreshRef.current(false);
+                // Silently refresh on login
+                refreshRef.current(false).catch(() => {
+                  // Ignore errors during auth transitions
+                });
              }
         } else if (event === 'SIGNED_OUT') {
              lastSessionId = null;

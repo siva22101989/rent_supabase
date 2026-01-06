@@ -25,20 +25,29 @@ import { Printer } from "lucide-react";
 import { ExportButton } from "@/components/shared/export-button";
 import { exportStorageRecordsToExcel, generateTallyXML, downloadFile } from "@/lib/export-utils";
 import { ActionsMenu } from '@/components/dashboard/actions-menu';
+import useSWR from 'swr';
+import { fetchStorageRecordsAction } from '@/lib/actions';
+import { Loader2 } from 'lucide-react';
 
 
 export function StoragePageClient({ 
-  records, 
-  totalPages, 
-  currentPage, 
+  records: initialRecords, 
+  totalPages: initialTotalPages, 
+  currentPage: initialPage, 
   initialStats, 
-  customers 
+  customers,
+  userRole,
+  crops,
+  lots
 }: { 
   records: StorageRecord[], 
   totalPages: number, 
   currentPage: number,
   initialStats: { totalInflow: number, totalOutflow: number, balanceStock: number }, 
   customers: Customer[] 
+  userRole?: string
+  crops: any[]
+  lots: any[]
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -48,6 +57,32 @@ export function StoragePageClient({
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
+  
+  // SWR for Caching & Background Updates
+  const [page, setPage] = useState(initialPage);
+
+  // Sync page state with prop when server updates (e.g. valid navigation)
+  useEffect(() => {
+    setPage(initialPage);
+  }, [initialPage]);
+
+  const { data, isLoading, mutate } = useSWR(
+    ['storage-records', page, debouncedSearch, 'active'], 
+    async ([_, p, q, s]) => fetchStorageRecordsAction(p as number, 25, q as string, s as any),
+    {
+        fallbackData: {
+            records: initialRecords,
+            totalPages: initialTotalPages,
+            totalCount: 0 // Not strictly needed for UI, fallbacks cover it
+        },
+        revalidateOnFocus: true,
+        keepPreviousData: true, // Prevents flickering during pagination
+    }
+  );
+
+  const records = data?.records || initialRecords;
+  const totalPages = data?.totalPages || initialTotalPages;
+  const isTableLoading = isLoading && !data; // Only true loading if no cache and no fallback
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -96,14 +131,17 @@ export function StoragePageClient({
     // Reset to page 1 on search
     if (debouncedSearch !== searchParams.get('q')) {
         params.set('page', '1');
+        setPage(1); // Reset local page immediately
     }
-    router.replace(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [debouncedSearch, pathname, router, searchParams]);
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage); // Optimistic Update
+
     const params = new URLSearchParams(searchParams);
-    params.set('page', page.toString());
-    router.push(`${pathname}?${params.toString()}`);
+    params.set('page', newPage.toString());
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const stats = useMemo(() => {
@@ -127,6 +165,7 @@ export function StoragePageClient({
         ]}
       />
 
+      {/* Stats Cards (Static/Server for now, could be SWR'd too) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -172,7 +211,10 @@ export function StoragePageClient({
       {/* Detailed Stock Register */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <h3 className="text-lg font-medium">Detailed Stock Register</h3>
+          <h3 className="text-lg font-medium flex items-center gap-2">
+            Detailed Stock Register
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          </h3>
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -251,35 +293,7 @@ export function StoragePageClient({
                     <MobileCard.Row label="Rent Due" value={formatCurrency(rent)} className="text-primary font-semibold" />
                   </MobileCard.Content>
                   <MobileCard.Actions>
-                    {record.inflowType === 'Plot' && (!record.loadBags || record.loadBags === 0) && (
-                      <FinalizeDryingDialog 
-                        record={{
-                          id: record.id,
-                          plotBags: record.plotBags,
-                          bagsStored: record.bagsStored,
-                          commodityDescription: record.commodityDescription,
-                          hamaliPayable: record.hamaliPayable
-                        }}
-                      />
-                    )}
-                    <EditStorageDialog 
-                      record={{
-                        id: record.id,
-                        commodityDescription: record.commodityDescription,
-                        location: record.location,
-                        bagsStored: record.bagsStored,
-                        hamaliPayable: record.hamaliPayable || 0,
-                        storageStartDate: record.storageStartDate,
-                        storageEndDate: record.storageEndDate
-                      }}
-                      size="sm"
-                    />
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href={`/inflow/receipt/${record.id}`}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Receipt
-                      </Link>
-                    </Button>
+                    <ActionsMenu record={record} customers={customers} crops={crops} lots={lots} userRole={userRole} />
                   </MobileCard.Actions>
                 </MobileCard>
               );
@@ -310,7 +324,12 @@ export function StoragePageClient({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {records.map((record) => {
+                        {isTableLoading && records.length === 0 ? (
+                           // Skeleton State if needed, but fallback keeps old records usually
+                           <TableRow>
+                             <TableCell colSpan={9} className="h-24 text-center">Loading...</TableCell>
+                           </TableRow>
+                        ) : records.map((record) => {
                             const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
                             return (
                                 <TableRow key={record.id} className={selectedRecords.has(record.id) ? "bg-muted/50" : ""}>
@@ -343,14 +362,14 @@ export function StoragePageClient({
                                                 }}
                                             />
                                         )}
-                                        <ActionsMenu record={record} customers={customers} />
+                                        <ActionsMenu record={record} customers={customers} crops={crops} lots={lots} userRole={userRole} />
                                     </TableCell>
                                 </TableRow>
                             );
                         })}
-                        {records.length === 0 && (
+                        {!isTableLoading && records.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={8} className="h-64">
+                                <TableCell colSpan={9} className="h-64">
                                     <EmptyState
                                         icon={Warehouse}
                                         title={searchTerm ? "No results found" : "No active storage records"}
@@ -368,7 +387,7 @@ export function StoragePageClient({
 
         {totalPages > 1 && (
           <Pagination
-            currentPage={currentPage}
+            currentPage={page}
             totalPages={totalPages}
             onPageChange={handlePageChange}
           />

@@ -13,10 +13,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { deleteStorageRecordAction, type FormState } from '@/lib/actions';
+import { deleteStorageRecordAction, restoreStorageRecordAction, type FormState } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
+import { ToastAction } from '@/components/ui/toast';
 
 export function DeleteRecordDialog({
   recordId,
@@ -29,12 +30,27 @@ export function DeleteRecordDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const handleRestore = async () => {
+      const result = await restoreStorageRecordAction(recordId);
+      if (result.success) {
+          toast({ title: "Restored", description: "Record restored successfully.", variant: "default" });
+      } else {
+          toast({ title: "Error", description: "Failed to restore record.", variant: "destructive" });
+      }
+  };
+
   const handleDelete = async () => {
     startTransition(async () => {
       const result = await deleteStorageRecordAction(recordId);
       if (result.success) {
-        toast({ title: 'Success', description: result.message });
         setIsOpen(false);
+        toast({ 
+            title: 'Moved to Trash', 
+            description: "The record has been deleted.",
+            action: (
+                <ToastAction altText="Undo" onClick={handleRestore}>Undo</ToastAction>
+            )
+        });
       } else {
         toast({
           title: 'Error',
@@ -50,10 +66,9 @@ export function DeleteRecordDialog({
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the
-            storage record and all associated payments.
+            This will remove the record from the active list. You can undo this action immediately after.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -64,7 +79,7 @@ export function DeleteRecordDialog({
             disabled={isPending}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Delete Record
+            Delete
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

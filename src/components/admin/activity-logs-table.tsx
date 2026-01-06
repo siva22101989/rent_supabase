@@ -145,6 +145,7 @@ export function ActivityLogsTable({ logs }: ActivityLogsTableProps) {
                             <SelectValue placeholder="Action Type" />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="important">Important Actions</SelectItem>
                             <SelectItem value="all">All Actions</SelectItem>
                             <SelectItem value="CREATE">Create</SelectItem>
                             <SelectItem value="UPDATE">Update</SelectItem>

@@ -196,7 +196,11 @@ export const getGlobalActivityLogs = cache(async (limit = 50, offset = 0, search
     }
 
     if (filterAction && filterAction !== 'all') {
-        query = query.eq('action', filterAction);
+        if (filterAction === 'important') {
+             query = query.neq('action', 'LOGIN');
+        } else {
+             query = query.eq('action', filterAction);
+        }
     }
 
     const { data, error } = await query;

@@ -62,6 +62,16 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
   // 1. Initial Load from Cache
   useEffect(() => {
     const init = async () => {
+      // Check if user is logged in before loading warehouses
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // User not authenticated, skip warehouse loading
+        setIsLoading(false);
+        return;
+      }
+
       // Try to load from cache first
       if (warehouseCache) {
         try {
@@ -95,8 +105,10 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
         if (event === 'SIGNED_IN') {
-             // Force refresh on login
-             refreshWarehouses(); 
+             // Silently refresh on login
+             refreshWarehouses().catch(() => {
+               // Ignore errors during auth transitions
+             });
         } else if (event === 'SIGNED_OUT') {
              // Clear state and cache on logout
              setWarehouses([]);

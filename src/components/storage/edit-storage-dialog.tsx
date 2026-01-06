@@ -15,6 +15,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import type { Customer } from "@/lib/definitions";
 
 interface StorageRecord {
     id: string;
@@ -24,15 +33,34 @@ interface StorageRecord {
     storageStartDate: string | Date;
     hamaliPayable: number;
     storageEndDate?: string | Date | null;
+    customerId?: string;
+    cropId?: string;
+    lotId?: string;
+    lorryTractorNo?: string;
+    inflowType?: 'Direct' | 'Plot';
 }
 
 interface Props {
     record: StorageRecord;
     variant?: 'default' | 'outline' | 'ghost';
     size?: 'default' | 'sm' | 'lg' | 'icon';
+    customers?: Customer[];
+    crops?: any[];
+    lots?: any[];
+    userRole?: string;
+    children?: React.ReactNode;
 }
 
-export function EditStorageDialog({ record, variant = 'outline', size = 'sm' }: Props) {
+export function EditStorageDialog({ 
+    record, 
+    variant = 'outline', 
+    size = 'sm',
+    customers = [],
+    crops = [],
+    lots = [],
+    userRole = 'staff',
+    children
+}: Props) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -59,6 +87,11 @@ export function EditStorageDialog({ record, variant = 'outline', size = 'sm' }: 
                     bagsStored: parseInt(formData.get('bagsStored') as string),
                     hamaliPayable: parseFloat(formData.get('hamaliPayable') as string),
                     storageStartDate: formData.get('storageStartDate'),
+                    customerId: formData.get('customerId'),
+                    cropId: formData.get('cropId'),
+                    lotId: formData.get('lotId'),
+                    lorryTractorNo: formData.get('lorryTractorNo'),
+                    inflowType: formData.get('inflowType'),
                 })
             });
 
@@ -89,20 +122,95 @@ export function EditStorageDialog({ record, variant = 'outline', size = 'sm' }: 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant={variant} size={size}>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit
-                </Button>
+                {children ? children : (
+                    <Button variant={variant} size={size}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>Edit Storage Record</DialogTitle>
                         <DialogDescription>
-                            Update storage record details. Cannot edit completed records.
+                            Update storage record details. {isCompleted ? 'Cannot edit completed records.' : ''}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
+                    
+                    <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
+                        {/* Admin Only Fields */}
+                        {(userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin') && (
+                            <div className="space-y-4 border-b pb-4 mb-2">
+                                <h4 className="text-sm font-semibold text-muted-foreground">Admin Overrides</h4>
+                                
+                                <div className="grid gap-2">
+                                    <Label htmlFor="customerId">Customer</Label>
+                                    <Select name="customerId" defaultValue={record.customerId}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Customer" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {customers.map(c => (
+                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                     <div className="grid gap-2">
+                                        <Label htmlFor="cropId">Crop</Label>
+                                        <Select name="cropId" defaultValue={record.cropId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Crop" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {crops.map(c => (
+                                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="lotId">Lot</Label>
+                                        <Select name="lotId" defaultValue={record.lotId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Lot" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {lots.map(l => (
+                                                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="lorryTractorNo">Vehicle No.</Label>
+                                    <Input 
+                                        id="lorryTractorNo" 
+                                        name="lorryTractorNo" 
+                                        defaultValue={record.lorryTractorNo || ''} 
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Inflow Type</Label>
+                                    <RadioGroup name="inflowType" defaultValue={record.inflowType || 'Direct'} className="flex flex-row space-x-4">
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="Direct" id="r1" />
+                                            <Label htmlFor="r1">Direct</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="Plot" id="r2" />
+                                            <Label htmlFor="r2">Plot (Drying)</Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
+                            </div>
+                        )}
                         <div className="grid gap-2">
                             <Label htmlFor="commodityDescription">Commodity Description *</Label>
                             <Input

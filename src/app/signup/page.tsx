@@ -32,6 +32,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [role, setRole] = useState('staff');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,6 +52,7 @@ export default function SignupPage() {
                 data: {
                     full_name: fullName,
                     role: role,
+                    phone_number: phone,
                 },
                 emailRedirectTo: `${window.location.origin}/auth/callback`,
             },
@@ -146,6 +148,25 @@ export default function SignupPage() {
                 disabled={loading}
                 minLength={6}
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="phone">Mobile Number</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="9876543210"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={loading}
+                pattern="[0-9]{10}"
+                title="Please enter a valid 10-digit mobile number"
+              />
+              <p className="text-[0.8rem] text-muted-foreground">
+                We'll use this to find your existing records.
+              </p>
             </div>
             
             {error && (

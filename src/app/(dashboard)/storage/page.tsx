@@ -1,5 +1,8 @@
 import { getPaginatedStorageRecords, getStorageStats, getCustomers } from "@/lib/queries";
 import { StoragePageClient } from "./page-client";
+import { createClient } from "@/utils/supabase/server";
+import { getUserWarehouse } from "@/lib/queries/warehouses";
+import { getCurrentUserRole } from "@/lib/queries";
 
 // Revalidate every 60 seconds - storage data changes moderately
 export const revalidate = 60;
@@ -12,12 +15,18 @@ export default async function StoragePage({
   const resolvedSearchParams = await searchParams;
   const page = Number(resolvedSearchParams.page) || 1;
   const query = resolvedSearchParams.q || '';
+  
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
 
   // Parallel Fetching for optimization
-  const [paginatedResult, stats, customers] = await Promise.all([
+  const [paginatedResult, stats, customers, userRole, crops, lots] = await Promise.all([
       getPaginatedStorageRecords(page, 25, query, 'active'),
       getStorageStats(),
-      getCustomers()
+      getCustomers(),
+      getCurrentUserRole(),
+      supabase.from('crops').select('id, name').eq('warehouse_id', warehouseId).order('name').then(res => res.data || []),
+      supabase.from('lots').select('id, name').eq('warehouse_id', warehouseId).eq('status', 'active').then(res => res.data || [])
   ]);
 
   return (
@@ -26,7 +35,10 @@ export default async function StoragePage({
       totalPages={paginatedResult.totalPages}
       currentPage={page}
       initialStats={stats} 
-      customers={customers} 
+      customers={customers}
+      userRole={userRole}
+      crops={crops}
+      lots={lots}
     />
   );
 }

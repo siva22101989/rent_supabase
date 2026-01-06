@@ -122,12 +122,18 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
                 type="number"
                 step="0.01"
                 min="0.01"
+                max={paymentType === 'Rent/Other' ? record.balanceDue : undefined}
                 placeholder="0.00"
                 defaultValue={state.data?.paymentAmount || (paymentType === 'Rent/Other' ? record.balanceDue.toFixed(2) : undefined)}
                 onFocus={(e) => e.target.select()}
                 onWheel={(e) => e.currentTarget.blur()}
                 required 
               />
+              {paymentType === 'Rent/Other' && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                      Max available: {formatCurrency(record.balanceDue)}
+                  </p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="paymentDate">

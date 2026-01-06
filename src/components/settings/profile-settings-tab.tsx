@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Shield, Lock } from "lucide-react";
+import { User, Mail, Shield, Lock, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SubmitButton } from "@/components/ui/submit-button";
 
@@ -105,6 +105,14 @@ export function ProfileSettingsTab({ profile }: ProfileTabProps) {
                                 <Input id="email" value={profile?.email || ''} disabled className="pl-9 bg-muted" />
                              </div>
                              <p className="text-[0.8rem] text-muted-foreground">Email cannot be changed.</p>
+                        </div>
+                        <div className="grid gap-2">
+                             <Label htmlFor="phone">Phone Number</Label>
+                             <div className="relative">
+                                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input id="phone" name="phone" defaultValue={profile?.phone || ''} className="pl-9" placeholder="9876543210" />
+                             </div>
+                             <p className="text-[0.8rem] text-muted-foreground">Used for customer portal linking.</p>
                         </div>
                         
                         <div className="md:col-span-2 flex justify-end">
