@@ -97,42 +97,42 @@ export default async function SuperAdminDashboard({
       <AdminStatsCards stats={stats} />
 
       <Tabs defaultValue="warehouses" className="space-y-4 sm:space-y-6 overflow-hidden">
-        <div className="flex items-center justify-between overflow-x-auto pb-1 no-scrollbar border-b border-primary/10 -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="bg-transparent h-auto p-0 gap-6 justify-start">
+        <div className="flex items-center justify-between pb-1 border-b border-primary/10 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="bg-transparent h-auto p-0 gap-2 md:gap-6 justify-start flex-wrap w-full">
             <TabsTrigger 
               value="warehouses" 
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap flex-grow basis-[45%] md:basis-auto"
             >
               <Building2 className="mr-2 h-4 w-4" /> 
               Warehouses
             </TabsTrigger>
             <TabsTrigger 
               value="users" 
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap flex-grow basis-[45%] md:basis-auto"
             >
               <Users className="mr-2 h-4 w-4" /> Users
             </TabsTrigger>
             <TabsTrigger 
               value="activity" 
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap flex-grow basis-[45%] md:basis-auto"
             >
               <Activity className="mr-2 h-4 w-4" /> Audit Logs
             </TabsTrigger>
             <TabsTrigger 
               value="analytics" 
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap flex-grow basis-[45%] md:basis-auto"
             >
               <BarChart3 className="mr-2 h-4 w-4" /> Analytics
             </TabsTrigger>
             <TabsTrigger 
               value="subscriptions" 
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap flex-grow basis-[45%] md:basis-auto"
             >
               <CreditCard className="mr-2 h-4 w-4" /> Subscriptions
             </TabsTrigger>
             <TabsTrigger 
               value="codes" 
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-indigo-600 border-b-2 border-transparent rounded-none px-1 py-3 h-auto font-semibold text-sm whitespace-nowrap flex-grow basis-[45%] md:basis-auto"
             >
               <Key className="mr-2 h-4 w-4" /> Codes
             </TabsTrigger>
