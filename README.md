@@ -1,8 +1,8 @@
-# BagBill - Intelligent Warehouse Management System 🏭
+# Grain Flow - Intelligent Warehouse Management System 🏭
 
-![BagBill Banner](/public/icon.svg)
+![Grain Flow Banner](/public/icon.svg)
 
-**BagBill** is a professional-grade, multi-tenant Warehouse Management System (WMS) designed for agricultural storage. It replaces manual ledgers with a secure, real-time digital platform tracking stock, financials, and customer relationships.
+**Grain Flow** is a professional-grade, multi-tenant Warehouse Management System (WMS) designed for agricultural storage. It replaces manual ledgers with a secure, real-time digital platform tracking stock, financials, and customer relationships.
 
 Built with **Next.js 16**, **Supabase**, and **Shadcn UI**, it offers a modern, responsive experience with offline-first capabilities (PWA).
 
@@ -140,4 +140,4 @@ While the application is production-ready, these features are continuously evolv
 
 ## 📄 License
 
-Private Property of BagBill. Do not distribute.
+Private Property of Grain Flow. Do not distribute.

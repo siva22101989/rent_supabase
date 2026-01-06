@@ -22,7 +22,7 @@ type WarehouseContextType = {
 
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
 
-const CACHE_KEY = 'bagbill_warehouses';
+const CACHE_KEY = 'grainflow_warehouses';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export function WarehouseProvider({ children }: { children: React.ReactNode }) {

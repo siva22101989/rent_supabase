@@ -1,7 +1,7 @@
 import useSWR from 'swr';
 import { fetchDashboardMetrics } from '@/lib/actions';
 
-const CACHE_KEY = 'bagbill_dashboard_metrics';
+const CACHE_KEY = 'grainflow_dashboard_metrics';
 
 // SWR fetcher wrapper
 const fetcher = async () => {

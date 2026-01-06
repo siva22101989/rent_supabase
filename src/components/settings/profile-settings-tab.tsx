@@ -142,7 +142,7 @@ export function ProfileSettingsTab({ profile }: ProfileTabProps) {
                         <div 
                             className="border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors flex items-start gap-3"
                             onClick={() => {
-                                localStorage.setItem('bagbill-layout-mode', 'header');
+                                localStorage.setItem('grainflow-layout-mode', 'header');
                                 window.location.reload();
                             }}
                         >
@@ -159,7 +159,7 @@ export function ProfileSettingsTab({ profile }: ProfileTabProps) {
                         <div 
                             className="border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors flex items-start gap-3"
                             onClick={() => {
-                                localStorage.setItem('bagbill-layout-mode', 'sidebar');
+                                localStorage.setItem('grainflow-layout-mode', 'sidebar');
                                 window.location.reload();
                             }}
                         >

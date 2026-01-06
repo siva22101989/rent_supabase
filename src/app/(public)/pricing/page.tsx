@@ -74,7 +74,7 @@ export default function PricingPage() {
             <header className="px-6 h-16 flex items-center border-b">
                 <Link href="/" className="font-bold text-xl flex items-center gap-2">
                     <img src="/icon.svg" alt="Logo" className="w-8 h-8" />
-                    BagBill
+                    Grain Flow
                 </Link>
                 <div className="ml-auto flex gap-4">
                     <Button variant="ghost" asChild>

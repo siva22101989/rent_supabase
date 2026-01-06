@@ -19,9 +19,9 @@ type StaticDataContextType = {
 const StaticDataContext = createContext<StaticDataContextType | undefined>(undefined);
 
 export function StaticDataProvider({ children }: { children: React.ReactNode }) {
-  const [cropsCache, setCropsCache] = useLocalStorage<any>('bagbill_crops', null);
-  const [lotsCache, setLotsCache] = useLocalStorage<any>('bagbill_lots', null);
-  const [customersCache, setCustomersCache] = useLocalStorage<any>('bagbill_customers', null);
+  const [cropsCache, setCropsCache] = useLocalStorage<any>('grainflow_crops', null);
+  const [lotsCache, setLotsCache] = useLocalStorage<any>('grainflow_lots', null);
+  const [customersCache, setCustomersCache] = useLocalStorage<any>('grainflow_customers', null);
   
   const [crops, setCrops] = useState<any[]>([]);
   const [lots, setLots] = useState<any[]>([]);

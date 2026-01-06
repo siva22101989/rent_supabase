@@ -56,14 +56,14 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
 
   // Initialize layout preference
   React.useEffect(() => {
-      const savedMode = localStorage.getItem('bagbill-layout-mode') as 'header' | 'sidebar';
+      const savedMode = localStorage.getItem('grainflow-layout-mode') as 'header' | 'sidebar';
       if (savedMode) setLayoutMode(savedMode);
   }, []);
 
   const toggleLayout = () => {
       const newMode = layoutMode === 'header' ? 'sidebar' : 'header';
       setLayoutMode(newMode);
-      localStorage.setItem('bagbill-layout-mode', newMode);
+      localStorage.setItem('grainflow-layout-mode', newMode);
   };
 
   React.useEffect(() => {
