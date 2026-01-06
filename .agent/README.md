@@ -1,6 +1,6 @@
-# BagBill Custom Workflows
+# Grain Flow Custom Workflows
 
-This folder contains customized workflows and rules for the BagBill project, tailored to Next.js 16 + Supabase architecture.
+This folder contains customized workflows and rules for the Grain Flow project, tailored to Next.js 16 + Supabase architecture.
 
 ## 📁 Contents
 
@@ -69,26 +69,32 @@ Remove-Item -Path "bagbill-workflows" -Recurse -Force
 
 ## 📝 What Changed
 
-These workflows replace the original Medusa e-commerce patterns with BagBill-specific patterns:
+These workflows are specific to Grain Flow's warehouse management architecture:
 
-**Before (Medusa):**
+**Key Technologies:**
 
-- Medusa modules and services
-- Medusa Admin UI
-- Medusa SDK
+- Next.js 16 (App Router, Server Components)
+- Supabase (PostgreSQL + Auth + RLS)
+- TypeScript with Zod validation
+- Shadcn UI component library
+- Tailwind CSS with adaptive theming
 
-**After (BagBill):**
+**Replaced Patterns:**
 
-- Next.js Server Components and Server Actions
-- Supabase database and RLS
-- React hooks and optimistic updates
+- Generic patterns → Grain Flow warehouse management
+- E-commerce modules → Storage, Inflow, Outflow, Payments
+- Product catalogs → Crop commodities and customer management
 
 ## 🎯 Key Patterns
 
-All workflows now follow BagBill's architecture:
+All workflows follow Grain Flow's architecture:
 
-1. **Database**: Supabase migrations with RLS
+1. **Database**: Supabase migrations with RLS policies
 2. **Data Access**: Query functions in `src/lib/queries/`
 3. **Server Actions**: Form handlers in `src/lib/actions.ts`
-4. **UI**: Server Components + Client Components
-5. **Security**: RLS policies, rate limiting, Zod validation
+4. **UI Components**:
+   - Landing page components in `src/components/landing/`
+   - Dashboard components in feature folders
+   - Shared UI primitives in `src/components/ui/`
+5. **Security**: RLS policies, rate limiting, Zod validation, role-based access
+6. **Theming**: Adaptive light/dark mode with semantic CSS variables

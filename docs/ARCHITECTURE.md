@@ -2,7 +2,7 @@
 
 ## System Design
 
-BagBill is a multi-tenant, cloud-native Warehouse Management System built with a modern serverless architecture. The application follows a **Server-Side Rendering (SSR)** approach with **React Server Components** for optimal performance and SEO.
+Grain Flow is a multi-tenant, cloud-native Warehouse Management System built with a modern serverless architecture. The application follows a **Server-Side Rendering (SSR)** approach with **React Server Components** for optimal performance and SEO.
 
 ### High-Level Architecture
 
@@ -71,16 +71,19 @@ rent_supabase/
 │   │   │   ├── expenses/
 │   │   │   └── settings/
 │   │   ├── (public)/           # Public routes (no auth required)
+│   │   │   ├── page.tsx        # Landing page (Hero, Features, About, CTA)
 │   │   │   ├── login/
-│   │   │   └── pricing/
+│   │   │   └── pricing/        # Pricing with contact dialog
 │   │   └── layout.tsx          # Root layout
 │   ├── components/             # React components
 │   │   ├── ui/                 # Shadcn UI primitives
 │   │   ├── shared/             # Reusable components
-│   │   ├── layout/             # Layout components (sidebar, header)
+│   │   ├── layout/             # Layout components (sidebar, header, logo)
+│   │   ├── landing/            # Landing page components (Hero, Features, CTA)
 │   │   ├── customers/          # Customer-specific components
 │   │   ├── storage/
 │   │   ├── payments/
+│   │   ├── contact-sales-dialog.tsx  # Contact sales dialog component
 │   │   └── settings/
 │   ├── lib/                    # Core business logic
 │   │   ├── actions/            # Server actions (mutations)
@@ -609,6 +612,6 @@ GitHub → GitHub Actions (CI) → Vercel (CD) → Edge Network
 
 ---
 
-**Last Updated:** January 5, 2026  
-**Version:** 1.0  
-**Maintainer:** Development Team
+**Last Updated:** January 6, 2026  
+**Version:** 1.1  
+**Maintainer:** Grain Flow Development Team
