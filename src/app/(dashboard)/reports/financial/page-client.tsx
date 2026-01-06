@@ -126,12 +126,12 @@ export function FinancialDashboardClient({
             </PageHeader>
 
             <Tabs defaultValue="overview" className="space-y-4" onValueChange={setActiveTab}>
-                <TabsList>
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="unloading">Unloading (Ops)</TabsTrigger>
-                    <TabsTrigger value="hamali">Hamali (Rev)</TabsTrigger>
-                    <TabsTrigger value="pending">Receivables</TabsTrigger>
-                    <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                <TabsList className="w-full flex justify-start overflow-x-auto [&::-webkit-scrollbar]:hidden">
+                    <TabsTrigger value="overview" className="flex-shrink-0">Overview</TabsTrigger>
+                    <TabsTrigger value="unloading" className="flex-shrink-0">Unloading (Ops)</TabsTrigger>
+                    <TabsTrigger value="hamali" className="flex-shrink-0">Hamali (Rev)</TabsTrigger>
+                    <TabsTrigger value="pending" className="flex-shrink-0">Receivables</TabsTrigger>
+                    <TabsTrigger value="expenses" className="flex-shrink-0">Expenses</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">

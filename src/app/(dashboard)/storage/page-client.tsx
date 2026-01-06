@@ -236,11 +236,11 @@ export function StoragePageClient({
         
         </div>
 
-        {/* Floating Action Bar */}
+        {/* Floating Action Bar - Hidden on Mobile */}
         {selectedRecords.size > 0 && (
-            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border shadow-lg rounded-full px-6 py-2 z-50 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+            <div className="hidden md:flex fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white dark:bg-card border shadow-lg rounded-full px-6 py-2 z-50 items-center gap-4 animate-in slide-in-from-bottom-5">
                 <span className="text-sm font-medium">{selectedRecords.size} selected</span>
-                <div className="h-4 w-px bg-border" />
+                <div className="h4 w-px bg-border" />
                 <Button size="sm" onClick={handlePrintLabels}>
                     <Printer className="h-4 w-4 mr-2" />
                     Print Labels
@@ -293,6 +293,17 @@ export function StoragePageClient({
                     <MobileCard.Row label="Rent Due" value={formatCurrency(rent)} className="text-primary font-semibold" />
                   </MobileCard.Content>
                   <MobileCard.Actions>
+                    {record.inflowType === 'Plot' && (!record.loadBags || record.loadBags === 0) && (
+                        <FinalizeDryingDialog 
+                            record={{
+                                id: record.id,
+                                plotBags: record.plotBags,
+                                bagsStored: record.bagsStored,
+                                commodityDescription: record.commodityDescription,
+                                hamaliPayable: record.hamaliPayable
+                            }}
+                        />
+                    )}
                     <ActionsMenu record={record} customers={customers} crops={crops} lots={lots} userRole={userRole} />
                   </MobileCard.Actions>
                 </MobileCard>

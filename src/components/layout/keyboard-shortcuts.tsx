@@ -74,13 +74,7 @@ export function KeyboardShortcuts() {
 
   return (
     <>
-       {/* Mobile Trigger */}
-       <div 
-        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-lg md:hidden hover:bg-primary/90 active:scale-95 transition-all"
-        onClick={() => setOpen(true)}
-      >
-        <Search className="h-5 w-5" />
-      </div>
+
 
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="p-0 overflow-hidden max-w-[450px]">

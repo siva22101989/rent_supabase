@@ -1,4 +1,8 @@
-# BagBill Project Rules
+---
+trigger: always_on
+---
+
+# Project Rules
 
 ## Phase 1: Project Discovery
 
@@ -7,7 +11,7 @@
 - Check database: Supabase (`supabase/` directory, `.env` for `SUPABASE_URL`)
 - Verify auth: `src/utils/supabase/` for client/server/middleware
 
-## Phase 2: BagBill Architecture Patterns
+## Phase 2: Architecture Patterns
 
 ### Data Layer (Supabase)
 
