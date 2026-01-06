@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="absolute top-8 left-8">
-            <Logo />
+            <Logo href="/" />
         </div>
         <Card className="w-full max-w-sm">
         <CardHeader>

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const navItems = [
-    { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Admin Panel', href: '/admin', icon: Shield, roles: ['super_admin', 'owner'] },
     { label: 'Inflow', href: '/inflow', icon: Truck },
     { label: 'Outflow', href: '/outflow', icon: ArrowRight },

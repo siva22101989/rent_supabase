@@ -1,9 +1,12 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, MessageCircle, Phone } from 'lucide-react';
 import Link from 'next/link';
-
-export const dynamic = 'force-dynamic';
+import { Footer } from '@/components/landing/Footer';
+import { LandingHeader } from '@/components/landing/Header';
+import { ContactSalesDialog } from '@/components/contact-sales-dialog';
 
 export default function PricingPage() {
     const plans = [
@@ -19,7 +22,7 @@ export default function PricingPage() {
                 '100 Storage Records'
             ],
             tier: 'free',
-            cta: 'Current Plan',
+            cta: 'Start Free Trial',
             popular: false
         },
         {
@@ -70,20 +73,10 @@ export default function PricingPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-background">
-            <header className="px-6 h-16 flex items-center border-b">
-                <Link href="/" className="font-bold text-xl flex items-center gap-2">
-                    <img src="/icon.svg" alt="Logo" className="w-8 h-8" />
-                    Grain Flow
-                </Link>
-                <div className="ml-auto flex gap-4">
-                    <Button variant="ghost" asChild>
-                        <Link href="/login">Login</Link>
-                    </Button>
-                </div>
-            </header>
+        <div className="min-h-screen bg-background selection:bg-primary/10 selection:text-primary">
+            <LandingHeader />
 
-            <main className="py-20 px-6">
+            <main className="pt-32 pb-20 px-6">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-4">
                         Simple, transparent pricing
@@ -119,9 +112,17 @@ export default function PricingPage() {
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full" size="lg" variant={plan.popular ? 'default' : 'outline'} asChild>
-                                    <Link href="https://wa.me/919999999999">Contact Sales</Link>
-                                </Button>
+                                {plan.cta === 'Contact Sales' ? (
+                                    <ContactSalesDialog>
+                                        <Button className="w-full" size="lg" variant={plan.popular ? 'default' : 'outline'}>
+                                            {plan.cta}
+                                        </Button>
+                                    </ContactSalesDialog>
+                                ) : (
+                                    <Button className="w-full" size="lg" variant={plan.popular ? 'default' : 'outline'} asChild>
+                                        <Link href="/login">{plan.cta}</Link>
+                                    </Button>
+                                )}
                             </CardFooter>
                         </Card>
                     ))}
@@ -133,16 +134,20 @@ export default function PricingPage() {
                          To subscribe, please contact our sales team to receive an activation code. 
                          We accept UPI, Bank Transfer, and Cash.
                     </p>
-                    <div className="flex justify-center gap-4">
-                        <Button size="lg" onClick={() => window.open('https://wa.me/919999999999', '_blank')}>
-                            Contact Sales via WhatsApp
-                        </Button>
+                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                        <ContactSalesDialog>
+                            <Button size="lg">
+                                <Phone className="mr-2 h-4 w-4" />
+                                Contact Sales Team
+                            </Button>
+                        </ContactSalesDialog>
                         <Button variant="outline" size="lg" asChild>
                             <Link href="/login">Log In to Redeem Code</Link>
                         </Button>
                     </div>
                 </div>
             </main>
+            <Footer />
         </div>
     );
 }

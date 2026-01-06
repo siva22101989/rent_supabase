@@ -29,7 +29,7 @@ export function MobileNav({ userRole }: MobileNavProps) {
   });
 
   const NavLink = ({ item }: { item: typeof navItems[0] }) => {
-      const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+      const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
       return (
           <Button
             variant={isActive ? "secondary" : "ghost"}
@@ -61,7 +61,7 @@ export function MobileNav({ userRole }: MobileNavProps) {
               <SheetTitle>Navigation Menu</SheetTitle>
           </SheetHeader>
         <div className="h-16 flex items-center px-6 border-b">
-           <Logo />
+           <Logo href="/dashboard" />
         </div>
         
         <div className="flex-1 overflow-y-auto py-6 px-4">

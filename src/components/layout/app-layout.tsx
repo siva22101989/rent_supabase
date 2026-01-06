@@ -42,7 +42,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, warehouses = [], currentWarehouseId = '', userRole = '' }: AppLayoutProps) {
   const pathname = usePathname();
-  const isDashboard = pathname === '/';
+  const isDashboard = pathname === '/dashboard';
   const router = useRouter();
   
   const [user, setUser] = React.useState<User | null>(null);
@@ -135,13 +135,7 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
     const parts = pathname.split('/').filter(Boolean);
     
     // special cases for admin
-    if (pathname.startsWith('/admin')) return { href: '/', label: 'Dashboard' };
-    
-    if (parts.length > 1) {
-        const parentPath = '/' + parts.slice(0, -1).join('/');
-        return { href: parentPath, label: 'Back' };
-    }
-    return { href: '/', label: 'Dashboard' };
+    return { href: '/dashboard', label: 'Dashboard' };
   };
 
   const backLink = getBackLink();
@@ -175,7 +169,7 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
                                 </Link>
                             </Button>
                         )}
-                        <Logo />
+                        <Logo href="/dashboard" />
                       </div>
                   )}
 

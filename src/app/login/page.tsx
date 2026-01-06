@@ -50,15 +50,15 @@ export default function LoginPage() {
       setError(getFriendlyErrorMessage(error));
       setLoading(false);
     } else {
-      router.push('/');
+      router.push('/dashboard');
       router.refresh();
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="absolute top-8 left-8">
-            <Logo />
+        <div className="absolute top-8 left-8 z-10">
+            <Logo href="/" />
         </div>
         <Card className="w-full max-w-sm">
         <CardHeader>

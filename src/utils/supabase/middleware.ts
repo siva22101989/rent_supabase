@@ -46,28 +46,36 @@ export const updateSession = async (request: NextRequest) => {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Protected Routes Logic
+  // List of public routes that don't require authentication
+  const publicRoutes = ['/', '/pricing', '/login', '/signup', '/auth', '/invite', '/forgot-password', '/reset-password'];
+  const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(route + '/'));
+
   // If user is NOT signed in and trying to access protected pages, redirect to /login
-  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/signup') && !request.nextUrl.pathname.startsWith('/auth') && !request.nextUrl.pathname.startsWith('/invite')) {
-      // Allow invite links to be accessible
+  if (!user && !isPublicRoute) {
       return NextResponse.redirect(new URL('/login', request.url));
   }
   
-  // If user IS signed in and trying to access /login or /signup, redirect to /dashboard (or root)
+  // If user IS signed in and trying to access /login or /signup, redirect to /dashboard
   if (user && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup'))) {
-      const role = user.user_metadata?.role;
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      const role = profile?.role || user.user_metadata?.role;
+
       if (role === 'customer') {
           return NextResponse.redirect(new URL('/portal', request.url));
       }
-      return NextResponse.redirect(new URL('/', request.url));
+      return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // Optimize Customer Redirection (Zero Flicker)
-  // If a customer tries to visit the Dashboard ('/'), send them straight to Portal
+  // Optimize Dashboard Redirection (Zero Flicker)
+  // If an authenticated manager/admin tries to visit the Landing Page ('/'), send them straight to Dashboard
   if (user && request.nextUrl.pathname === '/') {
-       const role = user.user_metadata?.role;
+       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+       const role = profile?.role || user.user_metadata?.role;
+
        if (role === 'customer') {
            return NextResponse.redirect(new URL('/portal', request.url));
        }
+       return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return response;

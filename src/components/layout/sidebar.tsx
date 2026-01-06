@@ -42,7 +42,7 @@ export function Sidebar({ collapsed, onToggle, userRole }: SidebarProps) {
 
 
   const NavLink = ({ item }: { item: typeof navItems[0] }) => {
-      const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+      const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
       return (
           <Button
             variant={isActive ? "secondary" : "ghost"}
@@ -68,7 +68,7 @@ export function Sidebar({ collapsed, onToggle, userRole }: SidebarProps) {
         )}
     >
       <div className="h-16 flex items-center px-4 border-b justify-between">
-         {!collapsed && <Logo />}
+         {!collapsed && <Logo href="/dashboard" />}
          {collapsed && (
             <Button variant="ghost" size="icon" onClick={onToggle} className="mx-auto h-8 w-8 rounded-full">
                 <ArrowRight className="h-4 w-4" />

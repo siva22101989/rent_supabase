@@ -69,7 +69,7 @@ export default function SignupPage() {
             });
             // Short delay to let the toast show
             setTimeout(() => {
-                 router.push('/');
+                 router.push('/dashboard');
                  router.refresh();
             }, 1000);
         }
@@ -86,7 +86,7 @@ export default function SignupPage() {
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
       
       <div className="absolute top-8 left-8 z-10">
-        <Logo />
+        <Logo href="/" />
       </div>
 
       <Card className="w-full max-w-sm z-10 shadow-lg border-muted/60">

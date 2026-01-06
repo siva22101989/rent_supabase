@@ -31,7 +31,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md px-6 h-16 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <Logo />
+                        <Logo href="/" />
                         <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">
                             Customer Portal
                         </span>

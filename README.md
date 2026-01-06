@@ -10,6 +10,14 @@ Built with **Next.js 16**, **Supabase**, and **Shadcn UI**, it offers a modern, 
 
 ## 🚀 Key Features
 
+### 🌐 Professional Landing Page
+
+- **Modern Design**: Stunning, premium landing page with adaptive light/dark mode support
+- **Contact Integration**: Interactive dialog for sales contact via phone call or WhatsApp
+- **Responsive Navigation**: Smooth scrolling between sections (Features, About, Pricing)
+- **Professional Branding**: Custom logo design with transparent backgrounds
+- **Multiple Themes**: Seamless theme switching with persistent user preference
+
 ### 📦 Smart Inventory & Logistics
 
 - **Inflow/Outflow workflows**: Streamlined forms with validation logic (e.g., preventing withdrawal > stock).
@@ -44,7 +52,9 @@ Built with **Next.js 16**, **Supabase**, and **Shadcn UI**, it offers a modern, 
 - **Transactions Audit**: Dedicated `withdrawal_transactions` ledger tracks every partial or full withdrawal for 100% accountability.
 - **Security**: Row Level Security (RLS) ensures data isolation between different warehouses.
 - **Mobile First**: Optimized "App-like" feel with compact headers, touch-friendly forms, and responsive data cards.
-- **Dark Mode**: Built-in high-contrast dark theme for low-light environments.
+- **Adaptive Theming**: Built-in high-contrast dark theme with semantic color variables for low-light environments.
+- **Contact Management**: Integrated contact dialog with direct phone and WhatsApp options for sales inquiries.
+- **Pricing Transparency**: Clear pricing page with multiple tiers and 14-day free trial option.
 
 ---
 
@@ -131,6 +141,8 @@ While the application is production-ready, these features are continuously evolv
 - [x] **PDF Generation**: Native export of Receipts and Reports via `jsPDF`.
 - [x] **Search & Filter**: Universal search across all pages with date range filtering and sort options.
 - [x] **Smart Payment UX**: Expandable record selection with readable IDs and per-record balance display.
+- [x] **Professional Landing Page**: Modern, adaptive landing page with contact integration.
+- [x] **Multi-Channel Contact**: Integrated phone and WhatsApp contact options via dialog interface.
 - [ ] **WhatsApp Integration**: Automated payment reminders via WhatsApp Business API.
 - [ ] **Digital Payments**: Razorpay integration for UPI/Card payments with auto-reconciliation.
 - [ ] **Customer Self-Service**: OTP login portal for customers to view statements and upload payment proofs.
