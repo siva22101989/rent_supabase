@@ -33,12 +33,12 @@ export default async function PortalPage() {
                         </Link>
                     </div>
                 )}
-                <div className="p-6 bg-blue-50 rounded-full animate-pulse">
+                <div className="p-6 bg-blue-500/10 rounded-full animate-pulse">
                     <Wheat className="h-16 w-16 text-blue-500" />
                 </div>
                 <div className="space-y-2">
-                     <h2 className="text-2xl font-bold tracking-tight text-slate-900">No Records Found</h2>
-                     <p className="text-slate-500 max-w-[300px] mx-auto">
+                     <h2 className="text-2xl font-bold tracking-tight text-foreground">No Records Found</h2>
+                     <p className="text-muted-foreground max-w-[300px] mx-auto">
                         Your account is linked, but no storage records (active or history) were found.
                     </p>
                 </div>
@@ -47,16 +47,18 @@ export default async function PortalPage() {
     }
 
     return (
-        <div className="max-w-md mx-auto md:max-w-4xl relative pb-10">
-             {showDashboardLink && (
-                <div className="mb-6 md:absolute md:top-0 md:-left-32">
-                    <Link href="/" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50 backdrop-blur-sm">
-                        <ArrowLeft className="mr-1 h-3 w-3" /> Dashboard
-                    </Link>
-                </div>
-            )}
-            
-            <PortalView portfolio={portfolio} currentDate={new Date()} />
+        <div className="min-h-screen bg-background text-foreground py-8 px-4 md:px-8">
+            <div className="max-w-md mx-auto md:max-w-4xl relative pb-10">
+                {showDashboardLink && (
+                    <div className="mb-6 md:absolute md:top-0 md:-left-32">
+                        <Link href="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors bg-background/50 px-3 py-1.5 rounded-full border border-border/50 backdrop-blur-sm">
+                            <ArrowLeft className="mr-1 h-3 w-3" /> Dashboard
+                        </Link>
+                    </div>
+                )}
+                
+                <PortalView portfolio={portfolio} currentDate={new Date()} />
+            </div>
         </div>
     );
 }

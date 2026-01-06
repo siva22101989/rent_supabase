@@ -32,6 +32,10 @@ import { WarehouseProvider } from '@/contexts/warehouse-context';
 import { CustomerProvider } from '@/contexts/customer-context';
 import { StaticDataProvider } from '@/hooks/use-static-data';
 import { AuthListener } from '@/components/auth/auth-listener';
+import { OfflineIndicator } from '@/components/shared/offline-indicator';
+import { AnalyticsProvider } from '@/components/shared/analytics-provider';
+
+import { Suspense } from 'react';
 
 export default function RootLayout({
   children,
@@ -47,7 +51,11 @@ export default function RootLayout({
           <Toaster />
           <SpeedInsights />
           <Analytics />
+          <Suspense fallback={null}>
+            <AnalyticsProvider />
+          </Suspense>
           <KeyboardShortcuts />
+          <OfflineIndicator />
         </ThemeProvider>
       </body>
     </html>

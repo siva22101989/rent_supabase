@@ -136,22 +136,79 @@ body {
   }
 }
 
+/* Improved Focus Styles for Keyboard Navigation */
+@layer utilities {
+  .focus-visible-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
 @media print {
+  @page {
+    margin: 1cm;
+    size: auto;
+  }
+
   body {
-    background: none !important;
+    background: white !important;
+    color: black !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
   }
+
+  /* Hide UI elements not needed for printing */
+  .no-print,
+  header,
+  nav,
+  aside,
+  .sidebar,
+  [role="dialog"],
+  button:not(.print-show),
   .print-hide {
-    display: none;
+    display: none !important;
   }
-  .printable-area {
-    display: block;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-  }
-  main {
+
+  /* Ensure main content takes full width */
+  main,
+  .print-full-width {
+    width: 100% !important;
+    margin: 0 !important;
     padding: 0 !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Typography optimizations for print */
+  h1,
+  h2,
+  h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  p,
+  table,
+  li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Restore specific elements if needed */
+  .printable-area {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+  }
+
+  .print-break-before {
+    page-break-before: always;
+    break-before: page;
   }
 }
 

@@ -26,9 +26,9 @@ export default async function PortalLayout({ children }: { children: React.React
     const displayName = profile?.full_name || 'Farmer Account';
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-background">
             {/* Simple Portal Header */}
-            <header className="sticky top-0 z-10 w-full border-b bg-white px-6 h-16 flex items-center justify-between shadow-sm">
+            <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md px-6 h-16 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <Logo />

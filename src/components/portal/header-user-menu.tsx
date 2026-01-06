@@ -28,7 +28,7 @@ export function PortalHeaderUserMenu({ email, name, role }: PortalHeaderUserMenu
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full" aria-label="User menu">
                     <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-primary text-primary-foreground">
                             {name?.[0]?.toUpperCase() || email?.[0]?.toUpperCase()}

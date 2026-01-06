@@ -73,12 +73,12 @@ export function PortalView({ portfolio, currentDate = new Date() }: PortalViewPr
 
             <Tabs defaultValue="active" className="w-full" onValueChange={setActiveTab}>
                 <div className="flex items-center justify-between px-1 mb-4">
-                    <h2 className="text-xl font-black text-slate-900">Your Locations</h2>
-                    <TabsList className="bg-white border border-slate-100 shadow-sm rounded-full h-9 p-1">
-                        <TabsTrigger value="active" className="rounded-full text-xs font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white px-4">
+                    <h2 className="text-xl font-black text-foreground tracking-tight">Your Locations</h2>
+                    <TabsList className="bg-muted/50 border border-border shadow-sm rounded-full h-9 p-1">
+                        <TabsTrigger value="active" className="rounded-full text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 transition-all">
                             Active
                         </TabsTrigger>
-                        <TabsTrigger value="history" className="rounded-full text-xs font-bold data-[state=active]:bg-slate-800 data-[state=active]:text-white px-4">
+                        <TabsTrigger value="history" className="rounded-full text-xs font-bold data-[state=active]:bg-muted data-[state=active]:text-foreground px-4 transition-all">
                             History
                         </TabsTrigger>
                     </TabsList>
@@ -113,12 +113,12 @@ function WarehouseList({ portfolio, type, currentDate }: { portfolio: PortfolioI
 
     if (filteredPortfolio.length === 0) {
         return (
-            <div className="bg-white rounded-[2rem] p-8 text-center border border-slate-100 shadow-sm">
-                <div className="mx-auto w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                    {type === 'active' ? <Package className="h-6 w-6 text-slate-300" /> : <History className="h-6 w-6 text-slate-300" />}
+            <div className="bg-card rounded-[2rem] p-8 text-center border border-border shadow-sm">
+                <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+                    {type === 'active' ? <Package className="h-6 w-6 text-muted-foreground" /> : <History className="h-6 w-6 text-muted-foreground" />}
                 </div>
-                <p className="text-slate-900 font-bold">No {type} records found</p>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-foreground font-bold">No {type} records found</p>
+                <p className="text-sm text-muted-foreground mt-1">
                     {type === 'active' 
                         ? "You don't have any items currently in storage." 
                         : "No past history found."}
@@ -130,15 +130,15 @@ function WarehouseList({ portfolio, type, currentDate }: { portfolio: PortfolioI
     return (
         <div className="grid gap-6 md:grid-cols-2">
             {filteredPortfolio.map((wh, idx) => (
-                <div key={idx} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <div key={idx} className="bg-card rounded-[2rem] shadow-sm border border-border overflow-hidden">
                     {/* Warehouse Header */}
-                    <div className="p-6 border-b border-slate-50 bg-slate-50/30">
+                    <div className="p-6 border-b border-border/50 bg-muted/30">
                         <div className="flex justify-between items-start mb-4">
                             <div className="space-y-1.5">
-                                <h3 className="text-lg font-black text-slate-900 leading-tight">
+                                <h3 className="text-lg font-black text-foreground leading-tight">
                                     {wh.warehouseName}
                                 </h3>
-                                <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                                     <MapPin className="h-3.5 w-3.5 text-blue-500" />
                                     {wh.warehouseLocation}
                                 </div>
@@ -146,8 +146,8 @@ function WarehouseList({ portfolio, type, currentDate }: { portfolio: PortfolioI
                             {/* Only show 'Live Stats' in Active View */}
                             {type === 'active' && (
                                 <div className="text-right">
-                                    <p className="text-2xl font-black text-slate-900">{wh.totalBags}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">In Stock</p>
+                                    <p className="text-2xl font-black text-foreground">{wh.totalBags}</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">In Stock</p>
                                 </div>
                             )}
                         </div>
@@ -158,52 +158,52 @@ function WarehouseList({ portfolio, type, currentDate }: { portfolio: PortfolioI
                             {type === 'active' && (
                                 <>
                                     {wh.totalBilled > wh.totalPaid && (
-                                        <Badge variant="outline" className="bg-red-50 text-red-600 border-red-100 text-[10px] font-bold px-3 py-1 rounded-full animate-pulse">
+                                        <Badge variant="outline" className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-100 dark:border-red-500/20 text-[10px] font-bold px-3 py-1 rounded-full animate-pulse">
                                             Due ₹{wh.totalBilled - wh.totalPaid}
                                         </Badge>
                                     )}
                                     {wh.totalPaid > wh.totalBilled && (
-                                        <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 text-[10px] font-bold px-3 py-1 rounded-full">
+                                        <Badge variant="outline" className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-500/20 text-[10px] font-bold px-3 py-1 rounded-full">
                                             Credit ₹{wh.totalPaid - wh.totalBilled}
                                         </Badge>
                                     )}
                                 </>
                             )}
-                            <Badge variant="secondary" className="bg-white text-slate-600 border border-slate-200 text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                                <CreditCard className="h-3 w-3 text-slate-400" /> 
+                            <Badge variant="secondary" className="bg-background text-muted-foreground border border-border text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                                <CreditCard className="h-3 w-3 text-muted-foreground/70" /> 
                                 Paid ₹{wh.totalPaid}
                             </Badge>
                         </div>
                     </div>
 
                     {/* Records List */}
-                    <div className="divide-y divide-slate-50">
+                    <div className="divide-y divide-border/50">
                         {wh.records.map((record) => {
                             // Use prop date to avoid hydration mismatch
                             const age = differenceInDays(currentDate, new Date(record.storage_start_date));
                             const isOverdue = (record.billed - record.paid) > 0;
                             
                             return (
-                                <div key={record.id} className="p-4 hover:bg-slate-50/80 transition-colors group">
+                                <div key={record.id} className="p-4 hover:bg-muted/50 transition-colors group">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-3">
-                                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center border ${type === 'active' ? 'bg-yellow-50 border-yellow-100 text-2xl' : 'bg-slate-100 border-slate-200 grayscale'}`}>
+                                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center border ${type === 'active' ? 'bg-yellow-500/10 border-yellow-500/20 text-2xl' : 'bg-muted border-border grayscale'}`}>
                                                 <span className={type === 'history' ? 'opacity-50' : ''}>
                                                     {type === 'active' ? '🌾' : '🏁'}
                                                 </span>
                                             </div>
                                             <div>
                                                 <div className="flex items-baseline gap-2 mb-1.5">
-                                                    <p className="text-sm font-bold text-slate-900 leading-none">{record.crops?.name || 'Crop'}</p>
-                                                    <span className="text-[10px] font-medium text-slate-400">#{record.record_number || record.id.slice(0, 5)}</span>
+                                                    <p className="text-sm font-bold text-foreground leading-none">{record.crops?.name || 'Crop'}</p>
+                                                    <span className="text-[10px] font-medium text-muted-foreground">#{record.record_number || record.id.slice(0, 5)}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <p className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
+                                                    <p className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                                                         <Calendar className="h-3 w-3" />
                                                         {format(new Date(record.storage_start_date), 'MMM d')}
                                                     </p>
                                                     {type === 'active' && (
-                                                        <p className="text-[10px] font-medium text-slate-500 flex items-center gap-1">
+                                                        <p className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                                                             <Clock className="h-3 w-3" />
                                                             {age} Days
                                                         </p>
@@ -215,11 +215,11 @@ function WarehouseList({ portfolio, type, currentDate }: { portfolio: PortfolioI
                                             {/* For history, maybe show 0 or 'Withdrawn' */}
                                             {type === 'active' ? (
                                                 <>
-                                                    <p className="text-sm font-black text-slate-900">{record.bags_stored}</p>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Bags</p>
+                                                    <p className="text-sm font-black text-foreground">{record.bags_stored}</p>
+                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest italic">Bags</p>
                                                 </>
                                             ) : (
-                                                 <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 border-slate-200">
+                                                 <Badge variant="outline" className="text-[10px] bg-muted/50 text-muted-foreground border-border">
                                                     Withdrawn
                                                  </Badge>
                                             )}
@@ -231,11 +231,11 @@ function WarehouseList({ portfolio, type, currentDate }: { portfolio: PortfolioI
                                             {type === 'active' && (
                                                 <div className="flex gap-2">
                                                     {(record.billed - record.paid) > 0 ? (
-                                                        <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2.5 py-1 rounded-md animate-pulse">
+                                                        <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 px-2.5 py-1 rounded-md animate-pulse">
                                                             Due ₹{record.billed - record.paid}
                                                         </span>
                                                     ) : (record.billed - record.paid) < 0 ? (
-                                                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md">
+                                                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 px-2.5 py-1 rounded-md">
                                                             Credit ₹{Math.abs(record.billed - record.paid)}
                                                         </span>
                                                     ) : null}
