@@ -79,14 +79,14 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
           const age = Date.now() - timestamp;
           
           if (age < CACHE_DURATION) {
-            // Use cached data
+            // Use cached data and show UI immediately
             setWarehouses(data);
             if (activeId) {
               const match = data.find((w: any) => w.id === activeId);
               setCurrentWarehouse(match);
             }
-            setIsLoading(false);
-            return; // Don't fetch from server
+            setIsLoading(false); // Show UI immediately with cached data
+            return; // Don't fetch from server if cache is fresh
           }
         } catch (e) {
           console.error('Cache read error:', e);
@@ -98,7 +98,7 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
     };
 
     init();
-  }, [warehouseCache]); // Keep dependency on cache for init, logic is fine as long as we don't loop.
+  }, []); // Remove warehouseCache dependency to prevent re-runs
 
   // 2. Auth Listener
   useEffect(() => {

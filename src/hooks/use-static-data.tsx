@@ -52,53 +52,73 @@ export function StaticDataProvider({ children }: { children: React.ReactNode }) 
                return;
            }
 
-           // Crops
-           let cropsData = null;
+           // Check cache for all data
            const currentCropsCache = cropsCacheRef.current;
+           const currentLotsCache = lotsCacheRef.current;
+           const currentCustomersCache = customersCacheRef.current;
+
+           let hasCachedData = false;
+           let cropsData = null;
+           let lotsData = null;
+           let customersData = null;
+
+           // Load from cache if available
            if (currentCropsCache) {
                const { data, timestamp } = currentCropsCache;
                if (data && timestamp && (Date.now() - timestamp < CACHE_DURATION)) {
                    cropsData = data;
+                   hasCachedData = true;
                }
            }
            
-           if (!cropsData) {
-               cropsData = await fetchCrops();
-               setCropsCache({ data: cropsData, timestamp: Date.now() });
-           }
-           setCrops(cropsData);
-
-           // Lots
-           let lotsData = null;
-           const currentLotsCache = lotsCacheRef.current;
            if (currentLotsCache) {
                const { data, timestamp } = currentLotsCache;
                if (data && timestamp && (Date.now() - timestamp < CACHE_DURATION)) {
                    lotsData = data;
+                   hasCachedData = true;
                }
            }
-           
-           if (!lotsData) {
-               lotsData = await fetchLots();
-               setLotsCache({ data: lotsData, timestamp: Date.now() });
-           }
-           setLots(lotsData);
 
-           // Customers
-           let customersData = null;
-           const currentCustomersCache = customersCacheRef.current;
            if (currentCustomersCache) {
                const { data, timestamp } = currentCustomersCache;
                if (data && timestamp && (Date.now() - timestamp < CACHE_DURATION)) {
                    customersData = data;
+                   hasCachedData = true;
                }
            }
-           
-           if (!customersData) {
-               customersData = await fetchCustomers();
-               setCustomersCache({ data: customersData, timestamp: Date.now() });
+
+           // If we have any cached data, show it immediately
+           if (hasCachedData) {
+               if (cropsData) setCrops(cropsData);
+               if (lotsData) setLots(lotsData);
+               if (customersData) setCustomers(customersData);
+               setLoading(false); // Show UI immediately with cached data
            }
-           setCustomers(customersData);
+
+           // Fetch fresh data in parallel if cache is missing or stale
+           const needsFresh = !cropsData || !lotsData || !customersData;
+           if (needsFresh) {
+               const [freshCrops, freshLots, freshCustomers] = await Promise.all([
+                   cropsData ? Promise.resolve(cropsData) : fetchCrops(),
+                   lotsData ? Promise.resolve(lotsData) : fetchLots(),
+                   customersData ? Promise.resolve(customersData) : fetchCustomers()
+               ]);
+
+               if (!cropsData) {
+                   setCrops(freshCrops);
+                   setCropsCache({ data: freshCrops, timestamp: Date.now() });
+               }
+               
+               if (!lotsData) {
+                   setLots(freshLots);
+                   setLotsCache({ data: freshLots, timestamp: Date.now() });
+               }
+               
+               if (!customersData) {
+                   setCustomers(freshCustomers);
+                   setCustomersCache({ data: freshCustomers, timestamp: Date.now() });
+               }
+           }
            
        } catch (e) {
            console.error("Error loading static data", e);

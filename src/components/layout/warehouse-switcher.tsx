@@ -12,24 +12,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserWarehouse } from '@/lib/definitions';
+import { useWarehouses } from '@/contexts/warehouse-context';
 import { switchWarehouse } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { CreateWarehouseDialog } from '@/components/warehouses/create-warehouse-dialog';
 
-interface WarehouseSwitcherProps {
-  warehouses: UserWarehouse[];
-  currentWarehouseId: string;
-}
-
-export function WarehouseSwitcher({ warehouses, currentWarehouseId }: WarehouseSwitcherProps) {
+export function WarehouseSwitcher() {
+  const { warehouses, currentWarehouse } = useWarehouses();
+  const currentWarehouseId = currentWarehouse?.id || '';
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-
-  const currentWarehouse = warehouses.find(w => w.warehouseId === currentWarehouseId);
 
   const handleSwitch = async (warehouseId: string) => {
     if (warehouseId === currentWarehouseId) return;
@@ -79,7 +74,7 @@ export function WarehouseSwitcher({ warehouses, currentWarehouseId }: WarehouseS
           ) : currentWarehouse ? (
             <span className="flex items-center gap-2 truncate">
                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                 <span className="truncate">{currentWarehouse.warehouse?.name}</span>
+                 <span className="truncate">{currentWarehouse.name}</span>
             </span>
           ) : (
             "Select Warehouse"
@@ -92,16 +87,16 @@ export function WarehouseSwitcher({ warehouses, currentWarehouseId }: WarehouseS
         <DropdownMenuSeparator />
         {warehouses.map((wh) => (
           <DropdownMenuItem
-            key={wh.warehouseId}
-            onSelect={() => handleSwitch(wh.warehouseId)}
+            key={wh.id}
+            onSelect={() => handleSwitch(wh.id)}
             className="cursor-pointer"
           >
             <Building2 className="mr-2 h-4 w-4" />
-            <span className="flex-1 truncate">{wh.warehouse?.name}</span>
+            <span className="flex-1 truncate">{wh.name}</span>
             <Check
               className={cn(
                 "ml-auto h-4 w-4",
-                currentWarehouseId === wh.warehouseId ? "opacity-100" : "opacity-0"
+                currentWarehouseId === wh.id ? "opacity-100" : "opacity-0"
               )}
             />
           </DropdownMenuItem>

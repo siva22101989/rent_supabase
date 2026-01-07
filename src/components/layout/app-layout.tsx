@@ -12,7 +12,7 @@ import { ArrowLeft, LogOut } from 'lucide-react';
 import { CommandSearch } from './command-search';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { WarehouseSwitcher } from '@/components/layout/warehouse-switcher';
-import { UserWarehouse } from '@/lib/definitions';
+import { useWarehouses } from '@/contexts/warehouse-context';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,12 +35,11 @@ import { LayoutDashboard, Menu } from 'lucide-react';
 
 interface AppLayoutProps {
     children: React.ReactNode;
-    warehouses?: UserWarehouse[];
-    currentWarehouseId?: string;
-    userRole?: string;
 }
 
-export function AppLayout({ children, warehouses = [], currentWarehouseId = '', userRole = '' }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
+  const { warehouses, currentWarehouse } = useWarehouses();
+  const currentWarehouseId = currentWarehouse?.id || '';
   const pathname = usePathname();
   const isDashboard = pathname === '/dashboard';
   const router = useRouter();
@@ -80,17 +79,21 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
   }, [router]);
 
   const [hasPortalAccess, setHasPortalAccess] = React.useState(false);
+  const [userRole, setUserRole] = React.useState('');
 
   React.useEffect(() => {
     async function checkProfile(userId: string) {
        const supabase = createClient();
        try {
            const { data } = await supabase.from('profiles').select('warehouse_id, role').eq('id', userId).single();
-           if (data && !data.warehouse_id && (data.role === 'admin' || data.role === 'manager')) {
-               const { count } = await supabase.from('warehouse_assignments').select('*', { count: 'exact', head: true }).eq('user_id', userId);
-               setShowOnboarding(!count || count === 0);
-           } else {
-               setShowOnboarding(false);
+           if (data) {
+               setUserRole(data.role || '');
+               if (!data.warehouse_id && (data.role === 'admin' || data.role === 'manager')) {
+                   const { count } = await supabase.from('warehouse_assignments').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+                   setShowOnboarding(!count || count === 0);
+               } else {
+                   setShowOnboarding(false);
+               }
            }
 
            // Check for Customer Portal Access (Linked Customer Profile)
@@ -205,7 +208,7 @@ export function AppLayout({ children, warehouses = [], currentWarehouseId = '', 
                 <div className="flex items-center gap-1.5 md:gap-3 shrink-0 ml-auto">
                   <div className="hidden xs:block">
                     {warehouses.length > 0 && (
-                        <WarehouseSwitcher warehouses={warehouses} currentWarehouseId={currentWarehouseId} />
+                        <WarehouseSwitcher />
                     )}
                   </div>
                   <ThemeToggle />
