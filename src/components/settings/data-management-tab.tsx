@@ -1,20 +1,27 @@
 'use client';
 
+import { restoreFromBackup } from '@/lib/restore-actions';
+import { useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Database, Users, Wheat } from "lucide-react";
+import { RefreshCw, Database, Users, Wheat, Download, Upload, AlertTriangle, Lock } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 import { useCustomers } from "@/contexts/customer-context";
 import { useTeamMembers } from "@/hooks/use-team-members";
 import { useStaticData } from "@/hooks/use-static-data";
-import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 
-export function DataManagementTab() {
+interface DataManagementTabProps {
+    userRole?: string;
+}
+
+export function DataManagementTab({ userRole }: DataManagementTabProps) {
   const { refreshCustomers } = useCustomers();
   const { refreshMembers } = useTeamMembers();
   const { refresh: refreshStatic } = useStaticData();
   
   const [loading, setLoading] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleRefreshCustomers = async () => {
     setLoading('customers');
@@ -46,6 +53,108 @@ export function DataManagementTab() {
        toast({ title: "Full Sync Complete", description: "All application data has been refreshed." });
       setLoading(null);
   }
+
+  const handleExport = async () => {
+      setLoading('export');
+      try {
+          const supabase = createClient();
+          
+          // Parallel Fetch
+          const [
+             { data: warehouse },
+             { data: customers },
+             { data: storage_records },
+             { data: withdrawal_transactions },
+             { data: payments },
+             { data: expenses },
+             { data: crops },
+             { data: lots },
+             { data: sequences }
+          ] = await Promise.all([
+             supabase.from('warehouses').select('*').single(),
+             supabase.from('customers').select('*'),
+             supabase.from('storage_records').select('*'),
+             supabase.from('withdrawal_transactions').select('*'),
+             supabase.from('payments').select('*'),
+             supabase.from('expenses').select('*'),
+             supabase.from('crops').select('*'),
+             supabase.from('warehouse_lots').select('*'),
+             supabase.from('sequences').select('*')
+          ]);
+
+          const backupData = {
+              timestamp: new Date().toISOString(),
+              version: '1.0',
+              warehouse: warehouse || {},
+              sequences: sequences || [],
+              customers: customers || [],
+              storage_records: storage_records || [],
+              withdrawal_transactions: withdrawal_transactions || [],
+              payments: payments || [],
+              expenses: expenses || [],
+              crops: crops || [],
+              lots: lots || []
+          };
+
+          // Create Blob and Download
+          const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `grainflow-backup-${new Date().toISOString().split('T')[0]}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          toast({ title: "Export Successful", description: "Your full data backup has been downloaded." });
+      } catch (error) {
+          console.error("Export failed:", error);
+          toast({ title: "Export Failed", description: "Could not fetch data for export.", variant: "destructive" });
+      } finally {
+          setLoading(null);
+      }
+  };
+
+  const handleImportClick = () => {
+      fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      if (!window.confirm("WARNING: Importing data will attempt to merge records. If IDs match, existing data might be updated. Are you sure you want to proceed?")) {
+          e.target.value = ''; // Reset
+          return;
+      }
+
+      setLoading('import');
+      try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          
+          const result = await restoreFromBackup(data);
+
+          if (result.success) {
+               toast({ 
+                   title: "Restore Complete", 
+                   description: `Restored: ${result.details?.customers || 0} Customers, ${result.details?.storage_records || 0} Storage Records.` 
+               });
+               // Refresh local cache
+               handleRefreshAll();
+          } else {
+               toast({ title: "Restore Failed", description: result.message, variant: "destructive" });
+          }
+
+      } catch (error) {
+          console.error("Import error:", error);
+          toast({ title: "Import Failed", description: "Invalid file format or server error.", variant: "destructive" });
+      } finally {
+          setLoading(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+  };
 
   return (
     <div className="grid gap-6">
@@ -115,6 +224,74 @@ export function DataManagementTab() {
 
         </CardContent>
         </Card>
+
+        {/* Backup & Export Card */}
+        {userRole === 'owner' || userRole === 'super_admin' ? (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Data Backup</CardTitle>
+                    <CardDescription>
+                        Download a copy of your warehouse data for your records.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 border rounded-lg gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2 bg-primary/10 rounded-full">
+                                <Download className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                                <p className="font-medium">Export / Import Data</p>
+                                <p className="text-sm text-muted-foreground">Download JSON backup or restore from a file.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Button variant="outline" size="sm" onClick={handleExport} disabled={!!loading} className="flex-1">
+                                {loading === 'export' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <Download className="w-4 h-4 mr-2"/>}
+                                Export
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handleImportClick} disabled={!!loading} className="flex-1">
+                                {loading === 'import' ? <RefreshCw className="w-4 h-4 animate-spin mr-2"/> : <Upload className="w-4 h-4 mr-2"/>}
+                                Import
+                            </Button>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleFileChange} 
+                                className="hidden" 
+                                accept=".json"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-sm text-amber-800 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                        <span>
+                            <strong>Caution:</strong> Importing data will attempt to merge records. If you are restoring data, ensure you are importing into the correct account to avoid conflicts.
+                        </span>
+                    </div>
+                </CardContent>
+            </Card>
+        ) : (
+             <Card className="opacity-80">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-muted-foreground flex items-center gap-2">
+                            <Lock className="w-5 h-5" />
+                            Data Backup
+                        </CardTitle>
+                    </div>
+                    <CardDescription>
+                        Restricted to Owner and Super Admin.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <div className="p-4 border border-dashed rounded-lg bg-muted/50 flex items-center justify-center text-sm text-muted-foreground">
+                         Contact your warehouse owner to access data exports.
+                     </div>
+                </CardContent>
+            </Card>
+        )}
 
         <Card className="border-red-200 shadow-sm">
             <CardHeader>

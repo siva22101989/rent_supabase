@@ -63,7 +63,7 @@ export const CustomerStatementReceipt = React.forwardRef<HTMLDivElement, Custome
                     <CardDescription>Customer Statement</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
                             <h3 className="font-semibold mb-2">Customer Details</h3>
                             <p className="font-medium text-lg">{customer.name}</p>
@@ -71,7 +71,7 @@ export const CustomerStatementReceipt = React.forwardRef<HTMLDivElement, Custome
                             <p>{customer.village || customer.address}</p>
                             <p>Phone: {customer.phone}</p>
                         </div>
-                         <div className="text-right">
+                         <div className="text-left sm:text-right">
                             <h3 className="font-semibold mb-2">Statement Details</h3>
                             <p><span className="font-medium">Date:</span> {formattedDate}</p>
                             {dateRange?.from && (
@@ -86,7 +86,7 @@ export const CustomerStatementReceipt = React.forwardRef<HTMLDivElement, Custome
                     <Separator />
 
                     {/* Summary Box */}
-                    <div className="grid grid-cols-4 gap-4 bg-muted/30 p-4 rounded-lg border">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-lg border">
                         <div className="text-center">
                             <p className="text-xs font-medium text-muted-foreground uppercase">Total Rent</p>
                             <p className="text-lg font-bold">{formatCurrency(totals.rent)}</p>

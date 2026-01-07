@@ -120,7 +120,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/login');
+    // derived state change will trigger the redirect in the useEffect above
   };
 
   if (loading || checkingOnboarding || !user) {
@@ -150,7 +150,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     <SubscriptionProvider warehouseId={currentWarehouseId}>
     <div className="flex min-h-screen w-full overflow-x-hidden">
        {/* Conditional Sidebar */}
-       {isSidebarMode && (
+       {isSidebarMode && !showOnboarding && (
            <Sidebar 
                 collapsed={sidebarCollapsed} 
                 onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
@@ -163,7 +163,7 @@ export function AppLayout({ children }: AppLayoutProps) {
            <header className="sticky top-0 z-50 flex h-16 items-center justify-between gap-4 border-b bg-background/80 backdrop-blur-md px-4 md:px-8">
                 <div className="flex items-center gap-2 md:gap-4">
                   {/* If in Sidebar Mode, Hide Logo in Header unless on mobile */}
-                  {(!isSidebarMode) && (
+                  {(!isSidebarMode && !showOnboarding) && (
                       <div className="flex items-center gap-2 min-w-0">
                          {backLink && (
                             <Button variant="ghost" size="icon" className="h-9 w-9 md:h-8 md:w-8 shrink-0" asChild>
@@ -177,13 +177,13 @@ export function AppLayout({ children }: AppLayoutProps) {
                       </div>
                   )}
 
-                  {(!isSidebarMode) && (
+                  {(!isSidebarMode && !showOnboarding) && (
                       <div className="md:hidden">
                           <MobileNav userRole={userRole} />
                       </div>
                   )}
                   
-                  {isSidebarMode && (
+                  {isSidebarMode && !showOnboarding && (
                       <div className="md:hidden">
                           <MobileNav userRole={userRole} />
                       </div>
@@ -263,7 +263,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             
             <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8 pb-24 md:pb-8">
                 <TrialBanner />
-                {showOnboarding ? <WelcomeOnboarding /> : children}
+                {showOnboarding && pathname !== '/guide' ? <WelcomeOnboarding /> : children}
             </main>
        </div>
     </div>

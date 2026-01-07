@@ -3,19 +3,151 @@
 import { createClient } from '@/utils/supabase/server';
 import { getUserWarehouse } from '@/lib/queries';
 
-export async function fetchReportData(
-  reportType: string,
-  filters?: {
-    startDate?: string;
-    endDate?: string;
-  }
-) {
-  const supabase = await createClient();
-  const warehouseId = await getUserWarehouse();
-
-  if (!warehouseId) {
-    throw new Error('Unauthorized');
-  }
+  export async function fetchReportData(
+    reportType: string,
+    filters?: {
+      startDate?: string;
+      endDate?: string;
+      customerId?: string;
+      includeHistory?: boolean;
+      duesType?: 'all' | 'hamali';
+    }
+  ) {
+    const supabase = await createClient();
+    const warehouseId = await getUserWarehouse();
+  
+    // Dynamic import for billing utils to avoid circular dependency issues if any
+    const { calculateFinalRent } = await import('@/lib/billing');
+  
+    if (!warehouseId) {
+      throw new Error('Unauthorized');
+    }
+  
+    // 0. Customer Dues Details (Single Customer)
+    if (reportType === 'customer-dues-details') {
+        if (!filters?.customerId) throw new Error("Customer ID required");
+  
+        const { data: customer } = await supabase.from('customers').select('*').eq('id', filters.customerId).single();
+        if (!customer) throw new Error("Customer not found");
+  
+        // Fetch ALL records for customer
+        const { data: records } = await supabase
+          .from('storage_records')
+          .select(`
+              *,
+              payments (amount, type, payment_date)
+          `)
+          .eq('customer_id', filters.customerId)
+          .eq('warehouse_id', warehouseId)
+          .order('storage_start_date', { ascending: false });
+  
+        if (!records) return { type: 'customer-dues-details', data: [], customer };
+  
+        const processedRecords = records.map((record: any) => {
+            // 1. Calculate Rent Due
+            let rentDue = 0;
+            let isprojected = false;
+  
+            // Filter: If Hamali Only, ignore Rent Logic entirely
+            if (filters?.duesType !== 'hamali') {
+                if (record.storage_end_date) {
+                     // Closed Record: Trust the billed amount
+                     rentDue = record.total_rent_billed || 0;
+                } else {
+                      // Active Record: Calculate accrued rent till NOW
+                     const result = calculateFinalRent(
+                         { 
+                             ...record, 
+                             storageStartDate: record.storage_start_date, 
+                             storageEndDate: null 
+                         },
+                         new Date(), // Calculated till TODAY
+                         record.bags_stored
+                     );
+                     // Use proper logic: If DB has a value (manual/migrated), use max to be safe.
+                     rentDue = Math.max(record.total_rent_billed || 0, result.rent);
+                     isprojected = true;
+                }
+            }
+  
+            // 2. Hamali Due
+            const hamaliDue = record.hamali_payable || 0;
+  
+            // 3. Payments made against THIS record
+            let rentPaid = 0;
+            let hamaliPaid = 0;
+            let otherPaid = 0;
+  
+            (record.payments || []).forEach((p: any) => {
+                 if (p.type === 'rent') rentPaid += p.amount;
+                 else if (p.type === 'hamali') hamaliPaid += p.amount;
+                 else otherPaid += p.amount;
+            });
+  
+            // Allocation of 'other' payments -> prioritize Hamali then Rent
+            let remaining = otherPaid;
+            if (remaining > 0) {
+                const hamaliBalance = Math.max(0, hamaliDue - hamaliPaid);
+                const take = Math.min(hamaliBalance, remaining);
+                hamaliPaid += take;
+                remaining -= take;
+            }
+            if (remaining > 0 && filters?.duesType !== 'hamali') {
+                const rentBalance = Math.max(0, rentDue - rentPaid);
+                const take = Math.min(remaining, rentBalance);
+                rentPaid += take;
+                remaining -= take;
+            }
+  
+            // If Hamali Only, zero out Rent Paid if it was somehow tracked?
+            // Actually, if we are hiding Rent, we should probably hide Rent payments too.
+            // But strict 'Rent' payments shouldn't exist if we are looking at Hamali Only view? 
+            // Better to just zero them for the display logic.
+            if (filters?.duesType === 'hamali') {
+                rentPaid = 0;
+            }
+  
+            const rentBalance = Math.max(0, rentDue - rentPaid);
+            const hamaliBalance = Math.max(0, hamaliDue - hamaliPaid);
+            const totalBalance = rentBalance + hamaliBalance;
+  
+            return {
+                recordId: record.id,
+                recordNumber: record.record_number || record.id.substring(0, 8),
+                date: record.storage_start_date,
+                commodity: record.commodity_description,
+                bags: record.bags_stored,
+                status: record.storage_end_date ? 'Closed' : 'Active',
+                rentDue: Math.round(rentDue),
+                hamaliDue: Math.round(hamaliDue),
+                rentPaid: Math.round(rentPaid),
+                hamaliPaid: Math.round(hamaliPaid),
+                rentBalance: Math.round(rentBalance),
+                hamaliBalance: Math.round(hamaliBalance),
+                totalBalance: Math.round(totalBalance),
+                isProjected: isprojected
+            };
+        });
+  
+        // Sort: Active first, then by date desc
+        processedRecords.sort((a, b) => {
+            if (a.status === 'Active' && b.status !== 'Active') return -1;
+            if (a.status !== 'Active' && b.status === 'Active') return 1;
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+  
+        // Filter based on includeHistory flag and balance check
+        const finalData = processedRecords.filter(r => 
+            filters.includeHistory || r.totalBalance > 0 || r.status === 'Active'
+        );
+  
+        return {
+            type: 'customer-dues-details',
+            data: finalData,
+            customer,
+            duesType: filters.duesType // Pass it back for PDF renderer
+        };
+    }
 
   // 1. All Customers Report
   if (reportType === 'all-customers') {

@@ -33,8 +33,12 @@ export default function GuidePage() {
             </CardHeader>
         </Card>
 
-        <Tabs defaultValue="inflow" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-5 h-auto">
+        <Tabs defaultValue="setup" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto">
+                <TabsTrigger value="setup" className="flex flex-col gap-1 p-3 data-[state=active]:bg-background">
+                    <Settings className="h-4 w-4" />
+                    Setup
+                </TabsTrigger>
                 <TabsTrigger value="inflow" className="flex flex-col gap-1 p-3 data-[state=active]:bg-background">
                     <Truck className="h-4 w-4" />
                     Inflow
@@ -56,6 +60,41 @@ export default function GuidePage() {
                     Reports
                 </TabsTrigger>
             </TabsList>
+
+            {/* Setup Section */}
+            <TabsContent value="setup" className="mt-6 space-y-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Setting Up Your Warehouse</CardTitle>
+                        <CardDescription>Your first step is to create a digital twin of your facility.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                         <div className="bg-muted/50 p-4 rounded-lg border">
+                            <h3 className="font-semibold flex items-center gap-2 mb-2">
+                                <Settings className="h-4 w-4" />
+                                Create Warehouse
+                            </h3>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                If you see the "Welcome to RENT" screen, simply fill out the <strong>Create Warehouse</strong> form.
+                            </p>
+                            <ul className="list-disc pl-5 space-y-2 text-sm">
+                                <li><strong>Name:</strong> Give your godown a recognizable name (e.g., "Main Unit").</li>
+                                <li><strong>Location:</strong> Enter the city or village name.</li>
+                                <li><strong>Capacity:</strong> Enter the total number of bags your warehouse can hold. This helps calculate occupancy percentage.</li>
+                            </ul>
+                        </div>
+                        
+                         <Accordion type="single" collapsible>
+                            <AccordionItem value="setup-2">
+                                <AccordionTrigger>Adding Team Members</AccordionTrigger>
+                                <AccordionContent>
+                                    Once your warehouse is created, go to <strong>Settings &gt; Team</strong> to invite managers or staff. You can control their permissions (e.g., View Only or Full Access).
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    </CardContent>
+                </Card>
+            </TabsContent>
 
             {/* Inflow Section */}
             <TabsContent value="inflow" className="mt-6 space-y-4">

@@ -77,6 +77,29 @@ export async function createWarehouse(name: string, location: string, capacity: 
             // 2. Switch Context
             await switchWarehouse(warehouseId);
 
+            // 3. Activate Trial (if new user)
+            // We check if they have a 'selected_plan' in metadata (set during signup)
+            const selectedPlan = user.user_metadata?.selected_plan;
+            if (selectedPlan) {
+                 try {
+                     const { createTrialSubscription } = await import('@/lib/auth-actions');
+                     // We intentionally don't await this or we catch error so it doesn't block creation
+                     // Ideally we want it to succeed. 
+                     // Pass the specific warehouseId we just created.
+                     // IMPORTANT: createTrialSubscription finds warehouse by user, but we have the ID.
+                     // Let's modify createTrialSubscription to accept optional warehouseId or just let it find it (it will find the one we just made active via switchWarehouse).
+                     // Better: update createTrialSubscription in next step to accept ID. 
+                     // For now, assume it finds it or we pass it if we update it.
+                     // I will update createTrialSubscription to take warehouseId as optional arg.
+                     
+                     // For now, call it.
+                     await createTrialSubscription(user.id, selectedPlan, warehouseId);
+                     logger.info("Trial activated for new warehouse", { warehouseId, plan: selectedPlan });
+                 } catch (e) {
+                     logger.error("Failed to activate trial during warehouse creation", { error: e });
+                 }
+            }
+
             logger.info("Warehouse created successfully", { warehouseId, warehouseName: name });
             revalidatePath('/', 'layout');
             return { message: 'Warehouse created!', success: true, data: { id: warehouseId } };

@@ -132,7 +132,7 @@ export default async function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="data" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
-                <DataManagementTab />
+                <DataManagementTab userRole={profile?.role} />
             </TabsContent>
 
             <TabsContent value="billing" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">

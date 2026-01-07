@@ -619,6 +619,81 @@ export function generateCustomReportPDF(
 ) {
     let title = '';
     let content = '';
+
+    // 0. Customer Dues Details
+    if (reportType === 'customer-dues-details') {
+         const customerName = data.customer?.name || 'Customer';
+         title = `Customer Dues Statement - ${customerName}`;
+         const isHamaliOnly = data.duesType === 'hamali';
+         
+         // Calculate Totals
+         const totalRentDue = data.data.reduce((sum: number, r: any) => sum + r.rentDue, 0);
+         const totalHamaliDue = data.data.reduce((sum: number, r: any) => sum + r.hamaliDue, 0);
+         const totalRentPaid = data.data.reduce((sum: number, r: any) => sum + r.rentPaid, 0);
+         const totalHamaliPaid = data.data.reduce((sum: number, r: any) => sum + r.hamaliPaid, 0);
+         const totalBalance = data.data.reduce((sum: number, r: any) => sum + r.totalBalance, 0);
+
+         // Helper for table cells
+         const rentHeader = isHamaliOnly ? '' : '<th style="text-align: right">Rent Due</th>';
+         const rentSummary = isHamaliOnly ? '' : `
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 10px; color: #666;">Total Rent Due</div>
+                    <div style="font-weight: bold; color: #2980b9;">${formatCurrency(totalRentDue - totalRentPaid)}</div>
+                </div>`;
+         
+         const rows = data.data.map((r: any) => `
+            <tr>
+                <td>${new Date(r.date).toLocaleDateString()}</td>
+                <td>${r.commodity}</td>
+                <td style="text-align: right">${r.bags}</td>
+                <td style="text-align: right">${formatCurrency(r.hamaliDue)}</td>
+                ${isHamaliOnly ? '' : `<td style="text-align: right">${formatCurrency(r.rentDue)}${r.isProjected ? '*' : ''}</td>`}
+                <td style="text-align: right">${formatCurrency(r.hamaliPaid + r.rentPaid)}</td>
+                <td style="text-align: right; font-weight: bold;">${formatCurrency(r.totalBalance)}</td>
+            </tr>
+         `).join('');
+
+         content = `
+            <div class="summary-box" style="display: flex; gap: 20px; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 10px; color: #666;">Total Hamali Due</div>
+                    <div style="font-weight: bold; color: #e67e22;">${formatCurrency(totalHamaliDue - totalHamaliPaid)}</div>
+                </div>
+                ${rentSummary}
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 10px; color: #666;">Total Outstanding${isHamaliOnly ? ' (Hamali Only)' : ''}</div>
+                    <div style="font-weight: bold; font-size: 16px; color: #c0392b;">${formatCurrency(totalBalance)}</div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Commodity</th>
+                        <th style="text-align: right">Bags</th>
+                        <th style="text-align: right">Hamali Due</th>
+                        ${rentHeader}
+                        <th style="text-align: right">Paid</th>
+                        <th style="text-align: right">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                    <tr style="font-weight: bold; background-color: #f0f0f0;">
+                        <td colspan="3" style="text-align: right;">Total:</td>
+                        <td style="text-align: right;">${formatCurrency(totalHamaliDue)}</td>
+                        ${isHamaliOnly ? '' : `<td style="text-align: right;">${formatCurrency(totalRentDue)}</td>`}
+                        <td style="text-align: right;">${formatCurrency(totalRentPaid + totalHamaliPaid)}</td>
+                        <td style="text-align: right;">${formatCurrency(totalBalance)}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="margin-top: 10px; font-size: 10px; color: #666;">
+                ${isHamaliOnly ? '' : '* Projected rent for active stock calculated till today.'}
+            </div>
+         `;
+    }
     
     // 1. All Customers Report
     if (reportType === 'all-customers') {

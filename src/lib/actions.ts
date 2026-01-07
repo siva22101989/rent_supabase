@@ -464,6 +464,18 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
         async (span) => {
             const customerId = formData.get('customerId') as string;
             await checkRateLimit(customerId || 'anon', 'addInflow', { limit: 10 });
+            
+            // Start: Subscription Check
+            const warehouseId = await getUserWarehouse();
+            if (warehouseId) {
+                // Dynamic import to avoid circular dependency if any (though these are separate files)
+                const { checkSubscriptionLimits } = await import('@/lib/subscription-actions');
+                const check = await checkSubscriptionLimits(warehouseId, 'add_record');
+                if (!check.allowed) {
+                     return { message: check.message || 'Subscription limit reached.', success: false };
+                }
+            }
+            // End: Subscription Check
 
             const rawData = {
                 customerId: formData.get('customerId'),

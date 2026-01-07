@@ -6,10 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Download, Loader2, FileSpreadsheet } from 'lucide-react';
+import { FileText, Loader2, FileSpreadsheet } from 'lucide-react';
 import { fetchReportData } from '@/lib/report-actions';
 import { generateCustomReportPDF, exportCustomReportToExcel } from '@/lib/export-utils';
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from '@/hooks/use-toast';
+import { useCustomers } from '@/contexts/customer-context';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface CustomReportGeneratorProps {
     warehouseName: string;
@@ -22,12 +25,19 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
     const [endDate, setEndDate] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
+    
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+    const [includeHistory, setIncludeHistory] = useState<boolean>(false);
+    const [duesType, setDuesType] = useState<'all' | 'hamali'>('all');
+    const { customers } = useCustomers();
 
     const isDateRangeRequired = [
         'inflow-register', 
         'outflow-register', 
         'payment-register'
     ].includes(reportType);
+
+    const isCustomerRequired = reportType === 'customer-dues-details';
 
     const handleGenerate = async () => {
         if (isDateRangeRequired && (!startDate || !endDate)) {
@@ -39,12 +49,23 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
             return;
         }
 
+        if (isCustomerRequired && !selectedCustomerId) {
+            toast({
+                title: "Customer Required",
+                description: "Please select a customer.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         setIsLoading(true);
         try {
             // 1. Fetch Data
             const data = await fetchReportData(reportType, {
-                startDate: startDate || undefined,
-                endDate: endDate || undefined
+                endDate: endDate || undefined,
+                customerId: selectedCustomerId || undefined,
+                includeHistory: includeHistory,
+                duesType: duesType
             });
             
             if (!data) {
@@ -100,6 +121,7 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all-customers">All Customers List</SelectItem>
+                                <SelectItem value="customer-dues-details">Customer Dues Statement (Detailed)</SelectItem>
                                 <SelectItem value="active-inventory">Active Inventory (Stock)</SelectItem>
                                 <SelectItem value="pending-dues">Pending Dues List</SelectItem>
                                 <SelectItem value="inflow-register">Inflow Register (Date Range)</SelectItem>
@@ -111,6 +133,7 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
                         </Select>
                         <p className="text-xs text-muted-foreground mt-1">
                             {reportType === 'all-customers' && 'List of all registered customers with their active bag counts.'}
+                            {reportType === 'customer-dues-details' && 'Detailed breakdown of Rent and Hamali dues for a specific customer.'}
                             {reportType === 'active-inventory' && 'Detailed list of currently stored items in the warehouse.'}
                             {reportType === 'pending-dues' && 'List of customers with outstanding balances.'}
                             {reportType === 'inflow-register' && 'Log of items received during the selected period.'}
@@ -120,6 +143,50 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
                             {reportType === 'transaction-history' && 'Log of recent inflows and outflows (last 1000 records).'}
                         </p>
                     </div>
+
+                    {isCustomerRequired && (
+                        <div className="space-y-4 col-span-2">
+                            <div className="space-y-2">
+                                <Label>Select Customer</Label>
+                                <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Search or select a customer..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[200px]">
+                                        {customers.map(c => (
+                                            <SelectItem key={c.id} value={c.id}>{c.name} ({c.phone})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-3 p-3 border rounded-md">
+                                    <Label>Dues To Show</Label>
+                                    <RadioGroup value={duesType} onValueChange={(v) => setDuesType(v as 'all' | 'hamali')}>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="all" id="r-all" />
+                                            <Label htmlFor="r-all">All (Rent + Hamali)</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="hamali" id="r-hamali" />
+                                            <Label htmlFor="r-hamali">Hamali Only</Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
+                                <div className="flex items-center space-x-2 p-3 border rounded-md">
+                                    <Checkbox 
+                                        id="include-history" 
+                                        checked={includeHistory} 
+                                        onCheckedChange={(checked) => setIncludeHistory(checked as boolean)} 
+                                    />
+                                    <Label htmlFor="include-history" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        Include Settled & Closed Records
+                                    </Label>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {isDateRangeRequired && (
                         <>

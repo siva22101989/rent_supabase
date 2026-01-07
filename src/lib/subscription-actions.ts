@@ -66,6 +66,50 @@ export async function getSubscriptionAction(warehouseId: string) {
 /**
  * Start a subscription flow.
  */
+/**
+ * Check if the warehouse is allowed to perform an action based on subscription limits.
+ */
+export async function checkSubscriptionLimits(warehouseId: string, action: 'add_record' | 'add_user'): Promise<{ allowed: boolean; message?: string }> {
+    const subscription = await getSubscriptionAction(warehouseId);
+    
+    if (!subscription) {
+        // Fallback or Strict? Strict: No sub = Free Tier rules.
+        // Assuming no sub means "Free Tier" (default)
+        // We should fetch free plan limits physically or hardcode them as failsafe.
+        // For now, let's treat "no subscription record" as "Free Tier" with 50 record limit.
+        // Ideally, we fetch the "free" plan from DB.
+        
+        // Quick verify of current count
+        const supabase = await createClient();
+        const { count } = await supabase.from('storage_records').select('*', { count: 'exact', head: true }).eq('warehouse_id', warehouseId).is('deleted_at', null);
+        
+        const FREE_LIMIT = 50;
+        if ((count || 0) >= FREE_LIMIT && action === 'add_record') {
+             return { allowed: false, message: `Free Tier limit reached (${FREE_LIMIT} records). Please upgrade to add more.` };
+        }
+        return { allowed: true };
+    }
+
+    const { plans, status, usage } = subscription;
+    
+    if (status !== 'active' && status !== 'trialing') {
+         return { allowed: false, message: `Subscription is ${status}. Please renew to continue.` };
+    }
+
+    if (action === 'add_record') {
+        const limit = plans?.features?.max_records;
+        // if limit is null/undefined, assume unlimited (Enterprise)
+        if (limit && usage.total_records >= limit) {
+             return { allowed: false, message: `Plan limit reached (${limit} records). Please upgrade.` };
+        }
+    }
+    
+    return { allowed: true };
+}
+
+/**
+ * Start a subscription flow.
+ */
 export async function startSubscriptionAction(
   warehouseId: string,
   planTier: string
@@ -86,27 +130,29 @@ export async function startSubscriptionAction(
         return { success: false, message: "Invalid plan selected." };
       }
 
+      // Razorpay check skipped for manual flow
+      /*
       if (!plan.razorpay_plan_id && planTier !== 'free') {
           return { success: false, message: "Razorpay Plan ID not configured in database." };
       }
+      */
 
       try {
-        // Razorpay integration removed per user request (Manual assignment only)
-        
-        /* 
+        // Create an 'incomplete' subscription to signal intent to Admin
         const { error: subError } = await supabase
           .from('subscriptions')
           .upsert({
             warehouse_id: warehouseId,
             plan_id: plan.id,
-            status: 'incomplete', // Requires admin approval
+            status: 'incomplete', // Signal for admin approval/payment
             updated_at: new Date().toISOString()
           }, { onConflict: 'warehouse_id' });
-        */
+        
+        if (subError) throw subError;
 
         return { 
           success: true, 
-          message: "Please contact the Super Admin to activate this plan.", 
+          message: "Request logged. Please contact the Super Admin to activate this plan.", 
         };
       } catch (error: any) {
         Sentry.captureException(error);

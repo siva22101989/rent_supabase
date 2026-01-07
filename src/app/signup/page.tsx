@@ -18,15 +18,8 @@ import { Logo } from '@/components/layout/logo';
 import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+
 import { getFriendlyErrorMessage } from '@/lib/error-utils';
-import { createTrialSubscription } from '@/lib/auth-actions';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -35,7 +28,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('staff');
+  const [role, setRole] = useState('admin');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -44,6 +37,9 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const selectedPlan = searchParams.get('plan') || 'starter';
 
     const supabase = createClient();
 
@@ -56,6 +52,7 @@ export default function SignupPage() {
                     full_name: fullName,
                     role: role,
                     phone_number: phone,
+                    selected_plan: selectedPlan // Persist plan for later
                 },
                 emailRedirectTo: `${window.location.origin}/auth/callback`,
             },
@@ -64,20 +61,9 @@ export default function SignupPage() {
         if (signUpError) {
             setError(getFriendlyErrorMessage(signUpError));
         } else if (data.user) {
-            // Auto-create trial subscription
-            try {
-                const searchParams = new URLSearchParams(window.location.search);
-                const selectedPlan = searchParams.get('plan') || 'starter';
-                
-                await createTrialSubscription(data.user.id, selectedPlan);
-            } catch (e) {
-                console.error("Trial creation failed, but user created:", e);
-                // Continue anyway, user can fix subscription later or admin can help
-            }
-
             toast({
-                title: "14-Day Free Trial Started!",
-                description: "Your account has been created. Redirecting...",
+                title: "Account Created",
+                description: "Redirecting to setup...",
             });
             // Short delay to let the toast show
             setTimeout(() => {
@@ -123,32 +109,21 @@ export default function SignupPage() {
                     id="fullName"
                     name="fullName"
                     type="text"
-                    placeholder="John Doe"
+                    placeholder="Enter your full name"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     disabled={loading}
                 />
             </div>
-             <div className="grid gap-2">
-                <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={setRole} disabled={loading}>
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="staff">Staff</SelectItem>
-                    <SelectItem value="customer">Customer</SelectItem>
-                  </SelectContent>
-                </Select>
-            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="name@company.com"
                 autoComplete="email"
                 required
                 value={email}
@@ -214,7 +189,7 @@ export default function SignupPage() {
                 id="phone"
                 name="phone"
                 type="tel"
-                placeholder="9876543210"
+                placeholder="9999999999"
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -222,9 +197,6 @@ export default function SignupPage() {
                 pattern="[0-9]{10}"
                 title="Please enter a valid 10-digit mobile number"
               />
-              <p className="text-[0.8rem] text-muted-foreground">
-                We'll use this to find your existing records.
-              </p>
             </div>
             
             {error && (

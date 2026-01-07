@@ -3,18 +3,13 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function createTrialSubscription(userId: string, planTier: string = 'starter') {
+export async function createTrialSubscription(userId: string, planTier: string = 'starter', warehouseIdOverride?: string) {
   const supabase = await createClient();
   
-  // 1. Get user's warehouse (created during onboarding trigger usually, or we need to wait/check)
-  // Assuming the trigger on auth.users -> profiles -> user_warehouses -> warehouses flow handles this,
-  // but we might be racing if we call this immediately after signup.
-  // Ideally, this logic should be in a database trigger, but we want flexibility.
-  // Let's retry a few times if warehouse isn't found immediately.
-  
-  let warehouseId: string | null = null;
+  let warehouseId = warehouseIdOverride || null;
   let attempts = 0;
   
+  // Only search if not provided
   while (!warehouseId && attempts < 3) {
       const { data: userWarehouse } = await supabase
         .from('user_warehouses')

@@ -7,24 +7,33 @@ import { useUnifiedToast } from '@/components/shared/toast-provider';
 import { startSubscriptionAction } from '@/lib/subscription-actions';
 import { PlanTier } from '@/lib/feature-flags';
 import { useRouter } from 'next/navigation';
+import { useWarehouses } from '@/contexts/warehouse-context';
 
 export default function UpgradePage() {
   const [loading, setLoading] = useState(false);
   const { success: toastSuccess, error: toastError } = useUnifiedToast();
   const router = useRouter();
 
-  // In a real app, this would come from a warehouse context or URL param
-  const warehouseId = 'default-placeholder'; 
+  const { currentWarehouse } = useWarehouses();
+  const warehouseId = currentWarehouse?.id;
 
   const handleUpgrade = async (tier: PlanTier) => {
     if (tier === 'free') return;
+    if (!warehouseId) {
+        toastError('Error', 'No active warehouse selected.');
+        return;
+    }
     
     setLoading(true);
     try {
-      toastSuccess(
-        'Request Logged', 
-        'Your interest in the ' + tier + ' plan has been noted. Please contact the Super Admin at +91-XXXXXXXXXX (WhatsApp) to complete the manual payment and activation.'
-      );
+      const result = await startSubscriptionAction(warehouseId, tier); 
+      
+      if (result.success) {
+          toastSuccess('Request Logged', result.message);
+          router.push('/billing');
+      } else {
+          toastError('Error', result.message);
+      }
     } catch (err) {
       toastError('Error', 'An unexpected error occurred.');
     } finally {
