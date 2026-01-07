@@ -103,7 +103,7 @@ export async function fetchCommodityPrices(
 
     const url = `${AGMARKNET_API_BASE}?${params.toString()}`;
 
-    console.log('[AGMARKNET] Fetching prices:', { commodity, state, url });
+    // Fetching prices from AgMarkNet
 
     const response = await fetch(url, {
       method: 'GET',
@@ -144,7 +144,7 @@ export async function fetchCommodityPrices(
       price_date: convertDateFormat(record.arrival_date),
     }));
 
-    console.log(`[AGMARKNET] Fetched ${prices.length} price records`);
+    // Successfully fetched price records
     return prices;
 
   } catch (error) {
@@ -190,16 +190,16 @@ export async function getCachedPrices(
 
     // If we have any data, return it (don't require today's data)
     if (data && data.length > 0) {
-      console.log(`[AGMARKNET] Cache hit: ${data.length} records for ${commodity}`);
+      // Cache hit
       return data as CommodityPrice[];
     }
 
     // No cached data - try to fetch from API (with rate limit protection)
-    console.log('[AGMARKNET] Cache miss. API Disabled. Returning sample data.');
+    // Cache miss - using sample data
     return getSampleData(commodity);
 
     /* API DISABLED PER USER REQUEST
-    console.log('[AGMARKNET] Cache miss, attempting API fetch...');
+    // Cache miss - fetching from API
     
     // Check if we've made too many requests recently
     const canFetchFromAPI = await checkRateLimit();
@@ -299,7 +299,7 @@ function getSampleData(commodity: string): CommodityPrice[] {
     });
   }
 
-  console.log(`[AGMARKNET] Using sample data for ${commodity} (${data.length} records)`);
+  // Using sample data
   return data;
 }
 
@@ -323,7 +323,7 @@ export async function storePrices(prices: CommodityPrice[]): Promise<void> {
     if (error) {
       console.error('[AGMARKNET] Store error:', error);
     } else {
-      console.log(`[AGMARKNET] Stored ${prices.length} price records`);
+      // Stored price records in cache
     }
   } catch (error) {
     console.error('[AGMARKNET] Store error:', error);

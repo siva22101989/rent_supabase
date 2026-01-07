@@ -10,6 +10,8 @@ import { getUserWarehouse } from '@/lib/queries';
 import { PlanTier } from '@/lib/feature-flags';
 import { createClient } from '@/utils/supabase/server';
 
+export const revalidate = 60; // Revalidate every 60 seconds
+
 export default async function BillingPage() {
   const currentWarehouseId = await getUserWarehouse() || '';
   

@@ -126,7 +126,7 @@ export async function sendPaymentReminderSMS(customerId: string, recordId?: stri
             
             // Ignore if table doesn't exist
             if (logError) {
-                console.log('SMS sent but not logged (sms_logs table not found):', logError.message);
+                // SMS sent but not logged (sms_logs table may not exist)
             }
         }
         

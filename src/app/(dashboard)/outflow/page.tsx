@@ -5,6 +5,7 @@ import { isSMSEnabled } from "@/lib/sms-settings-actions";
 import { OutflowManager } from "./outflow-manager";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 30; // Revalidate every 30 seconds for high-frequency updates
 
 export default async function OutflowPage() {
   const recentOutflows = await getRecentOutflows(100); // Fetch more for filtering

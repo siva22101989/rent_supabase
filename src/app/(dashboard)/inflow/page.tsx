@@ -8,6 +8,7 @@ import { getUserWarehouse } from "@/lib/queries/warehouses";
 import { InflowDashboard } from "./inflow-dashboard";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 30; // Revalidate every 30 seconds for high-frequency updates
 
 export default async function InflowPage() {
     const supabase = await createClient();

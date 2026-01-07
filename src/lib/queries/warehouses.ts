@@ -116,7 +116,7 @@ export async function getTeamMembers() {
     const userRole = await getCurrentUserRole();
     const warehouseId = await getUserWarehouse();
     
-    console.log('[getTeamMembers] Role:', userRole, 'WarehouseId:', warehouseId);
+    // Debug logging removed for production
     
     if (userRole === 'super_admin') {
          const { data: allProfiles, error } = await supabase
@@ -180,7 +180,7 @@ export async function getTeamMembers() {
         })
         .filter(Boolean); // Remove nulls
 
-    console.log('[getTeamMembers] Final members count:', members.length);
+    // Debug logging removed for production
 
     // Sort by newest first
     return members.sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());

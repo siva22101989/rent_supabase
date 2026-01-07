@@ -204,8 +204,9 @@ export function CustomersPageClient({
         </CardContent>
       </Card>
 
-      {/* Pagination removed for now as we are relying on Infinite Scroll or simple Limit 50 
-          TODO: Add Server-Side Link Pagination for page 2, 3 etc. 
+      {/* 
+        Current implementation: Server-side limit of 50 customers with search.
+        Future enhancement: Add pagination for large customer bases (100+ customers).
       */}
     </>
   );
