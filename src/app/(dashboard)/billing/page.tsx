@@ -6,13 +6,23 @@ import { CreditCard, History, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 import { getSubscriptionAction } from '@/lib/subscription-actions';
-import { getUserWarehouse, getStorageRecords } from '@/lib/queries';
+import { getUserWarehouse } from '@/lib/queries';
 import { PlanTier } from '@/lib/feature-flags';
+import { createClient } from '@/utils/supabase/server';
 
 export default async function BillingPage() {
   const currentWarehouseId = await getUserWarehouse() || '';
-  const subscriptionData = await getSubscriptionAction(currentWarehouseId);
-  const records = await getStorageRecords(); // This fetches records for current warehouse implicitly in queries.ts
+  
+  // Parallel fetching - subscription and record count
+  const supabase = await createClient();
+  const [subscriptionData, { count: recordCount }] = await Promise.all([
+    getSubscriptionAction(currentWarehouseId),
+    supabase
+      .from('storage_records')
+      .select('*', { count: 'exact', head: true })
+      .eq('warehouse_id', currentWarehouseId)
+      .is('deleted_at', null)
+  ]);
 
   const currentPlan = {
     name: subscriptionData?.plans?.name || 'Free Tier',
@@ -22,7 +32,7 @@ export default async function BillingPage() {
         ? new Date(subscriptionData.current_period_end).toLocaleDateString() 
         : 'N/A',
     usage: {
-      records: records.length,
+      records: recordCount || 0,
       limit: subscriptionData?.plans?.features?.max_records || 50
     }
   };
