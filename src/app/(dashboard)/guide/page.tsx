@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowRight, BookOpen, Truck, Wallet, Users, BarChart3, Settings } from "lucide-react";
+import { ArrowRight, BookOpen, Truck, Wallet, Users, BarChart3, Settings, Shield, Check, X, Minus } from "lucide-react";
 
 export default function GuidePage() {
   return (
@@ -58,6 +58,10 @@ export default function GuidePage() {
                 <TabsTrigger value="reports" className="flex flex-col gap-1 p-3 data-[state=active]:bg-background">
                     <BarChart3 className="h-4 w-4" />
                     Reports
+                </TabsTrigger>
+                <TabsTrigger value="roles" className="flex flex-col gap-1 p-3 data-[state=active]:bg-background">
+                    <Shield className="h-4 w-4" />
+                    Roles & Permissions
                 </TabsTrigger>
             </TabsList>
 
@@ -236,6 +240,89 @@ export default function GuidePage() {
                             <li><strong>Financials:</strong> Total revenue collected vs pending dues.</li>
                             <li><strong>Transaction Log:</strong> A master list of all recent activity for auditing.</li>
                         </ul>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+             {/* Roles Section */}
+             <TabsContent value="roles" className="mt-6 space-y-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Roles & Permissions</CardTitle>
+                        <CardDescription>Understanding who can do what in your warehouse.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="rounded-md border overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-muted/50 border-b">
+                                        <th className="h-10 px-4 text-left font-medium">Feature / Action</th>
+                                        <th className="h-10 px-4 text-center font-medium w-[100px]">Owner</th>
+                                        <th className="h-10 px-4 text-center font-medium w-[100px]">Admin</th>
+                                        <th className="h-10 px-4 text-center font-medium w-[100px]">Manager</th>
+                                        <th className="h-10 px-4 text-center font-medium w-[100px]">Staff</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    <tr>
+                                        <td className="p-4 font-medium">Manage Warehouse Settings</td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-4 font-medium">Manage Team Members</td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-4 font-medium">Backup & Export Data</td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-4 font-medium">Manage Subscriptions</td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-4 font-medium">Create/Edit Records (Inflow/Outflow)</td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-4 font-medium">Accept Payments</td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-4 font-medium">Delete Records</td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-4 font-medium">View Financial Reports</td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Check className="mx-auto h-4 w-4 text-green-600" /></td>
+                                        <td className="p-4 text-center"><Minus className="mx-auto h-4 w-4 text-muted-foreground" /></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </CardContent>
                 </Card>
             </TabsContent>
