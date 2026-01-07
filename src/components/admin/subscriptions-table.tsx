@@ -122,7 +122,7 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
             <div className="flex justify-end">
                 <CodeGenerator plans={plans} />
             </div>
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -186,10 +186,10 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
                         </TabsList>
                         
                         <TabsContent value="details" className="py-4 space-y-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="plan" className="text-right">Plan</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                                <Label htmlFor="plan" className="text-left sm:text-right">Plan</Label>
                                 <Select value={editPlanId} onValueChange={setEditPlanId}>
-                                    <SelectTrigger className="col-span-3">
+                                    <SelectTrigger className="col-span-1 sm:col-span-3">
                                         <SelectValue placeholder="Select Plan" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -199,10 +199,10 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="status" className="text-right">Status</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                                <Label htmlFor="status" className="text-left sm:text-right">Status</Label>
                                 <Select value={editStatus} onValueChange={setEditStatus}>
-                                    <SelectTrigger className="col-span-3">
+                                    <SelectTrigger className="col-span-1 sm:col-span-3">
                                         <SelectValue placeholder="Select Status" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -215,12 +215,12 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="date" className="text-right">Expiry Date</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                                <Label htmlFor="date" className="text-left sm:text-right">Expiry Date</Label>
                                 <Input 
                                     id="date" 
                                     type="date" 
-                                    className="col-span-3" 
+                                    className="col-span-1 sm:col-span-3" 
                                     value={editEndDate} 
                                     onChange={(e) => setEditEndDate(e.target.value)} 
                                 />
