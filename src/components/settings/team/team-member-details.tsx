@@ -186,6 +186,7 @@ function EditMemberForm({ member, currentUserRole, onCancel, onSuccess }: { memb
                              <SelectItem value="staff">Staff</SelectItem>
                              <SelectItem value="manager">Manager</SelectItem>
                              {showAdminOption && <SelectItem value="admin">Admin</SelectItem>}
+                             {currentUserRole === 'super_admin' && <SelectItem value="owner">Owner</SelectItem>}
                         </SelectContent>
                     </Select>
                 </div>

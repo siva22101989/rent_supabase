@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { getFriendlyErrorMessage } from '@/lib/error-utils';
+import { createTrialSubscription } from '@/lib/auth-actions';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -63,9 +64,20 @@ export default function SignupPage() {
         if (signUpError) {
             setError(getFriendlyErrorMessage(signUpError));
         } else if (data.user) {
+            // Auto-create trial subscription
+            try {
+                const searchParams = new URLSearchParams(window.location.search);
+                const selectedPlan = searchParams.get('plan') || 'starter';
+                
+                await createTrialSubscription(data.user.id, selectedPlan);
+            } catch (e) {
+                console.error("Trial creation failed, but user created:", e);
+                // Continue anyway, user can fix subscription later or admin can help
+            }
+
             toast({
-                title: "Account Created",
-                description: "You have successfully signed up! Redirecting...",
+                title: "14-Day Free Trial Started!",
+                description: "Your account has been created. Redirecting...",
             });
             // Short delay to let the toast show
             setTimeout(() => {
@@ -81,15 +93,22 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Base gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-blue-500/5" />
+      
+      {/* Animated glow orbs (same as landing page) */}
+      <div className="absolute top-0 -left-20 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-0 -right-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1000ms' }} />
+      
+      {/* Grid pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
       
       <div className="absolute top-8 left-8 z-10">
         <Logo href="/" />
       </div>
 
-      <Card className="w-full max-w-sm z-10 shadow-lg border-muted/60">
+      <Card className="w-full max-w-sm z-10 shadow-2xl border-muted/60 backdrop-blur-sm bg-background/95">
         <CardHeader>
           <CardTitle className="text-2xl">Create an Account</CardTitle>
           <CardDescription>

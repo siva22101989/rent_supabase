@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Zap } from 'lucide-react'
 
 export function Hero() {
   return (
@@ -25,9 +26,17 @@ export function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-            <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg shadow-primary/20" asChild>
-              <Link href="/login">Start Your Free Trial</Link>
-            </Button>
+            <div className="flex flex-col items-center sm:items-start">
+              <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg shadow-primary/20" asChild>
+                <Link href="/signup">
+                  <Zap className="mr-2 h-5 w-5" />
+                  Start 14-Day Free Trial
+                </Link>
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                No credit card required • Setup in 5 minutes
+              </p>
+            </div>
             <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full" asChild>
               <Link href="/pricing">View Pricing</Link>
             </Button>

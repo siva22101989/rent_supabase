@@ -47,18 +47,32 @@ export function WarehouseAccessManager({ userId, currentUserRole }: WarehouseAcc
 
     const handleToggle = async (warehouseId: string) => {
         setProcessingId(warehouseId);
+        
+        // Optimistic Update
+        const previousAssignments = [...assignments];
+        const isAssigned = assignments.some(a => a.warehouse_id === warehouseId);
+        
+        if (isAssigned) {
+            setAssignments(prev => prev.filter(a => a.warehouse_id !== warehouseId));
+        } else {
+            setAssignments(prev => [...prev, { warehouse_id: warehouseId, role: 'staff' }]);
+        }
+
         try {
             const result = await toggleWarehouseAccess(userId, warehouseId);
             if (result.success) {
                 toast({ title: "Success", description: result.message });
-                // Refresh assignments
-                const updated = await getMemberAssignments(userId);
-                setAssignments(updated);
+                // We trust the server action to have done the work. 
+                // We can optionally refresh to be 100% sure, but optimistic state is usually fine here.
+                // const updated = await getMemberAssignments(userId);
+                // setAssignments(updated);
             } else {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
+                setAssignments(previousAssignments); // Revert
             }
         } catch (error) {
             toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+            setAssignments(previousAssignments); // Revert
         } finally {
             setProcessingId(null);
         }

@@ -16,10 +16,17 @@ interface TeamMembersListProps {
 export function TeamMembersList({ members, selectedId, onSelect }: TeamMembersListProps) {
   const [search, setSearch] = useState('');
 
-  const filtered = members.filter(m => 
-    m.fullName.toLowerCase().includes(search.toLowerCase()) || 
-    m.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = members.filter(m => {
+    const name = m.fullName || '';
+    const email = m.email || '';
+    const searchLower = search.toLowerCase();
+    
+    // Debug log to help diagnose visibility issues
+    // console.log('Filtering member:', { name, email, search: searchLower });
+
+    return name.toLowerCase().includes(searchLower) || 
+           email.toLowerCase().includes(searchLower);
+  });
 
   return (
     <div className="h-[600px] flex flex-col border-r bg-background/50">

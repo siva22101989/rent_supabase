@@ -113,25 +113,77 @@ export const getAvailableLots = cache(async () => {
 
 export async function getTeamMembers() {
     const supabase = await createClient();
+    const userRole = await getCurrentUserRole();
     const warehouseId = await getUserWarehouse();
+    
+    console.log('[getTeamMembers] Role:', userRole, 'WarehouseId:', warehouseId);
+    
+    if (userRole === 'super_admin') {
+         const { data: allProfiles, error } = await supabase
+            .from('profiles')
+            .select('id, email, full_name, role, created_at')
+            .neq('role', 'customer')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('[getTeamMembers] SuperAdmin Error:', error);
+            return [];
+        }
+
+        return allProfiles.map((p: any) => ({
+            id: p.id,
+            email: p.email,
+            fullName: p.full_name,
+            role: p.role,
+            createdAt: new Date(p.created_at),
+        }));
+    }
+
     if (!warehouseId) return [];
 
-    const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('warehouse_id', warehouseId)
-        .neq('role', 'customer')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+        .from('warehouse_assignments')
+        .select(`
+            role,
+            profiles (
+                id,
+                email,
+                full_name,
+                role,
+                created_at
+            )
+        `)
+        .eq('warehouse_id', warehouseId);
 
-    if (error) return [];
+    if (error) {
+        console.error('[getTeamMembers] Error:', error);
+        return [];
+    }
+
+    // console.log('[getTeamMembers] Raw data count:', data?.length);
     
-    return profiles.map((p: any) => ({
-        id: p.id,
-        email: p.email,
-        fullName: p.full_name,
-        role: p.role,
-        createdAt: new Date(p.created_at),
-    }));
+    const members = data
+        .map((item: any) => {
+             const p = item.profiles;
+             if (!p) return null;
+             
+             // Filter out customers from team list (if they somehow got assigned)
+             if (p.role === 'customer') return null;
+
+             return {
+                id: p.id,
+                email: p.email,
+                fullName: p.full_name,
+                role: item.role || p.role, // Use assignment role preferred
+                createdAt: new Date(p.created_at),
+             };
+        })
+        .filter(Boolean); // Remove nulls
+
+    console.log('[getTeamMembers] Final members count:', members.length);
+
+    // Sort by newest first
+    return members.sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 export async function getMemberAssignments(userId: string) {

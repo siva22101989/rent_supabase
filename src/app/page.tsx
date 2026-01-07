@@ -1,6 +1,7 @@
 import { LandingHeader } from '@/components/landing/Header'
 import { Hero } from '@/components/landing/Hero'
 import { Features } from '@/components/landing/Features'
+import { Testimonials } from '@/components/landing/Testimonials'
 import { About } from '@/components/landing/About'
 import { CtaSection } from '@/components/landing/CtaSection'
 import { Footer } from '@/components/landing/Footer'
@@ -26,6 +27,7 @@ export default async function LandingPage() {
         
         <Hero />
         <Features />
+        <Testimonials />
         <About />
         <CtaSection />
       </main>

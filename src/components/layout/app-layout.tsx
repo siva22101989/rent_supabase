@@ -27,6 +27,7 @@ import { LayoutProvider } from '@/components/providers/layout-context';
 import { SubscriptionProvider } from '@/components/providers/subscription-context';
 
 import { WelcomeOnboarding } from '@/components/onboarding/welcome-onboarding';
+import { TrialBanner } from '@/components/dashboard/trial-banner';
 
 import { MobileNav } from './mobile-nav';
 import { Sidebar } from './sidebar';
@@ -261,6 +262,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </header>
             
             <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8 pb-24 md:pb-8">
+                <TrialBanner />
                 {showOnboarding ? <WelcomeOnboarding /> : children}
             </main>
        </div>

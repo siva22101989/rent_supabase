@@ -15,6 +15,8 @@ interface Subscription {
   status: string;
   warehouse_id: string;
   current_period_end?: string | Date | null;
+  trial_start_date?: string | Date | null;
+  trial_end_date?: string | Date | null;
   usage: {
     total_records: number;
     monthly_records: number;
@@ -62,6 +64,8 @@ export function SubscriptionProvider({
           status: data.status || 'inactive',
           warehouse_id: data.warehouse_id,
           current_period_end: data.current_period_end,
+          trial_start_date: data.trial_start_date,
+          trial_end_date: data.trial_end_date,
           usage: data.usage || { total_records: 0, monthly_records: 0, total_users: 0 }
         });
       } else {

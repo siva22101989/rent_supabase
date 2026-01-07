@@ -1392,11 +1392,17 @@ export async function createTeamMember(prevState: FormState, formData: FormData)
     }
 
     if (targetWarehouseId && newUser.user) {
+        // 1. Create Assignment
         await supabaseAdmin.from('warehouse_assignments').insert({
             user_id: newUser.user.id,
             warehouse_id: targetWarehouseId,
             role: role
         });
+
+        // 2. Sync Profile (Legacy Support)
+        await supabaseAdmin.from('profiles').update({
+            warehouse_id: targetWarehouseId
+        }).eq('id', newUser.user.id);
     }
 
     return { message: `User ${email} created successfully!`, success: true };
