@@ -1,11 +1,13 @@
 import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
 import type { UserWarehouse } from '@/lib/definitions';
+import { getAuthUser } from './auth';
 
+// Helper to get current user's warehouse
 // Helper to get current user's warehouse
 export const getUserWarehouse = cache(async () => {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
 
   const { data: profile } = await supabase
@@ -19,7 +21,7 @@ export const getUserWarehouse = cache(async () => {
 
 export const getCurrentUserRole = cache(async () => {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
 
   const { data: profile } = await supabase
@@ -46,7 +48,7 @@ export const hasCustomerProfile = cache(async () => {
 
 export const getUserWarehouses = cache(async (): Promise<UserWarehouse[]> => {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return [];
 
     const { data } = await supabase

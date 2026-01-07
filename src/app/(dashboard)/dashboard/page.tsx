@@ -19,15 +19,17 @@ import { JoinWarehouseForm } from '@/components/onboarding/join-warehouse-form';
 import { MarketPricesWidgetWrapper } from '@/components/market-prices/price-widget-wrapper';
 
 export default async function DashboardPage() {
-  const metrics = await getDashboardMetrics();
-  const warehouse = await getWarehouseDetails();
-  const recentInflows = await getRecentInflows(5) || [];
-  const recentOutflows = await getRecentOutflows(5) || [];
+  const [metrics, warehouse, recentInflows, recentOutflows] = await Promise.all([
+    getDashboardMetrics(),
+    getWarehouseDetails(),
+    getRecentInflows(5),
+    getRecentOutflows(5)
+  ]);
 
   // Merge and sort activities
   const activities = [
-    ...recentInflows.map((i: any) => ({ ...i, type: 'inflow', invoiceNo: i.recordNumber || i.id.slice(0, 8) })),
-    ...recentOutflows.map((o: any) => ({ ...o, type: 'outflow' }))
+    ...(recentInflows || []).map((i: any) => ({ ...i, type: 'inflow', invoiceNo: i.recordNumber || i.id.slice(0, 8) })),
+    ...(recentOutflows || []).map((o: any) => ({ ...o, type: 'outflow' }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
    .slice(0, 5); // Top 5 recent events
   

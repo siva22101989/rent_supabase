@@ -1,14 +1,16 @@
 
 import { createClient } from '@/utils/supabase/server';
+import { cache } from 'react';
+import { getAuthUser } from '@/lib/queries/auth';
 import type { Customer, StorageRecord, Payment, Expense } from '@/lib/definitions';
 import { revalidatePath } from 'next/cache';
 import { logError } from '@/lib/error-logger';
 
 
 
-export const getUserWarehouse = async () => {
+export const getUserWarehouse = cache(async () => {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
 
   const { data: profile } = await supabase
@@ -18,7 +20,7 @@ export const getUserWarehouse = async () => {
     .single();
 
   return profile?.warehouse_id;
-};
+});
 
 export const getAvailableCrops = async () => {
     const supabase = await createClient();
@@ -38,7 +40,7 @@ export const getAvailableLots = async () => {
     return data || [];
 };
 
-export const getDashboardMetrics = async () => {
+export const getDashboardMetrics = cache(async () => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return null;
@@ -68,7 +70,7 @@ export const getDashboardMetrics = async () => {
         occupancyRate: totalCapacity > 0 ? (totalStock / totalCapacity) * 100 : 0,
         activeRecordsCount: activeRecordsCount || 0
     };
-};
+});
 
 // Customer Functions
 export async function customers(): Promise<Customer[]> {
