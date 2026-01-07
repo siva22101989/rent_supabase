@@ -1813,3 +1813,245 @@ export async function logLoginActivity() {
         logError(error, { operation: 'log_login_activity' });
     }
 }
+
+/**
+ * Bulk Payment System - Helper Functions
+ */
+
+type RecordWithDues = {
+    id: string;
+    recordNumber: string;
+    totalDue: number;
+    storageStartDate: Date;
+};
+
+/**
+ * Get all pending records for a customer with calculated dues
+ */
+async function getCustomerPendingRecords(customerId: string): Promise<RecordWithDues[]> {
+    const supabase = await createClient();
+    
+    // Fetch all active records for this customer
+    const { data: records } = await supabase
+        .from('storage_records')
+        .select(`
+            id,
+            record_number,
+            total_rent_billed,
+            hamali_payable,
+            storage_start_date,
+            payments (amount, type)
+        `)
+        .eq('customer_id', customerId)
+        .is('storage_end_date', null)
+        .order('storage_start_date', { ascending: true });
+
+    if (!records) return [];
+
+    return records.map((r: any) => {
+        const rentPayments = (r.payments || [])
+            .filter((p: any) => p.type === 'rent')
+            .reduce((sum: number, p: any) => sum + p.amount, 0);
+        
+        const hamaliPayments = (r.payments || [])
+            .filter((p: any) => p.type === 'hamali')
+            .reduce((sum: number, p: any) => sum + p.amount, 0);
+
+        const totalBilled = (r.total_rent_billed || 0) + (r.hamali_payable || 0);
+        const totalPaid = rentPayments + hamaliPayments;
+        const totalDue = Math.max(0, totalBilled - totalPaid);
+
+        return {
+            id: r.id,
+            recordNumber: r.record_number?.toString() || r.id.substring(0, 8),
+            totalDue,
+            storageStartDate: new Date(r.storage_start_date)
+        };
+    }).filter(r => r.totalDue > 0); // Only records with outstanding dues
+}
+
+/**
+ * FIFO Allocation: Allocate payment to oldest records first
+ */
+function allocateFIFO(records: RecordWithDues[], totalAmount: number) {
+    const allocations: { recordId: string; recordNumber: string; amount: number; remainingDue: number }[] = [];
+    let remaining = totalAmount;
+
+    for (const record of records) {
+        if (remaining <= 0) {
+            allocations.push({
+                recordId: record.id,
+                recordNumber: record.recordNumber,
+                amount: 0,
+                remainingDue: record.totalDue
+            });
+            continue;
+        }
+
+        const allocated = Math.min(remaining, record.totalDue);
+        allocations.push({
+            recordId: record.id,
+            recordNumber: record.recordNumber,
+            amount: allocated,
+            remainingDue: record.totalDue - allocated
+        });
+        remaining -= allocated;
+    }
+
+    return { allocations, unallocated: remaining };
+}
+
+/**
+ * Bulk Payment Action Types
+ */
+export type BulkPaymentFormState = {
+    message: string;
+    success: boolean;
+    data?: {
+        allocations?: any[];
+        recordsUpdated?: number;
+    };
+};
+
+type ManualAllocation = {
+    recordId: string;
+    amount: number;
+};
+
+/**
+ * Process Bulk Payment across multiple storage records
+ */
+export async function processBulkPayment(
+    prevState: BulkPaymentFormState,
+    formData: FormData
+): Promise<BulkPaymentFormState> {
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "processBulkPayment",
+        },
+        async (span) => {
+            const customerId = formData.get('customerId') as string;
+            const totalAmount = parseFloat(formData.get('totalAmount') as string);
+            const paymentDate = formData.get('paymentDate') as string;
+            const strategy = formData.get('strategy') as 'fifo' | 'manual';
+            const manualAllocationsJSON = formData.get('manualAllocations') as string;
+
+            span.setAttribute("customerId", customerId);
+            span.setAttribute("totalAmount", totalAmount);
+            span.setAttribute("strategy", strategy);
+
+            // Validate inputs
+            if (!customerId || isNaN(totalAmount) || totalAmount <= 0) {
+                logger.warn("Invalid bulk payment data", { customerId, totalAmount });
+                return { 
+                    message: 'Invalid payment data provided.', 
+                    success: false 
+                };
+            }
+
+            try {
+                // Fetch pending records
+                const pendingRecords = await getCustomerPendingRecords(customerId);
+                
+                if (pendingRecords.length === 0) {
+                    return { 
+                        message: 'No pending dues found for this customer.', 
+                        success: false 
+                    };
+                }
+
+                let allocations: { recordId: string; recordNumber: string; amount: number }[];
+
+                if (strategy === 'manual') {
+                    // Parse manual allocations
+                    const manualAllocations: ManualAllocation[] = manualAllocationsJSON 
+                        ? JSON.parse(manualAllocationsJSON) 
+                        : [];
+                    
+                    // Validate sum matches total
+                    const sum = manualAllocations.reduce((acc, a) => acc + a.amount, 0);
+                    if (Math.abs(sum - totalAmount) > 0.01) {
+                        return { 
+                            message: `Allocation sum (₹${sum}) does not match total payment (₹${totalAmount}).`, 
+                            success: false 
+                        };
+                    }
+
+                    allocations = manualAllocations.map(ma => {
+                        const record = pendingRecords.find(r => r.id === ma.recordId);
+                        return {
+                            recordId: ma.recordId,
+                            recordNumber: record?.recordNumber || 'Unknown',
+                            amount: ma.amount
+                        };
+                    });
+                } else {
+                    // FIFO allocation
+                    const result = allocateFIFO(pendingRecords, totalAmount);
+                    allocations = result.allocations.filter(a => a.amount > 0);
+
+                    if (result.unallocated > 0.01) {
+                        return { 
+                            message: `Payment amount (₹${totalAmount}) exceeds total dues (₹${totalAmount - result.unallocated}). Please adjust.`, 
+                            success: false 
+                        };
+                    }
+                }
+
+                // Create payment records
+                const supabase = await createClient();
+                const paymentPromises = allocations.map(allocation => 
+                    supabase.from('payments').insert({
+                        storage_record_id: allocation.recordId,
+                        amount: allocation.amount,
+                        payment_date: new Date(paymentDate),
+                        type: 'rent',
+                        notes: `Bulk payment - ₹${totalAmount} allocated via ${strategy.toUpperCase()}`
+                    })
+                );
+
+                const results = await Promise.all(paymentPromises);
+                
+                // Check for errors
+                const errors = results.filter(r => r.error);
+                if (errors.length > 0) {
+                    Sentry.captureException(errors[0].error);
+                    logger.error("Failed to create bulk payment records", { 
+                        errors: errors.map(e => e.error?.message) 
+                    });
+                    return { 
+                        message: 'Failed to process some payments. Please try again.', 
+                        success: false 
+                    };
+                }
+
+                logger.info("Bulk payment processed successfully", { 
+                    customerId, 
+                    totalAmount, 
+                    recordsUpdated: allocations.length 
+                });
+
+                revalidatePath('/payments/pending');
+                revalidatePath(`/customers/${customerId}`);
+                revalidatePath('/customers');
+
+                return { 
+                    message: `Successfully processed ₹${totalAmount} across ${allocations.length} record(s).`, 
+                    success: true,
+                    data: {
+                        allocations,
+                        recordsUpdated: allocations.length
+                    }
+                };
+            } catch (error: any) {
+                Sentry.captureException(error);
+                logger.error("Bulk payment processing failed", { error: error.message, customerId });
+                return { 
+                    message: `Failed to process bulk payment: ${error.message}`, 
+                    success: false 
+                };
+            }
+        }
+    );
+}

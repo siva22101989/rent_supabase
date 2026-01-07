@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/utils";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AddPaymentDialog } from '@/components/payments/add-payment-dialog';
+import { BulkPaymentDialog } from '@/components/payments/bulk-payment-dialog';
 import { Loader2, ChevronDown, ChevronRight, ArrowUpDown, MessageSquare } from 'lucide-react';
 import { getCustomerRecordsAction } from '@/lib/actions';
 import { sendPaymentReminderSMS } from '@/lib/sms-actions';
@@ -31,6 +32,7 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
     const [loadingCustomerId, setLoadingCustomerId] = useState<string | null>(null);
     const [customerRecords, setCustomerRecords] = useState<Record<string, StorageRecord[]>>({});
     const [selectedRecord, setSelectedRecord] = useState<(StorageRecord & { balanceDue: number }) | null>(null);
+    const [selectedBulkCustomer, setSelectedBulkCustomer] = useState<any | null>(null);
     const [sendingSMS, setSendingSMS] = useState<string | null>(null);
     const { toast } = useToast();
     
@@ -109,31 +111,65 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
         });
     };
 
-    const handleSendReminder = async (customerId: string, customerName: string) => {
+    const handleSendReminder = async (customerId: string, customerPhone: string) => {
         setSendingSMS(customerId);
         try {
-            const result = await sendPaymentReminderSMS(customerId);
-            
+            const result = await sendPaymentReminderSMS(customerId, customerPhone);
             if (result.success) {
-                toast({
-                    title: "SMS Sent!",
-                    description: `Payment reminder sent to ${customerName}`,
-                });
+                toast({ title: "SMS Sent", description: "Payment reminder sent successfully" });
             } else {
-                toast({
-                    title: "Failed to send SMS",
-                    description: result.error || "Please try again",
-                    variant: "destructive",
-                });
+                toast({ title: "Error", description: result.error || "Failed to send SMS", variant: "destructive" });
             }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to send SMS. Please try again.",
-                variant: "destructive",
-            });
         } finally {
             setSendingSMS(null);
+        }
+    };
+    
+    const handleBulkPayment = async (customer: any) => {
+        const records = customerRecords[customer.id] || [];
+        
+        if (records.length === 0) {
+            // Load records first
+            setLoadingCustomerId(customer.id);
+            const fetchedRecords = await getCustomerRecordsAction(customer.id);
+            setCustomerRecords(prev => ({ ...prev, [customer.id]: fetchedRecords }));
+            setLoadingCustomerId(null);
+            
+            // Prepare bulk data
+            const bulkData = {
+                id: customer.id,
+                name: customer.name,
+                totalDues: customer.balance,
+                records: fetchedRecords.map((r: any) => {
+                    const payments = r.payments || [];
+                    const totalPaid = payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+                    const totalBilled = (r.totalRentBilled || 0) + (r.hamaliPayable || 0);
+                    return {
+                        id: r.id,
+                        recordNumber: r.recordNumber || `REC-${r.id.substring(0, 8)}`,
+                        totalDue: totalBilled - totalPaid
+                    };
+                }).filter((r: any) => r.totalDue > 0)
+            };
+            setSelectedBulkCustomer(bulkData);
+        } else {
+            // Use existing records
+            const bulkData = {
+                id: customer.id,
+                name: customer.name,
+                totalDues: customer.balance,
+                records: records.map((r: any) => {
+                    const payments = r.payments || [];
+                    const totalPaid = payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+                    const totalBilled = (r.totalRentBilled || 0) + (r.hamaliPayable || 0);
+                    return {
+                        id: r.id,
+                        recordNumber: r.recordNumber || `REC-${r.id.substring(0, 8)}`,
+                        totalDue: totalBilled - totalPaid
+                    };
+                }).filter((r: any) => r.totalDue > 0)
+            };
+            setSelectedBulkCustomer(bulkData);
         }
     };
 
@@ -195,6 +231,30 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
                                         
                                         <div className="text-muted-foreground font-medium pt-1 border-t">Balance Due:</div>
                                         <div className="text-right font-bold text-destructive pt-1 border-t">{formatCurrency(customer.balance)}</div>
+                                    </div>
+                                    
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-2 mt-3">
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            className="flex-1"
+                                            onClick={() => handleBulkPayment(customer)}
+                                        >
+                                            Bulk Payment
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleSendReminder(customer.id, customer.phone)}
+                                            disabled={sendingSMS === customer.id}
+                                        >
+                                            {sendingSMS === customer.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <MessageSquare className="h-4 w-4" />
+                                            )}
+                                        </Button>
                                     </div>
 
                                     {/* Expanded Records */}
@@ -338,6 +398,12 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
                                                     <div className="flex items-center justify-end gap-2">
                                                         <Button
                                                             size="sm"
+                                                            onClick={() => handleBulkPayment(customer)}
+                                                        >
+                                                            Bulk Payment
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
                                                             variant="outline"
                                                             onClick={() => handleSendReminder(customer.id, customer.name)}
                                                             disabled={sendingSMS === customer.id}
@@ -445,6 +511,15 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
                     record={selectedRecord}
                     autoOpen={true}
                     onClose={() => setSelectedRecord(null)}
+                />
+            )}
+            
+            {/* Bulk Payment Dialog */}
+            {selectedBulkCustomer && (
+                <BulkPaymentDialog
+                    customer={selectedBulkCustomer}
+                    autoOpen={true}
+                    onClose={() => setSelectedBulkCustomer(null)}
                 />
             )}
         </>

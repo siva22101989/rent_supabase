@@ -17,9 +17,48 @@ import { isSMSEnabled } from '@/lib/sms-settings-actions';
 import { textBeeService } from '@/lib/textbee';
 
 /**
+ * Check if current user/warehouse has SMS permission
+ */
+export async function hasSMSPermission(): Promise<boolean> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return false;
+    
+    // Get whitelist from environment variable (comma-separated user IDs or warehouse IDs)
+    const allowedUsers = process.env.SMS_ALLOWED_USERS?.split(',').map(id => id.trim()) || [];
+    const allowedWarehouses = process.env.SMS_ALLOWED_WAREHOUSES?.split(',').map(id => id.trim()) || [];
+    
+    // Check if user is in whitelist
+    if (allowedUsers.includes(user.id)) return true;
+    
+    // Check if user's warehouse is in whitelist
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('warehouse_id')
+        .eq('id', user.id)
+        .single();
+    
+    if (profile?.warehouse_id && allowedWarehouses.includes(profile.warehouse_id)) {
+        return true;
+    }
+    
+    return false;
+}
+
+/**
  * Send payment reminder SMS via TextBee
  */
 export async function sendPaymentReminderSMS(customerId: string, recordId?: string) {
+    // Check SMS permission first
+    const hasPermission = await hasSMSPermission();
+    if (!hasPermission) {
+        return { 
+            success: false, 
+            error: 'SMS service is disabled for trial users. Please upgrade your plan to enable SMS notifications.' 
+        };
+    }
+    
     // Check if payment reminders enabled
     if (!(await isSMSEnabled('payment_reminders'))) {
         return { success: false, error: 'SMS disabled in settings' };

@@ -7,11 +7,21 @@ import { textBeeService } from '@/lib/textbee';
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { isSMSEnabled } from '@/lib/sms-settings-actions';
+import { hasSMSPermission } from '@/lib/sms-actions';
 
 /**
  * Send welcome SMS when inflow is created
  */
 export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettings: boolean = false) {
+    // Check SMS permission first
+    const hasPermission = await hasSMSPermission();
+    if (!hasPermission) {
+        return { 
+            success: false, 
+            error: 'SMS service is disabled for trial users. Please upgrade your plan to enable SMS notifications.' 
+        };
+    }
+    
     // Check settings
     const enabled = await isSMSEnabled('inflow_welcome');
     
@@ -97,6 +107,15 @@ export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettin
  * Send confirmation SMS when outflow is processed
  */
 export async function sendOutflowConfirmationSMS(transactionId: string, bypassSettings: boolean = false) {
+    // Check SMS permission first
+    const hasPermission = await hasSMSPermission();
+    if (!hasPermission) {
+        return { 
+            success: false, 
+            error: 'SMS service is disabled for trial users. Please upgrade your plan to enable SMS notifications.' 
+        };
+    }
+    
     // Check settings
     const enabled = await isSMSEnabled('outflow_confirmation');
     
@@ -177,6 +196,15 @@ export async function sendOutflowConfirmationSMS(transactionId: string, bypassSe
  * Send payment confirmation SMS
  */
 export async function sendPaymentConfirmationSMS(paymentId: string) {
+    // Check SMS permission first
+    const hasPermission = await hasSMSPermission();
+    if (!hasPermission) {
+        return { 
+            success: false, 
+            error: 'SMS service is disabled for trial users. Please upgrade your plan to enable SMS notifications.' 
+        };
+    }
+    
     // Check settings
     if (!(await isSMSEnabled('payment_confirmation'))) {
         return { success: false, error: 'SMS disabled in settings' };
@@ -248,6 +276,15 @@ export async function sendPaymentConfirmationSMS(paymentId: string) {
  * Send drying confirmation SMS
  */
 export async function sendDryingConfirmationSMS(recordId: string, bypassSettings: boolean = false) {
+    // Check SMS permission first
+    const hasPermission = await hasSMSPermission();
+    if (!hasPermission) {
+        return { 
+            success: false, 
+            error: 'SMS service is disabled for trial users. Please upgrade your plan to enable SMS notifications.' 
+        };
+    }
+    
     // Check settings (Using 'inflow_welcome' as master switch for Inflow-related events as requested)
     const enabled = await isSMSEnabled('inflow_welcome');
     

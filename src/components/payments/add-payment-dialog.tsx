@@ -123,8 +123,8 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
                 step="0.01"
                 min="0.01"
                 max={paymentType === 'Rent/Other' ? record.balanceDue : undefined}
-                placeholder="0.00"
-                defaultValue={state.data?.paymentAmount || (paymentType === 'Rent/Other' ? record.balanceDue.toFixed(2) : undefined)}
+                placeholder={paymentType === 'Rent/Other' ? `Max: ${formatCurrency(record.balanceDue)}` : "Enter amount"}
+                defaultValue={state.data?.paymentAmount}
                 onFocus={(e) => e.target.select()}
                 onWheel={(e) => e.currentTarget.blur()}
                 required 
