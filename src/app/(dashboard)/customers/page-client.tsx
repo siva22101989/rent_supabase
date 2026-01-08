@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from "@/components/shared/page-header";
 import Link from "next/link";
@@ -40,6 +40,9 @@ export function CustomersPageClient({
   const [localSearch, setLocalSearch] = useState(searchParams.get('search') || '');
   const debouncedSearch = useDebounce(localSearch, 500);
 
+  // Track previous search to detect actual changes (useRef persists across renders)
+  const prevSearchRef = useRef(searchParams.get('search') || '');
+
   // Update URL when debounced search changes
   useEffect(() => {
      const params = new URLSearchParams(searchParams);
@@ -48,9 +51,10 @@ export function CustomersPageClient({
      } else {
          params.delete('search');
      }
-     // Reset pagination on search
-     if (debouncedSearch !== searchParams.get('search')) {
+     // Only reset pagination when search actually changes from user input
+     if (debouncedSearch !== prevSearchRef.current) {
         setCurrentPage(1);
+        prevSearchRef.current = debouncedSearch; // Update ref
      }
      router.replace(`/customers?${params.toString()}`);
   }, [debouncedSearch, router, searchParams]);

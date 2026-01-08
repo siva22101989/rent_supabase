@@ -19,7 +19,7 @@ import { FileText } from 'lucide-react';
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { useDebounce } from "@uidotdev/usehooks";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Printer } from "lucide-react";
 import { ExportButton } from "@/components/shared/export-button";
@@ -70,19 +70,21 @@ export function StoragePageClient({
     ['storage-records', page, debouncedSearch, 'active'], 
     async ([_, p, q, s]) => fetchStorageRecordsAction(p as number, 25, q as string, s as any),
     {
-        fallbackData: {
+        // Only use fallback data if we're on the same page as initial server render
+        // This prevents showing page 1 data when clicking page 2
+        fallbackData: page === initialPage && debouncedSearch === (searchParams.get('q') || '') ? {
             records: initialRecords,
             totalPages: initialTotalPages,
-            totalCount: 0 // Not strictly needed for UI, fallbacks cover it
-        },
+            totalCount: 0
+        } : undefined,
         revalidateOnFocus: true,
-        keepPreviousData: true, // Prevents flickering during pagination
+        // SWR will show cached data instantly for previously visited pages
     }
   );
 
-  const records = data?.records || initialRecords;
-  const totalPages = data?.totalPages || initialTotalPages;
-  const isTableLoading = isLoading && !data; // Only true loading if no cache and no fallback
+  const records = data?.records || [];
+  const totalPages = data?.totalPages || 1;
+  const isTableLoading = isLoading && !data; // Only true loading if no cache and no data
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -120,19 +122,28 @@ export function StoragePageClient({
       downloadFile(xml, 'tally-import.xml', 'text/xml');
   };
 
+  // Track previous search to detect actual changes (useRef persists across renders)
+  const prevSearchRef = useRef(searchParams.get('q') || '');
+  
   // Sync search with URL
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
+    const currentUrlSearch = searchParams.get('q') || '';
+    
     if (debouncedSearch) {
       params.set('q', debouncedSearch);
     } else {
       params.delete('q');
     }
-    // Reset to page 1 on search
-    if (debouncedSearch !== searchParams.get('q')) {
+    
+    // Only reset to page 1 if search term actually changed from user input
+    // Not when page loads or re-renders with same search
+    if (debouncedSearch !== prevSearchRef.current) {
         params.set('page', '1');
         setPage(1); // Reset local page immediately
+        prevSearchRef.current = debouncedSearch; // Update ref
     }
+    
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [debouncedSearch, pathname, router, searchParams]);
 
