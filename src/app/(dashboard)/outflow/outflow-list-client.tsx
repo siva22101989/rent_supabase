@@ -11,14 +11,38 @@ import { SearchBar } from "@/components/ui/search-bar";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { startOfDay, endOfDay, isWithinInterval } from "date-fns";
+import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { useUrlFilters } from '@/hooks/use-url-filters';
+
+interface OutflowFilterState {
+  search: string;
+  dateRange: DateRange | undefined;
+  selectedCommodities: string[];
+  minBags: number | null;
+  maxBags: number | null;
+  sortBy: string;
+}
 
 interface OutflowListClientProps {
     outflows: any[];
 }
 
 export function OutflowListClient({ outflows }: OutflowListClientProps) {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    const [filters, setFilters] = useUrlFilters<OutflowFilterState>({
+        search: '',
+        dateRange: undefined as DateRange | undefined,
+        selectedCommodities: [] as string[],
+        minBags: null as number | null,
+        maxBags: null as number | null,
+        sortBy: 'date-desc'
+    });
+    
+    const searchTerm = filters.search;
+    const dateRange = filters.dateRange;
+    const selectedCommodities = filters.selectedCommodities;
+    const minBags = filters.minBags;
+    const maxBags = filters.maxBags;
+    const sortBy = filters.sortBy;
 
     const filteredOutflows = useMemo(() => {
         let result = [...outflows];
@@ -44,8 +68,70 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
             });
         }
 
+        // Commodity filter
+        if (selectedCommodities.length > 0) {
+            result = result.filter(o => selectedCommodities.includes(o.commodity));
+        }
+
+        // Bags range filter
+        if (minBags !== null) result = result.filter(o => o.bags >= minBags);
+        if (maxBags !== null) result = result.filter(o => o.bags <= maxBags);
+
+        // Sort
+        result.sort((a, b) => {
+            switch (sortBy) {
+                case 'date-desc':
+                    return new Date(b.date).getTime() - new Date(a.date).getTime();
+                case 'date-asc':
+                    return new Date(a.date).getTime() - new Date(b.date).getTime();
+                case 'bags-desc':
+                    return b.bags - a.bags;
+                case 'bags-asc':
+                    return a.bags - b.bags;
+                case 'customer-asc':
+                    return (a.customerName || '').localeCompare(b.customerName || '');
+                case 'customer-desc':
+                    return (b.customerName || '').localeCompare(a.customerName || '');
+                default:
+                    return 0;
+            }
+        });
+
         return result;
-    }, [outflows, searchTerm, dateRange]);
+    }, [outflows, searchTerm, dateRange, selectedCommodities, minBags, maxBags, sortBy]);
+
+    // Prepare filter options
+    const commodityOptions: MultiSelectOption[] = useMemo(() => {
+        const unique = Array.from(new Set(outflows.map(o => o.commodity)));
+        return unique.map(name => ({ label: name, value: name }));
+    }, [outflows]);
+
+    const sortOptions: SortOption[] = [
+        { label: 'Newest First', value: 'date-desc', icon: 'desc' },
+        { label: 'Oldest First', value: 'date-asc', icon: 'asc' },
+        { label: 'Most Bags', value: 'bags-desc', icon: 'desc' },
+        { label: 'Least Bags', value: 'bags-asc', icon: 'asc' },
+        { label: 'Customer (A-Z)', value: 'customer-asc', icon: 'asc' },
+        { label: 'Customer (Z-A)', value: 'customer-desc', icon: 'desc' },
+    ];
+
+    const activeFilters = useMemo(() => {
+        let count = 0;
+        if (dateRange?.from) count++;
+        if (selectedCommodities.length > 0) count++;
+        if (minBags !== null || maxBags !== null) count++;
+        return count;
+    }, [dateRange, selectedCommodities, minBags, maxBags]);
+
+    const handleClearFilters = () => {
+        setFilters(prev => ({
+            ...prev,
+            dateRange: undefined,
+            selectedCommodities: [],
+            minBags: null,
+            maxBags: null
+        }));
+    };
 
     return (
         <div className="mt-8">
@@ -55,11 +141,40 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <SearchBar
                     value={searchTerm}
-                    onChange={setSearchTerm}
+                    onChange={(value) => setFilters(prev => ({ ...prev, search: value }))}
                     placeholder="Search by customer, invoice, or commodity..."
                     className="flex-1"
                 />
-                <DatePickerWithRange date={dateRange} setDate={setDateRange} className="w-full sm:w-auto" />
+                <DatePickerWithRange date={dateRange} setDate={(range) => setFilters(prev => ({ ...prev, dateRange: range }))} className="w-full sm:w-auto" />
+                <FilterPopover
+                    activeFilters={activeFilters}
+                    onClear={handleClearFilters}
+                >
+                    <FilterSection title="Commodities">
+                        <MultiSelect
+                            options={commodityOptions}
+                            selected={selectedCommodities}
+                            onChange={(value) => setFilters(prev => ({ ...prev, selectedCommodities: value }))}
+                            placeholder="All commodities"
+                        />
+                    </FilterSection>
+                    <FilterSection title="Bags Range">
+                        <NumberRangeInput
+                            min={minBags}
+                            max={maxBags}
+                            onMinChange={(value) => setFilters(prev => ({ ...prev, minBags: value }))}
+                            onMaxChange={(value) => setFilters(prev => ({ ...prev, maxBags: value }))}
+                            minPlaceholder="Min bags"
+                            maxPlaceholder="Max bags"
+                        />
+                    </FilterSection>
+                </FilterPopover>
+                <SortDropdown
+                    options={sortOptions}
+                    value={sortBy}
+                    onChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
+                />
+                <ShareFilterButton filters={filters} />
             </div>
 
             {/* Mobile View */}

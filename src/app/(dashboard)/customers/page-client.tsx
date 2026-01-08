@@ -21,6 +21,16 @@ import { Search, Users, Phone, MapPin } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { useDebounce } from "@uidotdev/usehooks";
+import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { useUrlFilters } from '@/hooks/use-url-filters';
+
+interface CustomerFilterState {
+  search: string;
+  selectedVillages: string[];
+  minBalance: number | null;
+  maxBalance: number | null;
+  sortBy: string;
+}
 
 const ITEMS_PER_PAGE = 20;
 
@@ -36,9 +46,25 @@ export function CustomersPageClient({
   
   const router = useRouter();
   const searchParams = useSearchParams();
+  
+  // URL-synchronized filter state
+  const [filters, setFilters] = useUrlFilters<CustomerFilterState>({
+    search: searchParams.get('q') || '',
+    selectedVillages: [] as string[],
+    minBalance: null as number | null,
+    maxBalance: null as number | null,
+    sortBy: 'balance-desc'
+  });
+  
+  const searchTerm = filters.search;
+  const selectedVillages = filters.selectedVillages;
+  const minBalance = filters.minBalance;
+  const maxBalance = filters.maxBalance;
+  const sortBy = filters.sortBy;
+  
+  const debouncedSearch = useDebounce(searchTerm, 500);
   const [currentPage, setCurrentPage] = useState(1);
-  const [localSearch, setLocalSearch] = useState(searchParams.get('search') || '');
-  const debouncedSearch = useDebounce(localSearch, 500);
+  const [hasActiveRecords, setHasActiveRecords] = useState<boolean | null>(null);
 
   // Track previous search to detect actual changes (useRef persists across renders)
   const prevSearchRef = useRef(searchParams.get('search') || '');
@@ -60,12 +86,92 @@ export function CustomersPageClient({
   }, [debouncedSearch, router, searchParams]);
 
   const handleSearch = (value: string) => {
-    setLocalSearch(value);
+    setFilters(prev => ({ ...prev, search: value }));
   };
   
   // Since we are filtering on the server, we just display what's passed in
   // No need for client-side filtering logic
   const paginatedCustomers = initialCustomers; // Server limit is applied
+
+  // Client-side filtering and sorting
+  const filteredCustomers = useMemo(() => {
+    let result = [...paginatedCustomers];
+
+    // Village filter
+    if (selectedVillages.length > 0) {
+      result = result.filter(c => c.village && selectedVillages.includes(c.village));
+    }
+
+    // Balance range filter
+    if (minBalance !== null) result = result.filter(c => c.balance >= minBalance);
+    if (maxBalance !== null) result = result.filter(c => c.balance <= maxBalance);
+
+    // Active records filter
+    if (hasActiveRecords !== null) {
+      result = result.filter(c => hasActiveRecords ? c.activeRecords > 0 : c.activeRecords === 0);
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'balance-desc':
+          return b.balance - a.balance;
+        case 'balance-asc':
+          return a.balance - b.balance;
+        case 'billed-desc':
+          return b.totalBilled - a.totalBilled;
+        case 'billed-asc':
+          return a.totalBilled - b.totalBilled;
+        case 'records-desc':
+          return b.activeRecords - a.activeRecords;
+        case 'records-asc':
+          return a.activeRecords - b.activeRecords;
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [paginatedCustomers, selectedVillages, minBalance, maxBalance, hasActiveRecords, sortBy]);
+
+  // Prepare filter options
+  const villageOptions: MultiSelectOption[] = useMemo(() => {
+    const unique = Array.from(new Set(initialCustomers.map(c => c.village).filter(Boolean)));
+    return unique.map(name => ({ label: name, value: name }));
+  }, [initialCustomers]);
+
+  const sortOptions: SortOption[] = [
+    { label: 'Highest Balance', value: 'balance-desc', icon: 'desc' },
+    { label: 'Lowest Balance', value: 'balance-asc', icon: 'asc' },
+    { label: 'Name (A-Z)', value: 'name-asc', icon: 'asc' },
+    { label: 'Name (Z-A)', value: 'name-desc', icon: 'desc' },
+    { label: 'Most Billed', value: 'billed-desc', icon: 'desc' },
+    { label: 'Least Billed', value: 'billed-asc', icon: 'asc' },
+    { label: 'Most Active Records', value: 'records-desc', icon: 'desc' },
+    { label: 'Least Active Records', value: 'records-asc', icon: 'asc' },
+  ];
+
+  const activeFilters = useMemo(() => {
+    let count = 0;
+    if (selectedVillages.length > 0) count++;
+    if (minBalance !== null || maxBalance !== null) count++;
+    if (hasActiveRecords !== null) count++;
+    return count;
+  }, [selectedVillages, minBalance, maxBalance, hasActiveRecords]);
+
+  const handleClearFilters = () => {
+    setFilters(prev => ({
+      ...prev,
+      selectedVillages: [],
+      minBalance: null,
+      maxBalance: null
+    }));
+    setHasActiveRecords(null);
+  };
 
   return (
     <>
@@ -83,26 +189,57 @@ export function CustomersPageClient({
       </PageHeader>
       
       <div className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search all customers (Server-Side)..."
-            value={localSearch}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10"
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search all customers (Server-Side)..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <FilterPopover
+            activeFilters={activeFilters}
+            onClear={handleClearFilters}
+          >
+            <FilterSection title="Villages">
+              <MultiSelect
+                options={villageOptions}
+                selected={selectedVillages}
+                onChange={(value) => setFilters(prev => ({ ...prev, selectedVillages: value }))}
+                placeholder="All villages"
+              />
+            </FilterSection>
+            <FilterSection title="Balance Range">
+              <NumberRangeInput
+                min={minBalance}
+                max={maxBalance}
+                onMinChange={(value) => setFilters(prev => ({ ...prev, minBalance: value }))}
+                onMaxChange={(value) => setFilters(prev => ({ ...prev, maxBalance: value }))}
+                minPlaceholder="Min balance"
+                maxPlaceholder="Max balance"
+              />
+            </FilterSection>
+          </FilterPopover>
+          <SortDropdown
+            options={sortOptions}
+            value={sortBy}
+            onChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
           />
+          <ShareFilterButton filters={filters} />
         </div>
       </div>
 
       {/* Mobile Card View */}
       <div className="md:hidden space-y-4">
-        {paginatedCustomers.length === 0 ? (
+        {filteredCustomers.length === 0 ? (
           <EmptyState
             icon={Users}
-            title={localSearch ? "No customers found" : "No customers yet"}
-            description={localSearch ? `No customers match "${localSearch}".` : "Add your first customer to start tracking storage and payments."}
-            actionLabel={localSearch ? undefined : "Add First Customer"}
-            onAction={localSearch ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
+            title={searchTerm ? "No customers found" : "No customers yet"}
+            description={searchTerm ? `No customers match "${searchTerm}".` : "Add your first customer to start tracking storage and payments."}
+            actionLabel={searchTerm ? undefined : "Add First Customer"}
+            onAction={searchTerm ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-Customer-trigger]')?.click()}
           />
         ) : (
           paginatedCustomers.map((customer) => (
@@ -157,20 +294,20 @@ export function CustomersPageClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedCustomers.length === 0 ? (
+              {filteredCustomers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-64">
                     <EmptyState
                       icon={Users}
-                      title={localSearch ? "No customers found" : "No customers yet"}
-                      description={localSearch ? `No customers match "${localSearch}".` : "Add your first customer to start tracking storage and payments."}
-                      actionLabel={localSearch ? undefined : "Add First Customer"}
-                      onAction={localSearch ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
+                      title={searchTerm ? "No customers found" : "No customers yet"}
+                      description={searchTerm ? `No customers match "${searchTerm}".` : "Add your first customer to start tracking storage and payments."}
+                      actionLabel={searchTerm ? undefined : "Add First Customer"}
+                      onAction={searchTerm ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
                     />
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedCustomers.map((customer) => (
+                filteredCustomers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">
                       <Link href={`/customers/${customer.id}`} className="hover:underline">

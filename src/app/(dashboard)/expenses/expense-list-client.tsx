@@ -13,14 +13,38 @@ import { DateRange } from "react-day-picker";
 import { format, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import { formatCurrency, toDate } from "@/lib/utils";
 import type { Expense } from "@/lib/definitions";
+import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { useUrlFilters } from '@/hooks/use-url-filters';
+
+interface ExpenseFilterState {
+  search: string;
+  dateRange: DateRange | undefined;
+  selectedCategories: string[];
+  minAmount: number | null;
+  maxAmount: number | null;
+  sortBy: string;
+}
 
 interface ExpenseListClientProps {
     expenses: Expense[];
 }
 
 export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    const [filters, setFilters] = useUrlFilters<ExpenseFilterState>({
+        search: '',
+        dateRange: undefined as DateRange | undefined,
+        selectedCategories: [] as string[],
+        minAmount: null as number | null,
+        maxAmount: null as number | null,
+        sortBy: 'date-desc'
+    });
+    
+    const searchTerm = filters.search;
+    const dateRange = filters.dateRange;
+    const selectedCategories = filters.selectedCategories;
+    const minAmount = filters.minAmount;
+    const maxAmount = filters.maxAmount;
+    const sortBy = filters.sortBy;
 
     const filteredExpenses = useMemo(() => {
         let result = [...expenses];
@@ -45,8 +69,70 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
             });
         }
 
+        // Category filter
+        if (selectedCategories.length > 0) {
+            result = result.filter(e => selectedCategories.includes(e.category));
+        }
+
+        // Amount range filter
+        if (minAmount !== null) result = result.filter(e => e.amount >= minAmount);
+        if (maxAmount !== null) result = result.filter(e => e.amount <= maxAmount);
+
+        // Sort
+        result.sort((a, b) => {
+            switch (sortBy) {
+                case 'date-desc':
+                    return toDate(b.date).getTime() - toDate(a.date).getTime();
+                case 'date-asc':
+                    return toDate(a.date).getTime() - toDate(b.date).getTime();
+                case 'amount-desc':
+                    return b.amount - a.amount;
+                case 'amount-asc':
+                    return a.amount - b.amount;
+                case 'category-asc':
+                    return (a.category || '').localeCompare(b.category || '');
+                case 'category-desc':
+                    return (b.category || '').localeCompare(a.category || '');
+                default:
+                    return 0;
+            }
+        });
+
         return result;
-    }, [expenses, searchTerm, dateRange]);
+    }, [expenses, searchTerm, dateRange, selectedCategories, minAmount, maxAmount, sortBy]);
+
+    // Prepare filter options
+    const categoryOptions: MultiSelectOption[] = useMemo(() => {
+        const unique = Array.from(new Set(expenses.map(e => e.category)));
+        return unique.map(name => ({ label: name, value: name }));
+    }, [expenses]);
+
+    const sortOptions: SortOption[] = [
+        { label: 'Newest First', value: 'date-desc', icon: 'desc' },
+        { label: 'Oldest First', value: 'date-asc', icon: 'asc' },
+        { label: 'Highest Amount', value: 'amount-desc', icon: 'desc' },
+        { label: 'Lowest Amount', value: 'amount-asc', icon: 'asc' },
+        { label: 'Category (A-Z)', value: 'category-asc', icon: 'asc' },
+        { label: 'Category (Z-A)', value: 'category-desc', icon: 'desc' },
+    ];
+
+    const activeFilters = useMemo(() => {
+        let count = 0;
+        if (dateRange?.from) count++;
+        if (selectedCategories.length > 0) count++;
+        if (minAmount !== null || maxAmount !== null) count++;
+        return count;
+    }, [dateRange, selectedCategories, minAmount, maxAmount]);
+
+    const handleClearFilters = () => {
+        setFilters(prev => ({
+            ...prev,
+            dateRange: undefined,
+            selectedCategories: [],
+            minAmount: null,
+            maxAmount: null
+        }));
+    };
 
     return (
         <div className="mt-6">
@@ -59,11 +145,40 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
                     <div className="flex flex-col sm:flex-row gap-3 mb-4">
                         <SearchBar
                             value={searchTerm}
-                            onChange={setSearchTerm}
+                            onChange={(value) => setFilters(prev => ({ ...prev, search: value }))}
                             placeholder="Search by description or category..."
                             className="flex-1"
                         />
-                        <DatePickerWithRange date={dateRange} setDate={setDateRange} className="w-full sm:w-auto" />
+                        <DatePickerWithRange date={dateRange} setDate={(range) => setFilters(prev => ({ ...prev, dateRange: range }))} className="w-full sm:w-auto" />
+                        <FilterPopover
+                            activeFilters={activeFilters}
+                            onClear={handleClearFilters}
+                        >
+                            <FilterSection title="Categories">
+                                <MultiSelect
+                                    options={categoryOptions}
+                                    selected={selectedCategories}
+                                    onChange={(value) => setFilters(prev => ({ ...prev, selectedCategories: value }))}
+                                    placeholder="All categories"
+                                />
+                            </FilterSection>
+                            <FilterSection title="Amount Range">
+                                <NumberRangeInput
+                                    min={minAmount}
+                                    max={maxAmount}
+                                    onMinChange={(value) => setFilters(prev => ({ ...prev, minAmount: value }))}
+                                    onMaxChange={(value) => setFilters(prev => ({ ...prev, maxAmount: value }))}
+                                    minPlaceholder="Min amount"
+                                    maxPlaceholder="Max amount"
+                                />
+                            </FilterSection>
+                        </FilterPopover>
+                        <SortDropdown
+                            options={sortOptions}
+                            value={sortBy}
+                            onChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
+                        />
+                        <ShareFilterButton filters={filters} />
                     </div>
 
                     {/* Mobile View */}

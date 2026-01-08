@@ -78,6 +78,7 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
       customer:customers(name)
     `)
     .eq('warehouse_id', warehouseId)
+    .is('deleted_at', null)
     .order('storage_start_date', { ascending: false });
 
   if (error) {
@@ -103,6 +104,7 @@ export async function getActiveStorageRecords(limit = 50): Promise<StorageRecord
     `)
     .eq('warehouse_id', warehouseId)
     .is('storage_end_date', null)
+    .is('deleted_at', null)
     .order('storage_start_date', { ascending: false })
     .limit(limit);
 
@@ -122,7 +124,8 @@ export async function getStorageStats() {
     const { data, error } = await supabase
         .from('storage_records')
         .select('bags_in, bags_out, bags_stored')
-        .eq('warehouse_id', warehouseId);
+        .eq('warehouse_id', warehouseId)
+        .is('deleted_at', null);
 
     if (error || !data) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0 };
 
@@ -196,6 +199,7 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
         `)
         .eq('warehouse_id', warehouseId)
         .eq('customer_id', customerId)
+        .is('deleted_at', null)
         .order('storage_start_date', { ascending: false });
 
     if (error) return [];

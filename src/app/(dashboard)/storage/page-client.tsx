@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDown, ArrowUp, Warehouse, IndianRupee, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Warehouse, IndianRupee, Search, X } from "lucide-react";
 import { calculateFinalRent } from "@/lib/billing";
 import { formatCurrency } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,6 +28,28 @@ import { ActionsMenu } from '@/components/dashboard/actions-menu';
 import useSWR from 'swr';
 import { fetchStorageRecordsAction } from '@/lib/actions/storage/records';
 import { Loader2 } from 'lucide-react';
+import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { useUrlFilters } from '@/hooks/use-url-filters';
+import { countActiveFilters } from '@/lib/url-filters';
+
+// Filter state interface
+interface StorageFilterState {
+  search: string;
+  status: 'active' | 'all' | 'released';
+  selectedCommodities: string[];
+  selectedLocations: string[];
+  dateRange: DateRange | undefined;
+  minBags: number | null;
+  maxBags: number | null;
+  minRent: number | null;
+  maxRent: number | null;
+  sortBy: string;
+  page: number;
+}
 
 
 export function StoragePageClient({ 
@@ -36,7 +58,7 @@ export function StoragePageClient({
   currentPage: initialPage, 
   initialStats, 
   customers,
-  userRole,
+    userRole,
   crops,
   lots
 }: { 
@@ -53,42 +75,191 @@ export function StoragePageClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
-  // Local state for immediate input feedback
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  
+  // URL-synchronized filter state
+  const [filters, setFilters] = useUrlFilters<StorageFilterState>({
+    search: searchParams.get('q') || '',
+    status: (searchParams.get('status') as any) || 'active',
+    selectedCommodities: [] as string[],
+    selectedLocations: [] as string[],
+    dateRange: undefined as DateRange | undefined,
+    minBags: null as number | null,
+    maxBags: null as number | null,
+    minRent: null as number | null,
+    maxRent: null as number | null,
+    sortBy: 'date-desc',
+    page: initialPage
+  });
+  
+  // Extract individual values for easier access
+  const searchTerm = filters.search;
+  const status = filters.status;
+  const selectedCommodities = filters.selectedCommodities;
+  const selectedLocations = filters.selectedLocations;
+  const dateRange = filters.dateRange;
+  const minBags = filters.minBags;
+  const maxBags = filters.maxBags;
+  const minRent = filters.minRent;
+  const maxRent = filters.maxRent;
+  const sortBy = filters.sortBy;
+  const page = filters.page;
+
+  
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
-  
-  // SWR for Caching & Background Updates
-  const [page, setPage] = useState(initialPage);
 
-  // Sync page state with prop when server updates (e.g. valid navigation)
+  // Sync page state with prop when server updates (keep for compatibility)
   useEffect(() => {
-    setPage(initialPage);
+    if (initialPage !== page) {
+      setFilters(prev => ({ ...prev, page: initialPage }));
+    }
   }, [initialPage]);
 
+  // SWR for data fetching with different status
   const { data, isLoading, mutate } = useSWR(
-    ['storage-records', page, debouncedSearch, 'active'], 
+    ['storage-records', page, debouncedSearch, status], 
     async ([_, p, q, s]) => fetchStorageRecordsAction(p as number, 25, q as string, s as any),
     {
-        // Only use fallback data if we're on the same page as initial server render
-        // This prevents showing page 1 data when clicking page 2
-        fallbackData: page === initialPage && debouncedSearch === (searchParams.get('q') || '') ? {
+        fallbackData: page === initialPage && debouncedSearch === (searchParams.get('q') || '') && status === 'active' ? {
             records: initialRecords,
             totalPages: initialTotalPages,
             totalCount: 0
         } : undefined,
         revalidateOnFocus: true,
-        // SWR will show cached data instantly for previously visited pages
     }
   );
 
-  const records = data?.records || [];
+  let records = data?.records || [];
   const totalPages = data?.totalPages || 1;
-  const isTableLoading = isLoading && !data; // Only true loading if no cache and no data
+  const isTableLoading = isLoading && !data;
+
+  // Client-side filtering for advanced filters (commodity, location, bags, rent, date)
+  const filteredRecords = useMemo(() => {
+    let result = [...records];
+
+    // Commodity filter
+    if (selectedCommodities.length > 0) {
+      result = result.filter(r => selectedCommodities.includes(r.commodityDescription));
+    }
+
+    // Location filter
+    if (selectedLocations.length > 0) {
+      result = result.filter(r => selectedLocations.includes(r.location));
+    }
+
+    // Date range filter
+    if (dateRange?.from) {
+      result = result.filter(r => {
+        const date = new Date(r.storageStartDate);
+        return isWithinInterval(date, {
+          start: startOfDay(dateRange.from!),
+          end: dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from!)
+        });
+      });
+    }
+
+    // Bags range filter
+    if (minBags !== null) {
+      result = result.filter(r => r.bagsStored >= minBags);
+    }
+    if (maxBags !== null) {
+      result = result.filter(r => r.bagsStored <= maxBags);
+    }
+
+    // Rent range filter (calculate rent first)
+    if (minRent !== null || maxRent !== null) {
+      result = result.filter(r => {
+        const { rent } = calculateFinalRent(r, new Date(), r.bagsStored);
+        if (minRent !== null && rent < minRent) return false;
+        if (maxRent !== null && rent > maxRent) return false;
+        return true;
+      });
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.storageStartDate).getTime() - new Date(a.storageStartDate).getTime();
+        case 'date-asc':
+          return new Date(a.storageStartDate).getTime() - new Date(b.storageStartDate).getTime();
+        case 'bags-desc':
+          return b.bagsStored - a.bagsStored;
+        case 'bags-asc':
+          return a.bagsStored - b.bagsStored;
+        case 'rent-desc': {
+          const rentA = calculateFinalRent(a, new Date(), a.bagsStored).rent;
+          const rentB = calculateFinalRent(b, new Date(), b.bagsStored).rent;
+          return rentB - rentA;
+        }
+        case 'rent-asc': {
+          const rentA = calculateFinalRent(a, new Date(), a.bagsStored).rent;
+         const rentB = calculateFinalRent(b, new Date(), b.bagsStored).rent;
+          return rentA - rentB;
+        }
+        case 'customer-asc':
+          return (a.customerName || '').localeCompare(b.customerName || '');
+        case 'customer-desc':
+          return (b.customerName || '').localeCompare(a.customerName || '');
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [records, selectedCommodities, selectedLocations, dateRange, minBags, maxBags, minRent, maxRent, sortBy]);
+
+  // Create filter options
+  const commodityOptions: MultiSelectOption[] = useMemo(() => {
+    const unique = Array.from(new Set(crops.map(c => c.name)));
+    return unique.map(name => ({ label: name, value: name }));
+  }, [crops]);
+
+  const locationOptions: MultiSelectOption[] = useMemo(() => {
+    const unique = Array.from(new Set(lots.map(l => l.name)));
+    return unique.map(name => ({ label: name, value: name }));
+  }, [lots]);
+
+  const sortOptions: SortOption[] = [
+    { label: 'Newest First', value: 'date-desc', icon: 'desc' },
+    { label: 'Oldest First', value: 'date-asc', icon: 'asc' },
+    { label: 'Most Bags', value: 'bags-desc', icon: 'desc' },
+    { label: 'Least Bags', value: 'bags-asc', icon: 'asc' },
+    { label: 'Highest Rent', value: 'rent-desc', icon: 'desc' },
+    { label: 'Lowest Rent', value: 'rent-asc', icon: 'asc' },
+    { label: 'Customer (A-Z)', value: 'customer-asc', icon: 'asc' },
+    { label: 'Customer (Z-A)', value: 'customer-desc', icon: 'desc' },
+  ];
+
+  // Count active filters
+  const activeFilters = useMemo(() => {
+    let count = 0;
+    if (status !== 'active') count++;
+    if (selectedCommodities.length > 0) count++;
+    if (selectedLocations.length > 0) count++;
+    if (dateRange?.from) count++;
+    if (minBags !== null || maxBags !== null) count++;
+    if (minRent !== null || maxRent !== null) count++;
+    return count;
+  }, [status, selectedCommodities, selectedLocations, dateRange, minBags, maxBags, minRent, maxRent]);
+
+  const handleClearFilters = () => {
+    setFilters(prev => ({
+      ...prev,
+      status: 'active',
+      selectedCommodities: [],
+      selectedLocations: [],
+      dateRange: undefined,
+      minBags: null,
+      maxBags: null,
+      minRent: null,
+      maxRent: null
+    }));
+  };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-        setSelectedRecords(new Set(records.map(r => r.id)));
+        setSelectedRecords(new Set(filteredRecords.map(r => r.id)));
     } else {
         setSelectedRecords(new Set());
     }
@@ -110,60 +281,52 @@ export function StoragePageClient({
   };
 
   const handleExportExcel = () => {
-    const recordsToExport = records.filter(r => selectedRecords.has(r.id));
+    const recordsToExport = filteredRecords.filter(r => selectedRecords.has(r.id));
     exportStorageRecordsToExcel(recordsToExport);
   };
 
   const handleExportTally = () => {
       const recordsToExport = selectedRecords.size > 0 
-        ? records.filter(r => selectedRecords.has(r.id))
-        : records;
+        ? filteredRecords.filter(r => selectedRecords.has(r.id))
+        : filteredRecords;
       const xml = generateTallyXML(recordsToExport);
       downloadFile(xml, 'tally-import.xml', 'text/xml');
   };
 
-  // Track previous search to detect actual changes (useRef persists across renders)
+  // Track previous search to detect actual changes
   const prevSearchRef = useRef(searchParams.get('q') || '');
   
   // Sync search with URL
   useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    const currentUrlSearch = searchParams.get('q') || '';
-    
+    const params = new URLSearchParams(searchParams);    
     if (debouncedSearch) {
       params.set('q', debouncedSearch);
     } else {
       params.delete('q');
-    }
-    
+    }    
     // Only reset to page 1 if search term actually changed from user input
-    // Not when page loads or re-renders with same search
     if (debouncedSearch !== prevSearchRef.current) {
         params.set('page', '1');
-        setPage(1); // Reset local page immediately
-        prevSearchRef.current = debouncedSearch; // Update ref
-    }
-    
+        setFilters(prev => ({ ...prev, page: 1 }));
+        prevSearchRef.current = debouncedSearch;
+    }    
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [debouncedSearch, pathname, router, searchParams]);
 
   const handlePageChange = (newPage: number) => {
-    setPage(newPage); // Optimistic Update
-
-    const params = new URLSearchParams(searchParams);
-    params.set('page', newPage.toString());
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    setFilters(prev => ({ ...prev, page: newPage }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const stats = useMemo(() => {
     return {
         ...initialStats,
-        estimatedRent: records.reduce((total, record) => {
+        estimatedRent: filteredRecords.reduce((total, record) => {
              const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
              return total + rent;
         }, 0)
     }
-  }, [records, initialStats]);
+  }, [filteredRecords, initialStats]);
 
   return (
     <>
@@ -176,7 +339,7 @@ export function StoragePageClient({
         ]}
       />
 
-      {/* Stats Cards (Static/Server for now, could be SWR'd too) */}
+      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -213,7 +376,7 @@ export function StoragePageClient({
             <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(stats.estimatedRent)}</div>
                 <p className="text-xs text-muted-foreground">
-                    Based on visible records
+                    Based on {filteredRecords.length} records
                 </p>
             </CardContent>
         </Card>
@@ -221,30 +384,122 @@ export function StoragePageClient({
 
       {/* Detailed Stock Register */}
       <div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <h3 className="text-lg font-medium flex items-center gap-2">
-            Detailed Stock Register
-            {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          </h3>
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by customer..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        <div className="flex flex-col gap-4 mb-4">
+          {/* Top row - Title and Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h3 className="text-lg font-medium flex items-center gap-2">
+              Detailed Stock Register
+              {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </h3>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by customer..."
+                value={searchTerm}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                className="pl-10"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7"
+                  onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="hidden sm:block">
-            <ExportButton 
-                onExportExcel={() => exportStorageRecordsToExcel(records)} 
-                onExportTally={handleExportTally}
-                label="Export View"
-                variant="outline"
+
+          {/* Bottom row - Filters and Actions */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {/* Status Tabs */}
+            <Select value={status} onValueChange={(v: any) => setFilters(prev => ({ ...prev, status: v }))}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="released">Released</SelectItem>
+                <SelectItem value="all">All Records</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Advanced Filters */}
+            <FilterPopover
+              activeFilters={activeFilters}
+              onClear={handleClearFilters}
+            >
+              <FilterSection title="Date Range">
+                <DatePickerWithRange 
+                  date={dateRange} 
+                  setDate={(range) => setFilters(prev => ({ ...prev, dateRange: range }))} 
+                />
+              </FilterSection>
+
+              <FilterSection title="Commodities">
+                <MultiSelect
+                  options={commodityOptions}
+                  selected={selectedCommodities}
+                  onChange={(value) => setFilters(prev => ({ ...prev, selectedCommodities: value }))}
+                  placeholder="All commodities"
+                />
+              </FilterSection>
+
+              <FilterSection title="Locations">
+                <MultiSelect
+                  options={locationOptions}
+                  selected={selectedLocations}
+                  onChange={(value) => setFilters(prev => ({ ...prev, selectedLocations: value }))}
+                  placeholder="All locations"
+                />
+              </FilterSection>
+
+              <FilterSection title="Bags Range">
+                <NumberRangeInput
+                  min={minBags}
+                  max={maxBags}
+                  onMinChange={(value) => setFilters(prev => ({ ...prev, minBags: value }))}
+                  onMaxChange={(value) => setFilters(prev => ({ ...prev, maxBags: value }))}
+                  minPlaceholder="Min bags"
+                  maxPlaceholder="Max bags"
+                />
+              </FilterSection>
+
+              <FilterSection title="Rent Range">
+                <NumberRangeInput
+                  min={minRent}
+                  max={maxRent}
+                  onMinChange={(value) => setFilters(prev => ({ ...prev, minRent: value }))}
+                  onMaxChange={(value) => setFilters(prev => ({ ...prev, maxRent: value }))}
+                  minPlaceholder="Min rent"
+                  maxPlaceholder="Max rent"
+                />
+              </FilterSection>
+            </FilterPopover>
+
+            {/* Sort Dropdown */}
+            <SortDropdown
+              options={sortOptions}
+              value={sortBy}
+              onChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
             />
+
+            {/* Share Button */}
+            <ShareFilterButton filters={filters} />
+
+            {/* Export - Hidden on Mobile */}
+            <div className="ml-auto hidden sm:block">
+              <ExportButton 
+                  onExportExcel={() => exportStorageRecordsToExcel(filteredRecords)} 
+                  onExportTally={handleExportTally}
+                  label="Export View"
+                  variant="outline"
+              />
+            </div>
           </div>
         </div>
-        
         </div>
 
         {/* Floating Action Bar - Hidden on Mobile */}
@@ -276,7 +531,7 @@ export function StoragePageClient({
         
         {/* Mobile Card View */}
         <div className="md:hidden space-y-4">
-          {records.length === 0 ? (
+          {filteredRecords.length === 0 ? (
             <EmptyState
               icon={Warehouse}
               title={searchTerm ? "No results found" : "No active storage records"}
@@ -285,7 +540,7 @@ export function StoragePageClient({
               actionHref={searchTerm ? undefined : "/inflow"}
             />
           ) : (
-            records.map((record) => {
+            filteredRecords.map((record) => {
               const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
               return (
                 <MobileCard key={record.id}>
@@ -331,7 +586,7 @@ export function StoragePageClient({
                         <TableRow>
                             <TableHead className="w-12">
                                 <Checkbox 
-                                    checked={records.length > 0 && selectedRecords.size === records.length}
+                                    checked={filteredRecords.length > 0 && selectedRecords.size === filteredRecords.length}
                                     onCheckedChange={(checked) => handleSelectAll(!!checked)}
                                 />
                             </TableHead>
@@ -346,12 +601,11 @@ export function StoragePageClient({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isTableLoading && records.length === 0 ? (
-                           // Skeleton State if needed, but fallback keeps old records usually
+                        {isTableLoading && filteredRecords.length === 0 ? (
                            <TableRow>
                              <TableCell colSpan={9} className="h-24 text-center">Loading...</TableCell>
                            </TableRow>
-                        ) : records.map((record) => {
+                        ) : filteredRecords.map((record) => {
                             const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
                             return (
                                 <TableRow key={record.id} className={selectedRecords.has(record.id) ? "bg-muted/50" : ""}>
@@ -389,7 +643,7 @@ export function StoragePageClient({
                                 </TableRow>
                             );
                         })}
-                        {!isTableLoading && records.length === 0 && (
+                        {!isTableLoading && filteredRecords.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={9} className="h-64">
                                     <EmptyState
