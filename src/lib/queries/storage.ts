@@ -14,8 +14,7 @@ export const getDashboardMetrics = cache(async () => {
         .from('storage_records')
         .select('*', { count: 'exact', head: true })
         .eq('warehouse_id', warehouseId)
-        .is('storage_end_date', null)
-        .is('deleted_at', null);
+        .is('storage_end_date', null);
 
     let totalCapacity = 0;
     let totalStock = 0;
@@ -79,7 +78,6 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
       customer:customers(name)
     `)
     .eq('warehouse_id', warehouseId)
-    .is('deleted_at', null)
     .order('storage_start_date', { ascending: false });
 
   if (error) {
@@ -105,7 +103,6 @@ export async function getActiveStorageRecords(limit = 50): Promise<StorageRecord
     `)
     .eq('warehouse_id', warehouseId)
     .is('storage_end_date', null)
-    .is('deleted_at', null)
     .order('storage_start_date', { ascending: false })
     .limit(limit);
 
@@ -125,8 +122,7 @@ export async function getStorageStats() {
     const { data, error } = await supabase
         .from('storage_records')
         .select('bags_in, bags_out, bags_stored')
-        .eq('warehouse_id', warehouseId)
-        .is('deleted_at', null);
+        .eq('warehouse_id', warehouseId);
 
     if (error || !data) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0 };
 
@@ -200,7 +196,6 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
         `)
         .eq('warehouse_id', warehouseId)
         .eq('customer_id', customerId)
-        .is('deleted_at', null)
         .order('storage_start_date', { ascending: false });
 
     if (error) return [];
@@ -325,8 +320,8 @@ export async function searchActiveStorageRecords(query: string, limit = 50) {
       customer:customers!inner(name) 
     `)
     .eq('warehouse_id', warehouseId)
-    .is('storage_end_date', null)
     .is('deleted_at', null)
+    .is('storage_end_date', null)
     .gt('bags_stored', 0) 
     .order('storage_start_date', { ascending: false })
     .limit(limit);
@@ -380,9 +375,7 @@ export async function getPaginatedStorageRecords(
         } else if (status === 'released') {
             query = query.not('storage_end_date', 'is', null).is('deleted_at', null);
         }
-        // If status is 'all', typically we usually want visible records, so filter deleted too? 
-        // Or if 'all' means EVERYTHING including deleted, we leave it. 
-        // Usually 'all' in list views implies "Non-Deleted History".
+        // If status is 'all', typically we usually want visible records, so filter deleted too.
         if (status === 'all') {
             query = query.is('deleted_at', null);
         }

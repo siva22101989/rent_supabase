@@ -95,6 +95,7 @@
     "genkit-cli": "^1.20.0",
     "jsdom": "^27.3.0",
     "postcss": "^8",
+    "supabase": "^2.71.3",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.21.0",
     "typescript": "^5",

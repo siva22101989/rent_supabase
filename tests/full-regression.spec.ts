@@ -6,8 +6,8 @@ test.describe('Full Scale Regression Suite', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/login');
         // Fill credentials (these should be in .env.test or generic test account)
-        await page.getByLabel('Email').fill('nikhilpnkr@gmail.com');
-        await page.getByLabel('Password').fill('123456');
+        await page.getByLabel(/Email|Mobile/i).fill('nikhilpnkr@gmail.com');
+        await page.getByLabel('Password', { exact: true }).fill('123456');
         await page.getByRole('button', { name: 'Login' }).click();
         await expect(page).toHaveURL('/', { timeout: 15000 });
     });

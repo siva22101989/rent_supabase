@@ -229,7 +229,7 @@ function InflowFormInner({
                 <CardHeader>
                     <CardTitle>New Storage Record Details</CardTitle>
                     <CardDescription>
-                        Next Serial No: <span className="font-bold text-primary">Auto-Generated ({nextSerialNumber})</span>
+                        Next Serial No: <span data-testid="next-serial-number" className="font-bold text-primary">Auto-Generated ({nextSerialNumber})</span>
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

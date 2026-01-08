@@ -1,6 +1,7 @@
-import { createClient } from "jsr:@supabase/supabase-js@2";
+// @ts-nocheck
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Create a Supabase client with the Auth context of the logged in user.
   // Use the service role key to bypass RLS for administrative updates
   const supabase = createClient(

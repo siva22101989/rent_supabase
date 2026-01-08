@@ -259,7 +259,7 @@ export function OutflowForm({
                                         onChange={e => setBagsToWithdraw(Number(e.target.value))}
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        Max: {selectedRecord.bagsStored} bags
+                                        Max: <span data-testid="bags-stored">{selectedRecord.bagsStored}</span> bags
                                     </p>
                                 </div>
                                 <div className="space-y-2">
@@ -284,7 +284,7 @@ export function OutflowForm({
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Rent Due for {bagsToWithdraw} bags</span>
-                                        <span className="font-mono">₹{finalRent.toFixed(2)}</span>
+                                        <span className="font-mono" data-testid="calculated-rent">₹{finalRent.toFixed(2)}</span>
                                     </div>
                                      <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Pending Hamali Charges</span>
@@ -293,7 +293,7 @@ export function OutflowForm({
                                     <Separator />
                                     <div className="flex justify-between items-center font-semibold text-lg">
                                         <span className="text-foreground">Total Payable</span>
-                                        <span className="font-mono">₹{totalPayable.toFixed(2)}</span>
+                                        <span className="font-mono" data-testid="total-payable">₹{totalPayable.toFixed(2)}</span>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="amountPaidNow">Total Paid Now</Label>

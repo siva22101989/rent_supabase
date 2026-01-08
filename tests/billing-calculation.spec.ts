@@ -9,18 +9,19 @@ test.describe('Billing Calculation Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Login as admin
     await page.goto('http://localhost:9002/login');
-    await page.fill('input[type="email"]', process.env.TEST_ADMIN_EMAIL || 'admin@test.com');
-    await page.fill('input[type="password"]', process.env.TEST_ADMIN_PASSWORD || 'password123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('**/');
+    await page.getByLabel(/Email|Mobile/i).fill('admin@test.com');
+    await page.getByLabel('Password', { exact: true }).fill('123456');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.waitForURL(/\/dashboard|^\/$/i);
   });
 
   test('should calculate 6-month rent correctly', async ({ page }) => {
     // Navigate to outflow page
     await page.goto('http://localhost:9002/outflow');
     
-    // Select a storage record
-    await page.click('[data-testid="select-record"]');
+    // Select a storage record using AsyncRecordSelector
+    await page.click('[data-testid="record-selector-trigger"]');
+    await page.fill('[data-testid="record-search-input"]', 'Rajesh');
     await page.click('[data-testid="record-option"]:first-child');
     
     // Fill withdrawal details
@@ -41,8 +42,9 @@ test.describe('Billing Calculation Tests', () => {
     await page.goto('http://localhost:9002/outflow');
     
     // Select record with 1-year cycle
-    await page.click('[data-testid="select-record"]');
-    await page.click('[data-testid="record-1year"]:first-child');
+    await page.click('[data-testid="record-selector-trigger"]');
+    await page.fill('[data-testid="record-search-input"]', '1-year'); // Seed data has 1st record as 6m, maybe search for something else
+    await page.click('[data-testid="record-option"]:first-child');
     
     await page.fill('input[name="bagsToWithdraw"]', '50');
     await page.fill('input[name="withdrawalDate"]', '2025-12-20');
@@ -57,7 +59,8 @@ test.describe('Billing Calculation Tests', () => {
   test('should prevent withdrawal exceeding stored bags', async ({ page }) => {
     await page.goto('http://localhost:9002/outflow');
     
-    await page.click('[data-testid="select-record"]');
+    await page.click('[data-testid="record-selector-trigger"]');
+    await page.fill('[data-testid="record-search-input"]', 'Rajesh');
     await page.click('[data-testid="record-option"]:first-child');
     
     // Try to withdraw more than available
@@ -71,7 +74,9 @@ test.describe('Billing Calculation Tests', () => {
   test('should update billing cycle on full withdrawal', async ({ page }) => {
     await page.goto('http://localhost:9002/outflow');
     
-    await page.click('[data-testid="select-record"]');
+    await page.click('[data-testid="record-selector-trigger"]');
+    await page.fill('[data-testid="record-search-input"]', 'Rajesh');
+    await page.click('[data-testid="record-option"]:first-child');
     const bagsStored = await page.textContent('[data-testid="bags-stored"]');
     
     // Withdraw all bags

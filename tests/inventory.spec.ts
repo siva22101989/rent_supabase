@@ -4,8 +4,8 @@ test.describe('Inventory Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Login before each test
     await page.goto('/login');
-    await page.getByLabel('Email').fill('nikhilpnkr@gmail.com');
-    await page.getByLabel('Password').fill('123456');
+    await page.getByLabel(/Email|Mobile/i).fill('nikhilpnkr@gmail.com');
+    await page.getByLabel('Password', { exact: true }).fill('123456');
     await page.getByRole('button', { name: 'Login' }).click();
     await expect(page).toHaveURL('/', { timeout: 10000 });
   });
@@ -94,32 +94,23 @@ test.describe('Inventory Flow', () => {
     await page.goto('/outflow');
     
     // 2. Select Customer
-    await page.locator('#customerId').click();
-    await page.waitForSelector('[role="option"]');
-    const customerOptions = await page.getByRole('option').count();
+    // 2. Select Customer and Record
+    await page.click('[data-testid="record-selector-trigger"]');
+    await page.fill('[data-testid="record-search-input"]', 'Rajesh');
     
-    if (customerOptions === 0) {
-      console.log('No customers with active records, completing an inflow first...');
-      // If no records, this test is dependent on inflow. 
-      // For simplicity, we assume an inflow has been run or we can quickly create one.
-      // But let's just fail or skip if no data, OR ideally create it.
-      // I'll assume Inflow test ran before this or there is data.
-      await page.keyboard.press('Escape');
+    const options = page.locator('[data-testid="record-option"]');
+    if (await options.count() === 0) {
+      console.log('No records found for nikhil, skipping outflow test...');
       return;
     }
+    await options.first().click();
     
-    await page.getByRole('option').first().click();
+    // 3. Enter withdrawal details
+    await page.getByLabel(/Bags to Withdraw/i).fill('5');
+    await page.getByLabel(/Withdrawal Date/i).fill('2025-12-20');
     
-    // 3. Select Record
-    await page.locator('#recordId').click();
-    await page.waitForSelector('[role="option"]');
-    await page.getByRole('option').first().click();
-    
-    // 4. Enter withdrawal details
-    await page.getByLabel('Bags to Withdraw').fill('5');
-    
-    // 5. Process withdrawal
-    await page.getByRole('button', { name: 'Process Withdrawal and Generate Bill' }).click();
+    // 4. Process withdrawal
+    await page.getByRole('button', { name: /Process Outflow/i }).click();
     
     // 6. Should redirect to receipt
     await expect(page).toHaveURL(/\/outflow\/receipt\//, { timeout: 20000 });

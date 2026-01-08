@@ -68,6 +68,7 @@ export function AsyncRecordSelector({ onSelect, customerId }: AsyncRecordSelecto
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
+          data-testid="record-selector-trigger"
         >
           {selectedRecord
             ? selectedRecord.customerName 
@@ -84,6 +85,7 @@ export function AsyncRecordSelector({ onSelect, customerId }: AsyncRecordSelecto
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 autoFocus
+                data-testid="record-search-input"
             />
           </div>
           <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
@@ -107,6 +109,7 @@ export function AsyncRecordSelector({ onSelect, customerId }: AsyncRecordSelecto
                                 "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
                                 value === String(record.id) && "bg-accent text-accent-foreground"
                             )}
+                            data-testid="record-option"
                         >
                             <Check
                                 className={cn(

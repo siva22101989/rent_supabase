@@ -8,10 +8,10 @@ import { test, expect } from '@playwright/test';
 test.describe('Payment Processing Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://localhost:9002/login');
-    await page.fill('input[type="email"]', process.env.TEST_ADMIN_EMAIL || 'admin@test.com');
-    await page.fill('input[type="password"]', process.env.TEST_ADMIN_PASSWORD || 'password123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('**/');
+    await page.getByLabel(/Email|Mobile/i).fill('admin@test.com');
+    await page.getByLabel('Password', { exact: true }).fill('123456');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.waitForURL(/\/dashboard|^\/$/i);
   });
 
   test('should record payment and update balance', async ({ page }) => {
