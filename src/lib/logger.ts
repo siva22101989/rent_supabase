@@ -1,8 +1,45 @@
 
 
+import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@/utils/supabase/server';
 import { getUserWarehouse } from '@/lib/queries';
-import { logError } from '@/lib/error-logger';
+import { logError, logWarning } from '@/lib/error-logger';
+
+export class Logger {
+    static info(message: string, context?: Record<string, any>) {
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[INFO] ${message}`, context);
+        }
+        Sentry.addBreadcrumb({
+            category: 'log',
+            message: message,
+            level: 'info',
+            data: context
+        });
+    }
+
+    static warn(message: string, context?: any) {
+        logWarning(message, context);
+    }
+
+    static error(error: unknown, context?: any) {
+        logError(error, context);
+    }
+
+    static async audit(action: string, entity: string, entityId: string, details?: any) {
+        return logActivity(action, entity, entityId, details);
+    }
+
+    static async notify(
+        title: string,
+        message: string,
+        type: 'info' | 'warning' | 'success' | 'error' = 'info',
+        forUserId?: string,
+        link?: string
+    ) {
+        return createNotification(title, message, type, forUserId, link);
+    }
+}
 
 export async function logActivity(
     action: string,

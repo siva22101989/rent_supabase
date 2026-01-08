@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { fetchDashboardMetrics } from '@/lib/actions';
+import { fetchDashboardMetrics } from '@/lib/actions/common';
 
 const CACHE_KEY = 'grainflow_dashboard_metrics';
 

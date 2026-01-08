@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { logLoginActivity } from '@/lib/actions';
+import { logLoginActivity } from '@/lib/actions/auth';
 
 export function AuthListener() {
     useEffect(() => {

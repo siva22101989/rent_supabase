@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateStorageRecordSimple } from '@/lib/actions';
+import { updateStorageRecordSimple } from '@/lib/actions/storage/records';
 
 export async function POST(request: NextRequest) {
     try {

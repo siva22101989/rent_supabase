@@ -1,8 +1,9 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 
-export const generateStatementPDF = (record: any, events: any[]) => {
+export const generateStatementPDF = async (record: any, events: any[]) => {
+  const { default: jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
+
   const doc = new jsPDF();
   
   // -- Branding / Header --
@@ -125,8 +126,11 @@ export const generateStatementPDF = (record: any, events: any[]) => {
   doc.save(`Statement_${record.record_number || 'Record'}.pdf`);
 };
 
-export const generateConsolidatedPDF = (portfolio: any[]) => {
+export const generateConsolidatedPDF = async (portfolio: any[]) => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const doc = new jsPDF();
+
     
     // -- Header --
     doc.setFontSize(22);

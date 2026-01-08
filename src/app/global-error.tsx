@@ -1,9 +1,9 @@
 'use client';
 
-
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Inter } from 'next/font/google';
+import { AlertTriangle } from 'lucide-react';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -15,20 +15,32 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    // Sentry.captureException(error);
+    console.error('Global Error:', error);
   }, [error]);
 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-background text-foreground">
-          <h2 className="text-4xl font-bold text-destructive">System Error</h2>
-          <p className="text-muted-foreground">
-            A critical error occurred. We apologize for the inconvenience.
-          </p>
-          <Button onClick={() => reset()} variant="default">
-            Reload Application
-          </Button>
+        <div className="flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-background p-4 text-foreground">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <div className="rounded-full bg-destructive/10 p-4">
+              <AlertTriangle className="h-10 w-10 text-destructive" />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">System Critical Error</h1>
+            <p className="text-muted-foreground w-full max-w-md">
+              A critical system error occurred that prevents the application from rendering.
+            </p>
+          </div>
+          
+          <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-sm">
+             <p className="mb-4 text-sm font-mono text-destructive bg-destructive/5 p-2 rounded">
+               {error.message}
+             </p>
+             <Button onClick={() => reset()} className="w-full" size="lg">
+              Reload Application
+            </Button>
+          </div>
         </div>
       </body>
     </html>

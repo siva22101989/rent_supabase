@@ -2,7 +2,69 @@
 import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
 import { getAuthUser } from '@/lib/queries/auth';
-import type { Customer, StorageRecord, Payment, Expense } from '@/lib/definitions';
+
+import type { Customer, StorageRecord, Payment, Expense, ExpenseCategory } from '@/lib/definitions';
+
+// Database Row Interfaces
+interface DbCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address: string;
+  father_name?: string;
+  village?: string;
+  created_at?: string;
+  updated_at?: string;
+  linked_user_id?: string;
+}
+
+interface DbPayment {
+  amount: number;
+  payment_date: string;
+  type?: 'rent' | 'hamali' | 'other';
+  notes?: string;
+  updated_at?: string;
+}
+
+interface DbStorageRecord {
+  id: string;
+  record_number?: string;
+  customer_id: string;
+  crop_id?: string;
+  commodity_description: string;
+  location: string;
+  bags_in?: number;
+  bags_stored: number;
+  bags_out?: number;
+  storage_start_date: string;
+  storage_end_date?: string | null;
+  billing_cycle?: '6-Month Initial' | '1-Year Rollover' | '1-Year Renewal' | 'Completed';
+  hamali_payable: number;
+  total_rent_billed: number;
+  lorry_tractor_no: string;
+  inflow_type?: 'Direct' | 'Plot';
+  plot_bags?: number;
+  load_bags?: number;
+  khata_amount?: number;
+  outflow_invoice_no?: string;
+  notes?: string;
+  updated_at?: string;
+  payments?: DbPayment[];
+  lot_id?: string;
+  warehouse_id?: string;
+}
+
+interface DbExpense {
+  id: string;
+  description: string;
+  amount: number;
+  expense_date: string;
+  category: ExpenseCategory;
+  updated_at?: string;
+}
+
+
 import { revalidatePath } from 'next/cache';
 import { logError } from '@/lib/error-logger';
 
@@ -92,7 +154,7 @@ export async function customers(): Promise<Customer[]> {
   // Map database fields to application types if needed (snake_case to camelCase)
   // Assuming the DB uses snake_case and app uses camelCase, we might need a mapper or just update definitions.
   // For now, I'll assume we need to map basics.
-  return data.map((c: any) => ({
+  return (data as unknown as DbCustomer[]).map((c) => ({
     id: c.id,
     name: c.name,
     phone: c.phone,
@@ -174,7 +236,7 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     return [];
   }
 
-  return records.map((r: any) => ({
+  return (records as unknown as DbStorageRecord[]).map((r) => ({
     id: r.id,
     customerId: r.customer_id,
     cropId: r.crop_id,
@@ -185,8 +247,8 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     bagsStored: r.bags_stored,
     storageStartDate: new Date(r.storage_start_date),
     storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
-    billingCycle: r.billing_cycle,
-    payments: (r.payments || []).map((p: any) => ({
+    billingCycle: r.billing_cycle as StorageRecord['billingCycle'],
+    payments: (r.payments || []).map((p) => ({
       amount: p.amount,
       date: new Date(p.payment_date),
       type: p.type || 'other', 
@@ -232,7 +294,7 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     storageStartDate: new Date(r.storage_start_date),
     storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
     billingCycle: r.billing_cycle,
-    payments: (r.payments || []).map((p: any) => ({
+    payments: ((r.payments as unknown as DbPayment[]) || []).map((p) => ({
       amount: p.amount,
       date: new Date(p.payment_date),
       type: p.type || 'other',
@@ -252,7 +314,7 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
   };
 };
 
-export const saveStorageRecord = async (record: StorageRecord): Promise<any> => {
+export const saveStorageRecord = async (record: StorageRecord): Promise<{ id: string }> => {
   'use server';
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
@@ -263,13 +325,13 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
   // Parse 'TEWA-IN-1008' -> 1008
   const recordNumberInt = parseInt(record.id.split('-').pop() || '0', 10);
 
-  const dbRecord: any = {
+  const dbRecord: Partial<DbStorageRecord> = {
     // UPDATE: The passed 'id' is actually the Human Readable Record Number.
     // The DB 'id' is a UUID. So we must NOT set 'id' here.
     // The DB 'record_number' is a BIGINT.
     
     // id: record.id,  <-- REMOVED
-    record_number: isNaN(recordNumberInt) ? undefined : recordNumberInt, // Map numeric part
+    record_number: isNaN(recordNumberInt) ? undefined : String(recordNumberInt), // Map numeric part
     
     customer_id: record.customerId,
     commodity_description: record.commodityDescription,
@@ -282,8 +344,8 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<any> => 
     plot_bags: record.plotBags,
     load_bags: record.loadBags,
     khata_amount: record.khataAmount,
-    storage_start_date: record.storageStartDate,
-    storage_end_date: record.storageEndDate,
+    storage_start_date: record.storageStartDate instanceof Date ? record.storageStartDate.toISOString() : record.storageStartDate as string,
+    storage_end_date: record.storageEndDate ? (record.storageEndDate instanceof Date ? record.storageEndDate.toISOString() : record.storageEndDate) : undefined,
     billing_cycle: record.billingCycle || '6-Month Initial',
     hamali_payable: record.hamaliPayable,
     total_rent_billed: record.totalRentBilled,
@@ -332,7 +394,7 @@ export const updateStorageRecord = async (id: string, data: Partial<StorageRecor
     const supabase = await createClient();
     
     // Map partial data to DB columns
-    const dbData: any = {};
+    const dbData: Partial<DbStorageRecord> = {};
     if (data.customerId) dbData.customer_id = data.customerId;
     if (data.cropId) dbData.crop_id = data.cropId;
     if (data.commodityDescription) dbData.commodity_description = data.commodityDescription;
@@ -340,8 +402,8 @@ export const updateStorageRecord = async (id: string, data: Partial<StorageRecor
     if (data.bagsStored !== undefined) dbData.bags_stored = data.bagsStored;
     if (data.bagsIn !== undefined) dbData.bags_in = data.bagsIn;
     if (data.bagsOut !== undefined) dbData.bags_out = data.bagsOut;
-    if (data.storageStartDate) dbData.storage_start_date = data.storageStartDate;
-    if (data.storageEndDate) dbData.storage_end_date = data.storageEndDate;
+    if (data.storageStartDate) dbData.storage_start_date = data.storageStartDate instanceof Date ? data.storageStartDate.toISOString() : data.storageStartDate;
+    if (data.storageEndDate) dbData.storage_end_date = data.storageEndDate instanceof Date ? data.storageEndDate.toISOString() : data.storageEndDate;
     if (data.billingCycle) dbData.billing_cycle = data.billingCycle;
     if (data.hamaliPayable !== undefined) dbData.hamali_payable = data.hamaliPayable;
     if (data.totalRentBilled !== undefined) dbData.total_rent_billed = data.totalRentBilled;
@@ -393,7 +455,7 @@ export async function expenses(): Promise<Expense[]> {
     return [];
   }
 
-  return data.map((e: any) => ({
+  return (data as unknown as DbExpense[]).map((e) => ({
     id: e.id,
     description: e.description,
     amount: e.amount,
@@ -414,7 +476,7 @@ export async function saveExpense(expense: Expense): Promise<void> {
     description: expense.description,
     amount: expense.amount,
     category: expense.category,
-    expense_date: expense.date,
+    expense_date: expense.date instanceof Date ? expense.date.toISOString() : expense.date,
     warehouse_id: warehouseId
   });
 
@@ -426,11 +488,11 @@ export const updateExpense = async (id: string, data: Partial<Expense>): Promise
     const supabase = await createClient();
     
     // Map partial app type to DB columns
-    const dbData: any = {};
+    const dbData: Partial<DbExpense> = {};
     if (data.description) dbData.description = data.description;
     if (data.amount !== undefined) dbData.amount = data.amount;
     if (data.category) dbData.category = data.category;
-    if (data.date) dbData.expense_date = data.date;
+    if (data.date) dbData.expense_date = data.date instanceof Date ? data.date.toISOString() : data.date;
 
     const { error } = await supabase
         .from('expenses')

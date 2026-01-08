@@ -13,7 +13,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { deleteStorageRecordAction, restoreStorageRecordAction, type FormState } from '@/lib/actions';
+import { type FormState } from '@/lib/actions/common';
+import { deleteStorageRecordAction, restoreStorageRecordAction } from '@/lib/actions/storage/records';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';

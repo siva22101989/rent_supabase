@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useWarehouses } from '@/contexts/warehouse-context';
-import { switchWarehouse } from '@/lib/actions';
+import { switchWarehouse } from '@/lib/actions/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { CreateWarehouseDialog } from '@/components/warehouses/create-warehouse-dialog';

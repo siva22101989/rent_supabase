@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { toast } from "@/hooks/use-toast";
-import { fetchCrops, fetchLots, fetchCustomers } from '@/lib/actions';
+import { fetchCrops, fetchLots } from '@/lib/actions/common';
+import { fetchCustomers } from '@/lib/actions/customers';
 import { createClient } from '@/utils/supabase/client';
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours for static data

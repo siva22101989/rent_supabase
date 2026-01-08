@@ -26,7 +26,7 @@ import { ExportButton } from "@/components/shared/export-button";
 import { exportStorageRecordsToExcel, generateTallyXML, downloadFile } from "@/lib/export-utils";
 import { ActionsMenu } from '@/components/dashboard/actions-menu';
 import useSWR from 'swr';
-import { fetchStorageRecordsAction } from '@/lib/actions';
+import { fetchStorageRecordsAction } from '@/lib/actions/storage/records';
 import { Loader2 } from 'lucide-react';
 
 

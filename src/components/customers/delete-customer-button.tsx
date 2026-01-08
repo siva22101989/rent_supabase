@@ -14,7 +14,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Trash2 } from 'lucide-react';
-import { deleteCustomer } from '@/lib/actions';
+import { deleteCustomer } from '@/lib/actions/customers';
 import { useCustomers } from '@/contexts/customer-context';
 import { useRouter } from 'next/navigation';
 

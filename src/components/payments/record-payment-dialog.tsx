@@ -14,7 +14,7 @@ import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AddPaymentDialog } from './add-payment-dialog';
 import { Loader2, CreditCard } from 'lucide-react';
-import { getCustomerRecordsAction } from '@/lib/actions';
+import { getCustomerRecordsAction } from '@/lib/actions/storage/records';
 import type { StorageRecord } from '@/lib/definitions';
 
 interface RecordPaymentDialogProps {

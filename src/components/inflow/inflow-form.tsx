@@ -6,7 +6,7 @@ import { useFormStatus } from 'react-dom';
 import { useSearchParams, useRouter } from 'next/navigation';
 import * as Sentry from "@sentry/nextjs";
 import { SubmitButton } from '@/components/ui/submit-button';
-import { addInflow, type InflowFormState } from '@/lib/actions';
+import { addInflow, type InflowFormState } from '@/lib/actions/storage/inflow';
 // ... (rest of imports unchanged)
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

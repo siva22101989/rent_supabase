@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { finalizePlotDrying } from '@/lib/actions';
+import { finalizePlotDrying } from '@/lib/actions/storage/inflow';
 import { Loader2, Wheat } from 'lucide-react';
 
 import { Separator } from "@/components/ui/separator"; // Add import

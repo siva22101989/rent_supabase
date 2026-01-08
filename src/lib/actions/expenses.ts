@@ -1,0 +1,159 @@
+'use server';
+
+import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+import { createClient } from '@/utils/supabase/server';
+import { getUserWarehouse } from '@/lib/queries';
+import { saveExpense, updateExpense, deleteExpense } from '@/lib/data';
+import { logError } from '@/lib/error-logger';
+import { expenseCategories } from '@/lib/definitions';
+import { FormState } from './common';
+
+const ExpenseSchema = z.object({
+  description: z.string().min(2, 'Description is required.'),
+  amount: z.coerce.number().positive('Amount must be a positive number.'),
+  date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  category: z.enum(expenseCategories, { required_error: 'Category is required.' }),
+});
+
+export async function addExpense(prevState: FormState, formData: FormData): Promise<FormState> {
+    const rawData = {
+        description: formData.get('description'),
+        amount: formData.get('amount'),
+        date: formData.get('date'),
+        category: formData.get('category'),
+    };
+
+    const validatedFields = ExpenseSchema.safeParse(rawData);
+
+    if (!validatedFields.success) {
+        const error = validatedFields.error.flatten().fieldErrors;
+        const message = Object.values(error).flat().join(', ');
+        return { message: `Invalid data: ${message}`, success: false, data: rawData };
+    }
+
+    const newExpense = {
+        ...validatedFields.data,
+        id: `EXP-${Date.now()}`,
+        date: new Date(validatedFields.data.date),
+    };
+
+    await saveExpense(newExpense);
+
+    revalidatePath('/expenses');
+    return { message: 'Expense added successfully.', success: true };
+}
+
+export async function updateExpenseAction(expenseId: string, prevState: FormState, formData: FormData): Promise<FormState> {
+  const validatedFields = ExpenseSchema.safeParse({
+    description: formData.get('description'),
+    amount: formData.get('amount'),
+    date: formData.get('date'),
+    category: formData.get('category'),
+  });
+
+  if (!validatedFields.success) {
+    const error = validatedFields.error.flatten().fieldErrors;
+    const message = Object.values(error).flat().join(', ');
+    return { message: `Invalid data: ${message}`, success: false };
+  }
+  
+  const dataToUpdate = {
+    ...validatedFields.data,
+    date: new Date(validatedFields.data.date),
+  };
+
+  try {
+    await updateExpense(expenseId, dataToUpdate);
+    revalidatePath('/expenses');
+    return { message: 'Expense updated successfully.', success: true };
+  } catch (error) {
+    return { message: 'Failed to update expense.', success: false };
+  }
+}
+
+/**
+ * Simple Expense Update (for UI)
+ */
+export async function updateExpenseSimple(expenseId: string, formData: FormData) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+
+  if (!warehouseId) {
+    return { message: 'No warehouse found for user', success: false };
+  }
+
+  const validatedFields = ExpenseSchema.safeParse({
+    description: formData.get('description'),
+    amount: formData.get('amount'),
+    date: formData.get('date'),
+    category: formData.get('category'),
+  });
+
+  if (!validatedFields.success) {
+    const error = validatedFields.error.flatten().fieldErrors;
+    const message = Object.values(error).flat().join(', ');
+    return { message: `Invalid data: ${message}`, success: false };
+  }
+
+  // Transform to database column names
+  const updateData = {
+    description: validatedFields.data.description,
+    amount: validatedFields.data.amount,
+    category: validatedFields.data.category,
+    expense_date: new Date(validatedFields.data.date)
+  };
+
+  const { error } = await supabase
+    .from('expenses')
+    .update(updateData)
+    .eq('id', expenseId)
+    .eq('warehouse_id', warehouseId);
+
+  if (error) {
+    logError(error, { operation: 'update_expense', warehouseId, metadata: { expenseId } });
+    return { message: `Failed to update expense: ${error.message}`, success: false };
+  }
+
+  revalidatePath('/expenses');
+  revalidatePath('/reports');
+  return { message: 'Expense updated successfully!', success: true };
+}
+
+/**
+ * Delete Expense
+ */
+export async function deleteExpenseSimple(expenseId: string) {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+
+  if (!warehouseId) {
+    return { message: 'No warehouse found for user', success: false };
+  }
+
+  const { error } = await supabase
+    .from('expenses')
+    .delete()
+    .eq('id', expenseId)
+    .eq('warehouse_id', warehouseId);
+
+  if (error) {
+    logError(error, { operation: 'delete_expense', warehouseId, metadata: { expenseId } });
+    return { message: 'Failed to delete expense', success: false };
+  }
+
+  revalidatePath('/expenses');
+  revalidatePath('/reports');
+  return { message: 'Expense deleted successfully!', success: true };
+}
+    
+
+export async function deleteExpenseAction(expenseId: string): Promise<FormState> {
+  try {
+    await deleteExpense(expenseId);
+    revalidatePath('/expenses');
+    return { message: 'Expense deleted successfully.', success: true };
+  } catch (error) {
+    return { message: 'Failed to delete expense.', success: false };
+  }
+}

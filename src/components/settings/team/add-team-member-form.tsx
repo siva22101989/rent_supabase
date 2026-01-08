@@ -1,5 +1,6 @@
 import { useActionState, useEffect, useRef } from 'react';
-import { createTeamMember, type FormState } from '@/lib/actions';
+import { type FormState } from '@/lib/actions/common';
+import { createTeamMember } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

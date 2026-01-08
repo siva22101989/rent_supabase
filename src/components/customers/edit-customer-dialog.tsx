@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pencil } from 'lucide-react';
-import { updateCustomer } from '@/lib/actions';
+import { updateCustomer } from '@/lib/actions/customers';
 import { useRouter } from 'next/navigation';
 import type { Customer } from '@/lib/definitions';
 import { useCustomers } from '@/contexts/customer-context';

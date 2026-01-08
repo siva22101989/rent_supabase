@@ -57,7 +57,16 @@ export function StorageTable() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {activeRecords && allCustomers && activeRecords.map((record) => {
+        {activeRecords.length === 0 ? (
+           <TableRow>
+             <TableCell colSpan={8} className="h-64 text-center">
+                <div className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+                    <p>No active storage records found.</p>
+                </div>
+             </TableCell>
+           </TableRow>
+        ) : (
+             activeRecords.map((record) => {
             const customerName = getCustomerName(record.customerId);
             const amountPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
             const startDate = toDate(record.storageStartDate);
@@ -79,7 +88,8 @@ export function StorageTable() {
                 </TableCell>
               </TableRow>
             )
-        })}
+        })
+        )}
       </TableBody>
     </Table>
   );

@@ -1,7 +1,9 @@
 'use client';
 
 import { useActionState, useEffect, useRef } from "react";
-import { updateUserProfile, changePassword, type FormState } from "@/lib/actions";
+import { updateUserProfile, changePassword } from "@/lib/actions/auth";
+import { type FormState } from "@/lib/actions/common";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

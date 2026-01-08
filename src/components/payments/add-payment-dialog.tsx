@@ -7,7 +7,7 @@ import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
-import { addPayment, type PaymentFormState } from '@/lib/actions';
+import { addPayment, type PaymentFormState } from '@/lib/actions/payments';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { fetchTeamMembers } from '@/lib/actions';
+import { fetchTeamMembers } from '@/lib/actions/auth';
 import { createClient } from '@/utils/supabase/client';
 
 const CACHE_KEY = 'rent_team_members_v3'; // Changed to force refresh after schema update

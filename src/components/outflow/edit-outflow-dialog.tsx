@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pencil } from 'lucide-react';
-import { updateOutflow } from '@/lib/actions';
+import { updateOutflow } from '@/lib/actions/storage/outflow';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 

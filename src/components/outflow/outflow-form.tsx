@@ -5,7 +5,9 @@ import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import * as Sentry from "@sentry/nextjs";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { addOutflow, type OutflowFormState } from '@/lib/actions';
+import { addOutflow, type OutflowFormState } from '@/lib/actions/storage/outflow';
+// ...
+import { getStorageRecordAction } from '@/lib/actions/storage/records';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +25,7 @@ import { useCustomers } from '@/contexts/customer-context';
 import { useStaticData } from '@/hooks/use-static-data';
 
 import { AsyncRecordSelector } from './async-record-selector';
-import { getStorageRecordAction } from '@/lib/actions';
+
 
 export function OutflowForm({ 
     records = [],

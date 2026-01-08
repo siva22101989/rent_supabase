@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { fetchCustomers } from '@/lib/actions';
+import { fetchCustomers } from '@/lib/actions/customers';
 import { type Customer } from '@/lib/definitions';
 import { toast } from '@/hooks/use-toast';
 import { useLocalStorage } from "@/hooks/use-local-storage";

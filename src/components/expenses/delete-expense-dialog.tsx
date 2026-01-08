@@ -12,7 +12,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { deleteExpenseAction, type FormState } from '@/lib/actions';
+import { type FormState } from '@/lib/actions/common';
+import { deleteExpenseAction } from '@/lib/actions/expenses';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';

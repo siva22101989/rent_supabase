@@ -1,6 +1,12 @@
 'use client';
 
-import { PlatformAnalyticsCharts } from '@/components/admin/analytics-charts';
+import dynamic from 'next/dynamic';
+// import { PlatformAnalyticsCharts } from '@/components/admin/analytics-charts';
+const PlatformAnalyticsCharts = dynamic(() => import('@/components/admin/analytics-charts').then(mod => mod.PlatformAnalyticsCharts), {
+    loading: () => <div className="h-[300px] flex items-center justify-center text-muted-foreground">Loading Charts...</div>,
+    ssr: false
+});
+
 import { useFeatureGate, FEATURES } from '@/lib/feature-flags';
 import { UpgradeBanner } from '@/components/shared/upgrade-banner';
 

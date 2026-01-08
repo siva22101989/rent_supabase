@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { processBulkPayment, type BulkPaymentFormState } from '@/lib/actions';
+import { processBulkPayment, type BulkPaymentFormState } from '@/lib/actions/payments';
 import { formatCurrency } from '@/lib/utils';
 import { useUnifiedToast } from '@/components/shared/toast-provider';
 import { useRouter } from 'next/navigation';

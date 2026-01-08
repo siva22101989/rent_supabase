@@ -5,8 +5,8 @@ import { getPriceTrend } from '@/lib/agmarknet-service';
 import { getWarehouseDetails } from '@/lib/queries';
 import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 1800; // Revalidate every 30 minutes for market price data
+
+export const revalidate = 1800; // 30 minutes for market price data
 
 export default async function MarketPricesPage() {
   const warehouse = await getWarehouseDetails();

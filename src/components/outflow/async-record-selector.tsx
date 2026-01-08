@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { findRecordsAction } from '@/lib/actions';
+import { findRecordsAction } from '@/lib/actions/storage/records';
 
 interface AsyncRecordSelectorProps {
     onSelect: (recordId: string) => void;

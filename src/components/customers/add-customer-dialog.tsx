@@ -6,7 +6,8 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
-import { addCustomer, type FormState } from '@/lib/actions';
+import { type FormState } from '@/lib/actions/common';
+import { addCustomer } from '@/lib/actions/customers';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

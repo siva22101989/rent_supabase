@@ -7,7 +7,8 @@ import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
-import { addExpense, type FormState } from '@/lib/actions';
+import { type FormState } from '@/lib/actions/common';
+import { addExpense } from '@/lib/actions/expenses';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

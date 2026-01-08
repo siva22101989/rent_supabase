@@ -14,7 +14,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Trash2 } from 'lucide-react';
-import { deletePayment } from '@/lib/actions';
+import { deletePayment } from '@/lib/actions/payments';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils';
 

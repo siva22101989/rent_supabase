@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Package } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface UnloadedInventoryProps {
     records: Array<{
@@ -20,13 +21,13 @@ export function UnloadedInventory({ records, onMoveToStorage }: UnloadedInventor
     if (records.length === 0) {
         return (
             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Package className="h-5 w-5" />
-                        Unloaded Inventory
-                    </CardTitle>
-                    <CardDescription>No pending bags waiting for assignment</CardDescription>
-                </CardHeader>
+                 <CardContent>
+                    <EmptyState
+                        icon={Package}
+                        title="Unloaded Inventory"
+                        description="No pending bags waiting for assignment."
+                    />
+                 </CardContent>
             </Card>
         );
     }

@@ -2,8 +2,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { getPendingPayments } from "@/lib/queries";
 import { PendingPaymentsClient } from "./page-client";
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 30; // Revalidate every 30 seconds for real-time payment data
+
+export const revalidate = 30; // 30 seconds for real-time payment data
 
 export default async function PendingPaymentsPage() {
     const pendingCustomers = await getPendingPayments(50);

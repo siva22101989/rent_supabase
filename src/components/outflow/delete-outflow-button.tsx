@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { deleteOutflow } from '@/lib/actions';
+import { deleteOutflow } from '@/lib/actions/storage/outflow';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -60,7 +60,7 @@ export function DeleteOutflowButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label="Revert withdrawal">
           <Trash2 className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>

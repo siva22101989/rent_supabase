@@ -1,0 +1,244 @@
+'use server';
+
+import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import * as Sentry from "@sentry/nextjs";
+
+import { createClient } from '@/utils/supabase/server';
+import { getCustomers, getUserWarehouse } from '@/lib/queries';
+import { saveCustomer } from '@/lib/data';
+import { logError } from '@/lib/error-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { FormState } from './common';
+
+const { logger } = Sentry;
+
+const CustomerSchema = z.object({
+    name: z.string().min(3, 'Name must be at least 3 characters.'),
+    phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
+    address: z.string().min(5, 'Address must be at least 5 characters.'),
+    email: z.string().optional(),
+    fatherName: z.string().optional(),
+    village: z.string().optional(),
+});
+
+export async function fetchCustomers() {
+    return await getCustomers();
+}
+
+export async function addCustomer(prevState: FormState, formData: FormData): Promise<FormState> {
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "addCustomer",
+        },
+        async (span) => {
+            const phone = formData.get('phone') as string;
+            await checkRateLimit(phone || 'anon', 'addCustomer', { limit: 5 });
+
+            const rawData = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                address: formData.get('address'),
+                fatherName: formData.get('fatherName'),
+                village: formData.get('village'),
+            };
+            span.setAttribute("customerName", rawData.name as string);
+
+            const validatedFields = CustomerSchema.safeParse(rawData);
+
+            if (!validatedFields.success) {
+                const error = validatedFields.error.flatten().fieldErrors;
+                const message = Object.values(error).flat().join(', ');
+                logger.warn("Customer validation failed", { errors: error });
+                return { message: `Invalid data: ${message}`, success: false, data: rawData };
+            }
+
+            const { email, fatherName, village, ...rest } = validatedFields.data;
+
+            // Auto-Create Auth User Logic
+            let linkedUserId = undefined;
+            if (rest.phone && /^\d{10}$/.test(rest.phone)) {
+                 try {
+                     const { createAdminClient } = await import('@/utils/supabase/admin');
+                     const supabaseAdmin = createAdminClient();
+                     const dummyEmail = `${rest.phone}@rentapp.local`;
+                     
+                     // Check if user already exists
+                     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+                     const existingUser = existingUsers.users.find(u => u.email === dummyEmail);
+
+                     if (existingUser) {
+                         linkedUserId = existingUser.id;
+                         logger.info("Linked to existing auth user", { userId: linkedUserId });
+                     } else {
+                         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                             email: dummyEmail,
+                             password: '123456',
+                             email_confirm: true,
+                             user_metadata: { 
+                                 full_name: rest.name, 
+                                 role: 'customer',
+                                 phone_number: rest.phone
+                             }
+                         });
+
+                         if (createError) {
+                             logger.error("Failed to auto-create auth user", { error: createError.message });
+                         } else if (newUser.user) {
+                             linkedUserId = newUser.user.id;
+                             logger.info("Auto-created auth user", { userId: linkedUserId });
+                         }
+                     }
+                 } catch (e) {
+                     logger.error("Error in auto-auth creation", { error: e });
+                 }
+            }
+
+            const newCustomer = {
+                ...rest,
+                id: `CUST-${Date.now()}`,
+                email: email ?? '',
+                fatherName: fatherName ?? '',
+                village: village ?? '',
+                linkedUserId: linkedUserId
+            };
+            
+            try {
+                await saveCustomer(newCustomer);
+                revalidatePath('/customers');
+                revalidatePath('/inflow');
+                logger.info("Customer added successfully", { customerId: newCustomer.id });
+                return { message: 'Customer added successfully.', success: true };
+            } catch (error: any) {
+                Sentry.captureException(error);
+                logger.error("Failed to add customer", { error: error.message });
+                return { message: `Failed to add customer: ${error.message}`, success: false, data: rawData };
+            }
+        }
+    );
+}
+
+export async function updateCustomer(customerId: string, formData: FormData): Promise<FormState> {
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "updateCustomer",
+        },
+        async (span) => {
+            await checkRateLimit(customerId || 'anon', 'updateCustomer', { limit: 10 });
+            span.setAttribute("customerId", customerId);
+
+            const supabase = await createClient();
+            const warehouseId = await getUserWarehouse();
+
+            if (!warehouseId) {
+                return { message: 'No warehouse found for user', success: false };
+            }
+
+            const rawData = {
+                name: formData.get('name'),
+                phone: formData.get('phone'),
+                email: formData.get('email'),
+                address: formData.get('address'),
+                fatherName: formData.get('fatherName'),
+                village: formData.get('village'),
+            };
+
+            const validatedFields = CustomerSchema.safeParse(rawData);
+
+            if (!validatedFields.success) {
+                const errors = validatedFields.error.flatten().fieldErrors;
+                const message = Object.values(errors).flat().join(', ');
+                return { message: `Invalid data: ${message}`, success: false };
+            }
+
+            // Transform to database column names (snake_case)
+            const updateData = {
+                name: validatedFields.data.name,
+                phone: validatedFields.data.phone,
+                email: validatedFields.data.email || '',
+                address: validatedFields.data.address,
+                father_name: validatedFields.data.fatherName || '',
+                village: validatedFields.data.village || ''
+            };
+
+            const { data, error } = await supabase
+                .from('customers')
+                .update(updateData)
+                .eq('id', customerId)
+                .eq('warehouse_id', warehouseId)
+                .select()
+                .single();
+
+            if (error) {
+                logError(error, { 
+                    operation: 'update_customer', 
+                    warehouseId, 
+                    metadata: { customerId, updateData } 
+                });
+                return { message: `Failed to update customer: ${error.message}`, success: false };
+            }
+
+            revalidatePath('/customers');
+            revalidatePath(`/customers/${customerId}`);
+            return { message: 'Customer updated successfully!', success: true };
+        }
+    );
+}
+
+export async function deleteCustomer(customerId: string): Promise<FormState> {
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "deleteCustomer",
+        },
+        async (span) => {
+            await checkRateLimit(customerId || 'anon', 'deleteCustomer', { limit: 5 });
+            span.setAttribute("customerId", customerId);
+
+            const supabase = await createClient();
+            const warehouseId = await getUserWarehouse();
+
+            if (!warehouseId) {
+                return { message: 'No warehouse found for user', success: false };
+            }
+
+            // Check if customer has any storage records
+            const { data: records, error: checkError } = await supabase
+                .from('storage_records')
+                .select('id')
+                .eq('customer_id', customerId)
+                .limit(1);
+
+            if (checkError) {
+                logError(checkError, { operation: 'check_customer_records', warehouseId, metadata: { customerId } });
+                return { message: 'Failed to check customer records', success: false };
+            }
+
+            if (records && records.length > 0) {
+                return { 
+                    message: 'Cannot delete customer with existing storage records. This preserves your audit trail.', 
+                    success: false 
+                };
+            }
+
+            // Delete customer
+            const { error } = await supabase
+                .from('customers')
+                .delete()
+                .eq('id', customerId)
+                .eq('warehouse_id', warehouseId);
+
+            if (error) {
+                logError(error, { operation: 'delete_customer', warehouseId, metadata: { customerId } });
+                return { message: 'Failed to delete customer', success: false };
+            }
+
+            revalidatePath('/customers');
+            redirect('/customers');
+        }
+    );
+}

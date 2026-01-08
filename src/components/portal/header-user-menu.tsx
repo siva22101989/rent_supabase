@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut } from 'lucide-react';
 
-import { signOutAction } from '@/lib/actions';
+import { signOutAction } from '@/lib/actions/auth';
 import Link from 'next/link';
 import { LayoutDashboard } from 'lucide-react';
 

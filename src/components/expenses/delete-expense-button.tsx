@@ -14,7 +14,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Trash2 } from 'lucide-react';
-import { deleteExpenseSimple } from '@/lib/actions';
+import { deleteExpenseSimple } from '@/lib/actions/expenses';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils';
 

@@ -6,7 +6,8 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
-import { updateExpenseAction, type FormState } from '@/lib/actions';
+import { type FormState } from '@/lib/actions/common';
+import { updateExpenseAction } from '@/lib/actions/expenses';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getUserWarehouse } from "@/lib/queries/warehouses";
 import { InflowDashboard } from "./inflow-dashboard";
 
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 30; // Revalidate every 30 seconds for high-frequency updates
 

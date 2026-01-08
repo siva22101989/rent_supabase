@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 300; // Revalidate every 5 minutes for slow-changing settings
 import { getUserWarehouse } from '@/lib/queries';

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, Calendar, Shield, UserX, PenBox } from "lucide-react";
 import { format } from "date-fns";
 import { useFormState } from "react-dom";
-import { deactivateTeamMember, updateTeamMember } from "@/lib/actions";
+import { deactivateTeamMember, updateTeamMember } from "@/lib/actions/auth";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

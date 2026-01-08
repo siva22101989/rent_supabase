@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { AddPaymentDialog } from '@/components/payments/add-payment-dialog';
 import { BulkPaymentDialog } from '@/components/payments/bulk-payment-dialog';
 import { Loader2, ChevronDown, ChevronRight, ArrowUpDown, MessageSquare } from 'lucide-react';
-import { getCustomerRecordsAction } from '@/lib/actions';
+import { getCustomerRecordsAction } from '@/lib/actions/storage/records';
 import { sendPaymentReminderSMS } from '@/lib/sms-actions';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
