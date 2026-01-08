@@ -21,7 +21,9 @@ import { Search, Users, Phone, MapPin } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { useDebounce } from "@uidotdev/usehooks";
-import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, ExportButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { exportCustomersWithFilters } from "@/lib/export-utils-filtered";
+import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
 
 interface CustomerFilterState {
@@ -173,6 +175,16 @@ export function CustomersPageClient({
     setHasActiveRecords(null);
   };
 
+  const handleExportExcel = () => {
+    const metadata = {
+        totalRecords: initialCustomers.length,
+        filteredRecords: filteredCustomers.length,
+        appliedFilters: getAppliedFiltersSummary(filters),
+        exportDate: new Date()
+    };
+    exportCustomersWithFilters(filteredCustomers, metadata);
+  };
+
   return (
     <>
       <PageHeader
@@ -228,6 +240,12 @@ export function CustomersPageClient({
             onChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
           />
           <ShareFilterButton filters={filters} />
+          <div className="hidden sm:block">
+             <ExportButton 
+                 onExportExcel={handleExportExcel}
+                 label="Export"
+             />
+          </div>
         </div>
       </div>
 

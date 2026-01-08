@@ -11,7 +11,9 @@ import { SearchBar } from "@/components/ui/search-bar";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { startOfDay, endOfDay, isWithinInterval } from "date-fns";
-import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, ExportButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { exportOutflowRecordsWithFilters } from "@/lib/export-utils-filtered";
+import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
 
 interface OutflowFilterState {
@@ -133,6 +135,16 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
         }));
     };
 
+    const handleExportExcel = () => {
+        const metadata = {
+            totalRecords: outflows.length,
+            filteredRecords: filteredOutflows.length,
+            appliedFilters: getAppliedFiltersSummary(filters),
+            exportDate: new Date()
+        };
+        exportOutflowRecordsWithFilters(filteredOutflows, metadata);
+    };
+
     return (
         <div className="mt-8">
             <h3 className="text-lg font-medium mb-4">Recent Withdrawals</h3>
@@ -175,6 +187,12 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                     onChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
                 />
                 <ShareFilterButton filters={filters} />
+                <div className="hidden sm:block">
+                    <ExportButton 
+                        onExportExcel={handleExportExcel}
+                        label="Export"
+                    />
+                </div>
             </div>
 
             {/* Mobile View */}

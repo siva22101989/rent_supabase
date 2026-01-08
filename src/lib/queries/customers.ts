@@ -79,7 +79,8 @@ export const getCustomers = cache(async (): Promise<Customer[]> => {
   const { data, error } = await supabase
     .from('customers')
     .select('*')
-    .eq('warehouse_id', warehouseId);
+    .eq('warehouse_id', warehouseId)
+    .is('deleted_at', null);
 
   if (error) {
     logError(error, { operation: 'fetch_customers', warehouseId });
@@ -103,6 +104,7 @@ export const getCustomer = cache(async (id: string): Promise<Customer | null> =>
     .from('customers')
     .select('*')
     .eq('id', id)
+    .is('deleted_at', null)
     .single();
 
   if (error || !data) return null;

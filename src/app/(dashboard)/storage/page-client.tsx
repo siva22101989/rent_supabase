@@ -24,6 +24,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Printer } from "lucide-react";
 import { ExportButton } from "@/components/shared/export-button";
 import { exportStorageRecordsToExcel, generateTallyXML, downloadFile } from "@/lib/export-utils";
+import { exportStorageRecordsWithFilters } from "@/lib/export-utils-filtered";
+import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { ActionsMenu } from '@/components/dashboard/actions-menu';
 import useSWR from 'swr';
 import { fetchStorageRecordsAction } from '@/lib/actions/storage/records';
@@ -282,7 +284,18 @@ export function StoragePageClient({
 
   const handleExportExcel = () => {
     const recordsToExport = filteredRecords.filter(r => selectedRecords.has(r.id));
-    exportStorageRecordsToExcel(recordsToExport);
+    
+    // If no records selected, export ALL filtered records
+    const finalRecords = recordsToExport.length > 0 ? recordsToExport : filteredRecords;
+
+    const metadata = {
+        totalRecords: initialRecords.length,
+        filteredRecords: finalRecords.length,
+        appliedFilters: getAppliedFiltersSummary(filters),
+        exportDate: new Date()
+    };
+    
+    exportStorageRecordsWithFilters(finalRecords, metadata);
   };
 
   const handleExportTally = () => {

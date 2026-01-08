@@ -9,7 +9,9 @@ import { SearchBar } from "@/components/ui/search-bar";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { startOfDay, endOfDay, isWithinInterval } from "date-fns";
-import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, ExportButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { exportInflowRecordsWithFilters } from "@/lib/export-utils-filtered";
+import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
 
 // Filter state interface
@@ -135,6 +137,16 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
         }));
     };
 
+    const handleExportExcel = () => {
+        const metadata = {
+            totalRecords: inflows.length,
+            filteredRecords: filteredInflows.length,
+            appliedFilters: getAppliedFiltersSummary(filters),
+            exportDate: new Date()
+        };
+        exportInflowRecordsWithFilters(filteredInflows, metadata);
+    };
+
     return (
         <div className="mt-8">
             <h3 className="text-lg font-medium mb-4">Recent Inflows</h3>
@@ -177,6 +189,12 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                     onChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
                 />
                 <ShareFilterButton filters={filters} />
+                <div className="hidden sm:block">
+                    <ExportButton 
+                        onExportExcel={handleExportExcel}
+                        label="Export"
+                    />
+                </div>
             </div>
 
             {/* Mobile View */}

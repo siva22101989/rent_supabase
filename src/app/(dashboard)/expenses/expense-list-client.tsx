@@ -13,7 +13,9 @@ import { DateRange } from "react-day-picker";
 import { format, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import { formatCurrency, toDate } from "@/lib/utils";
 import type { Expense } from "@/lib/definitions";
-import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, ExportButton, type MultiSelectOption, type SortOption } from '@/components/filters';
+import { exportExpensesWithFilters } from "@/lib/export-utils-filtered";
+import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
 
 interface ExpenseFilterState {
@@ -134,6 +136,16 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
         }));
     };
 
+    const handleExportExcel = () => {
+        const metadata = {
+            totalRecords: expenses.length,
+            filteredRecords: filteredExpenses.length,
+            appliedFilters: getAppliedFiltersSummary(filters),
+            exportDate: new Date()
+        };
+        exportExpensesWithFilters(filteredExpenses, metadata);
+    };
+
     return (
         <div className="mt-6">
             <Card>
@@ -179,6 +191,12 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
                             onChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
                         />
                         <ShareFilterButton filters={filters} />
+                        <div className="hidden sm:block">
+                            <ExportButton 
+                                onExportExcel={handleExportExcel}
+                                label="Export"
+                            />
+                        </div>
                     </div>
 
                     {/* Mobile View */}

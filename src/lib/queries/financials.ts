@@ -17,11 +17,13 @@ export const getFinancialStats = cache(async () => {
                 amount,
                 storage_record:storage_records!inner(warehouse_id)
             `)
-            .eq('storage_record.warehouse_id', warehouseId),
+            .eq('storage_record.warehouse_id', warehouseId)
+            .is('deleted_at', null),
         supabase
             .from('expenses')
             .select('amount')
             .eq('warehouse_id', warehouseId)
+            .is('deleted_at', null)
     ]);
 
     const totalIncome = (payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -44,6 +46,7 @@ export const getExpenses = cache(async (limit = 50): Promise<Expense[]> => {
     .from('expenses')
     .select('*')
     .eq('warehouse_id', warehouseId)
+    .is('deleted_at', null)
     .order('expense_date', { ascending: false })
     .limit(limit);
 

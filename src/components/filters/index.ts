@@ -6,3 +6,4 @@ export { NumberRangeInput } from './number-range-input';
 export { SortDropdown } from './sort-dropdown';
 export type { SortOption } from './sort-dropdown';
 export { ShareFilterButton } from './share-filter-button';
+export { ExportButton } from '../shared/export-button';

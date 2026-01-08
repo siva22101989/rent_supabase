@@ -24,6 +24,7 @@ export default async function InflowPage() {
             .from('customers')
             .select('id, name, father_name, village')
             .eq('warehouse_id', warehouseId)
+            .is('deleted_at', null)
             .order('name')
             .then(res => res.data || []),
         supabase
