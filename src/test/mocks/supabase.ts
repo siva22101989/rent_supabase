@@ -75,7 +75,7 @@ export function createMockSupabaseClient() {
           return Object.entries(filters).every(([key, value]) => {
             if (key.endsWith('_in')) {
               const col = key.replace('_in', '');
-              return value.includes(record[col]);
+              return (value as any[]).includes(record[col]);
             }
             return record[key] === value;
           });
@@ -87,7 +87,7 @@ export function createMockSupabaseClient() {
           return Object.entries(filters).every(([key, value]) => {
             if (key.endsWith('_in')) {
               const col = key.replace('_in', '');
-              return value.includes(record[col]);
+              return (value as any[]).includes(record[col]);
             }
             if (key.endsWith('_is')) {
               const col = key.replace('_is', '');
