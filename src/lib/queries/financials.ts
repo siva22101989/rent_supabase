@@ -1,28 +1,30 @@
 import { createClient } from '@/utils/supabase/server';
+import { cache } from 'react';
 import type { Expense } from '@/lib/definitions';
 import { logError } from '@/lib/error-logger';
 import { getUserWarehouse } from './warehouses';
 
-export async function getFinancialStats() {
+export const getFinancialStats = cache(async () => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return { totalIncome: 0, totalExpenses: 0, totalBalance: 0 };
 
-    const { data: payments } = await supabase
-        .from('payments')
-        .select(`
-            amount,
-            storage_record:storage_records!inner(warehouse_id)
-        `)
-        .eq('storage_record.warehouse_id', warehouseId);
+    // Parallel fetch for better performance
+    const [{ data: payments }, { data: expenses }] = await Promise.all([
+        supabase
+            .from('payments')
+            .select(`
+                amount,
+                storage_record:storage_records!inner(warehouse_id)
+            `)
+            .eq('storage_record.warehouse_id', warehouseId),
+        supabase
+            .from('expenses')
+            .select('amount')
+            .eq('warehouse_id', warehouseId)
+    ]);
 
     const totalIncome = (payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-
-    const { data: expenses } = await supabase
-        .from('expenses')
-        .select('amount')
-        .eq('warehouse_id', warehouseId);
-
     const totalExpenses = (expenses || []).reduce((sum, e) => sum + (e.amount || 0), 0);
 
     return {
@@ -30,9 +32,9 @@ export async function getFinancialStats() {
         totalExpenses,
         totalBalance: totalIncome - totalExpenses
     };
-}
+});
 
-export async function getExpenses(limit = 50): Promise<Expense[]> {
+export const getExpenses = cache(async (limit = 50): Promise<Expense[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
 
@@ -57,4 +59,4 @@ export async function getExpenses(limit = 50): Promise<Expense[]> {
     date: new Date(e.expense_date),
     category: e.category,
   }));
-}
+});

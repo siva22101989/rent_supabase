@@ -1,9 +1,10 @@
 import { createClient } from '@/utils/supabase/server';
+import { cache } from 'react';
 import type { Customer } from '@/lib/definitions';
 import { logError } from '@/lib/error-logger';
 import { getUserWarehouse } from './warehouses';
 
-export async function getCustomersWithBalance(limit = 50, offset = 0, search = ''): Promise<any[]> {
+export const getCustomersWithBalance = cache(async (limit = 50, offset = 0, search = ''): Promise<any[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
@@ -38,9 +39,9 @@ export async function getCustomersWithBalance(limit = 50, offset = 0, search = '
       totalPaid: c.total_paid,
       balance: c.balance
   }));
-}
+});
 
-export async function getPendingPayments(limit = 50): Promise<any[]> {
+export const getPendingPayments = cache(async (limit = 50): Promise<any[]> => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     
@@ -67,9 +68,9 @@ export async function getPendingPayments(limit = 50): Promise<any[]> {
       totalPaid: c.total_paid,
       balance: c.balance
     }));
-}
+});
 
-export async function getCustomers(): Promise<Customer[]> {
+export const getCustomers = cache(async (): Promise<Customer[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
@@ -94,9 +95,9 @@ export async function getCustomers(): Promise<Customer[]> {
     fatherName: c.father_name || '',
     village: c.village || '',
   }));
-}
+});
 
-export const getCustomer = async (id: string): Promise<Customer | null> => {
+export const getCustomer = cache(async (id: string): Promise<Customer | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('customers')
@@ -115,4 +116,4 @@ export const getCustomer = async (id: string): Promise<Customer | null> => {
     fatherName: data.father_name || '',
     village: data.village || '',
   };
-};
+});

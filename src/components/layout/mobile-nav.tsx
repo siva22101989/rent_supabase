@@ -40,7 +40,7 @@ export function MobileNav({ userRole }: MobileNavProps) {
             asChild
             onClick={() => setOpen(false)}
           >
-            <Link href={item.href}>
+            <Link href={item.href} prefetch={true}>
                 <item.icon className="h-5 w-5 shrink-0" />
                 <span>{item.label}</span>
             </Link>

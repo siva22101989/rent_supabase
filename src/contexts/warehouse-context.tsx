@@ -23,7 +23,7 @@ type WarehouseContextType = {
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
 
 const CACHE_KEY = 'grainflow_warehouses';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes (reduced for better freshness)
 
 export function WarehouseProvider({ children }: { children: React.ReactNode }) {
   const [warehouseCache, setWarehouseCache] = useLocalStorage<any>(CACHE_KEY, null);
@@ -86,6 +86,13 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
               setCurrentWarehouse(match);
             }
             setIsLoading(false); // Show UI immediately with cached data
+            
+            // Revalidate in background if cache is getting stale (>50% of duration)
+            if (age > CACHE_DURATION * 0.5) {
+              refreshWarehouses().catch(() => {
+                // Silent background refresh failure
+              });
+            }
             return; // Don't fetch from server if cache is fresh
           }
         } catch (e) {

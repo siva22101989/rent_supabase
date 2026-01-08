@@ -210,6 +210,9 @@ export function AppLayout({ children }: AppLayoutProps) {
                             )}
                           </div>
                           <ThemeToggle />
+                          
+                          {/* <NotificationBell /> */}
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                <Button variant="ghost" className="relative h-9 w-9 md:h-8 md:w-8 rounded-full border border-primary/10 shadow-sm ring-offset-background transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

@@ -52,7 +52,7 @@ export function Sidebar({ collapsed, onToggle, userRole }: SidebarProps) {
             )}
             asChild
           >
-            <Link href={item.href}>
+            <Link href={item.href} prefetch={true}>
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>{item.label}</span>}
             </Link>

@@ -111,7 +111,7 @@ export const getAvailableLots = cache(async () => {
     return data || [];
 });
 
-export async function getTeamMembers() {
+export const getTeamMembers = cache(async () => {
     const supabase = await createClient();
     const userRole = await getCurrentUserRole();
     const warehouseId = await getUserWarehouse();
@@ -184,7 +184,7 @@ export async function getTeamMembers() {
 
     // Sort by newest first
     return members.sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());
-}
+});
 
 export async function getMemberAssignments(userId: string) {
     const supabase = await createClient();
