@@ -3,8 +3,6 @@
 import { useDashboardMetrics } from "@/hooks/use-dashboard-metrics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-// import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'; // Removed unused
-
 import { IndianRupee, Package, Warehouse, Users, TrendingUp } from 'lucide-react';
 
 export function DashboardCharts({ metrics: initialMetrics }: { metrics?: any }) {

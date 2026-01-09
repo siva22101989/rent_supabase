@@ -1,8 +1,17 @@
 import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
 import { getUserWarehouse } from './warehouses';
+import type { 
+    NotificationEntry, 
+    AdminDashboardStats, 
+    WarehouseAdminDetails, 
+    ActivityLogEntry, 
+    PlatformAnalytics,
+    AnalyticsGrowthData,
+    CommodityDistribution
+} from '@/lib/definitions';
 
-export async function getNotifications(limit = 5): Promise<any[]> {
+export async function getNotifications(limit = 5): Promise<NotificationEntry[]> {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     const { data: { user } } = await supabase.auth.getUser();
@@ -20,7 +29,7 @@ export async function getNotifications(limit = 5): Promise<any[]> {
     return data || [];
 }
 
-export const getAdminDashboardStats = cache(async () => {
+export const getAdminDashboardStats = cache(async (): Promise<AdminDashboardStats | null> => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
@@ -87,7 +96,7 @@ export const getAdminDashboardStats = cache(async () => {
     };
 });
 
-export const getAllWarehousesAdmin = cache(async () => {
+export const getAllWarehousesAdmin = cache(async (): Promise<WarehouseAdminDetails[]> => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const { data: profile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', user?.id).single();
@@ -118,7 +127,7 @@ export const getAllWarehousesAdmin = cache(async () => {
     const { data, error } = await query;
     if (error) return [];
 
-    return data.map((w: any) => {
+    return (data || []).map((w: any) => {
         const totalStock = w.storage_records?.reduce((sum: number, record: any) => sum + (record.bags_stored || 0), 0) || 0;
         const totalCapacity = w.warehouse_lots?.reduce((sum: number, lot: any) => sum + (lot.capacity || 0), 0) || w.capacity_bags || 0;
         const activeRecords = (w.storage_records || []).length;
@@ -165,7 +174,7 @@ export const getAllUsersAdmin = cache(async () => {
     return data;
 });
 
-export const getGlobalActivityLogs = cache(async (limit = 50, offset = 0, search = '', filterAction = '') => {
+export const getGlobalActivityLogs = cache(async (limit = 50, offset = 0, search = '', filterAction = ''): Promise<ActivityLogEntry[]> => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const { data: profile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', user?.id).single();
@@ -210,7 +219,7 @@ export const getGlobalActivityLogs = cache(async (limit = 50, offset = 0, search
     return data;
 });
 
-export const getPlatformAnalytics = cache(async () => {
+export const getPlatformAnalytics = cache(async (): Promise<PlatformAnalytics> => {
     const supabase = await createClient();
     const { data: warehouses } = await supabase
         .from('warehouses')
@@ -225,13 +234,13 @@ export const getPlatformAnalytics = cache(async () => {
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    const warehouseData = (warehouses || []).reduce((acc: any, w: any) => {
+    const warehouseData = (warehouses || []).reduce((acc: Record<string, number>, w: any) => {
         const month = months[new Date(w.created_at).getMonth()];
         acc[month] = (acc[month] || 0) + 1;
         return acc;
     }, {});
 
-    const userData = (users || []).reduce((acc: any, u: any) => {
+    const userData = (users || []).reduce((acc: Record<string, number>, u: any) => {
         const month = months[new Date(u.created_at).getMonth()];
         acc[month] = (acc[month] || 0) + 1;
         return acc;
@@ -249,7 +258,7 @@ export const getPlatformAnalytics = cache(async () => {
         .is('storage_end_date', null)
         .is('deleted_at', null);
 
-    const commodityDistribution = (stocks || []).reduce((acc: any, s: any) => {
+    const commodityDistribution = (stocks || []).reduce((acc: CommodityDistribution[], s: any) => {
         const name = s.commodity_description || 'Unknown';
         const existing = acc.find((item: any) => item.name === name);
         if (existing) {

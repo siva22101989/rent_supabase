@@ -112,3 +112,63 @@ export const roleHierarchy: Record<string, number> = {
     'suspended': 0,
     'customer': 0
 };
+
+// --- Analytics & Admin Types ---
+
+export interface NotificationEntry {
+    id: string;
+    warehouse_id: string;
+    user_id: string | null;
+    title: string;
+    message: string;
+    type: 'info' | 'warning' | 'error' | 'success';
+    read: boolean;
+    created_at: Date | string;
+}
+
+export interface AdminDashboardStats {
+    warehouseCount: number;
+    usersCount: number;
+    customersCount: number;
+    activeRecordsCount: number;
+    totalStock: number;
+}
+
+export interface WarehouseAdminDetails extends Warehouse {
+    totalStock: number;
+    totalCapacity: number;
+    occupancyRate: number;
+    activeRecords: number;
+    warehouse_lots?: { current_stock: number; capacity: number }[];
+    storage_records?: { id: string; bags_stored: number }[];
+}
+
+export interface ActivityLogEntry {
+    id: string;
+    warehouse_id: string;
+    user_id: string;
+    action: string;
+    entity: string;
+    entity_id: string;
+    details: any;
+    ip_address?: string;
+    created_at: Date | string;
+    user?: { full_name: string; email: string };
+    warehouse?: { name: string };
+}
+
+export interface AnalyticsGrowthData {
+    month: string;
+    warehouses: number;
+    users: number;
+}
+
+export interface CommodityDistribution {
+    name: string;
+    value: number;
+}
+
+export interface PlatformAnalytics {
+    growthData: AnalyticsGrowthData[];
+    commodityDistribution: CommodityDistribution[];
+}
