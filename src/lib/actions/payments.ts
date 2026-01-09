@@ -17,7 +17,8 @@ const PaymentSchema = z.object({
   recordId: z.string(),
   paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
   paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-  paymentType: z.enum(['Rent/Other', 'Hamali']),
+  // Accept both UI legacy values and new DB Enum values
+  paymentType: z.enum(['Rent/Other', 'Hamali', 'rent', 'hamali', 'advance', 'security_deposit', 'other']),
 });
 
 export type PaymentFormState = {
@@ -57,8 +58,22 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
             span.setAttribute("paymentAmount", paymentAmount);
 
             try {
-                const type = paymentType === 'Hamali' ? 'hamali' : 'rent';
-                const notes = paymentType === 'Hamali' ? 'Hamali Payment' : 'Rent Payment';
+                let type: any = 'rent';
+                let notes = 'Rent Payment';
+
+                // Map legacy/UI types to DB Enum
+                // DB: 'rent' | 'hamali' | 'advance' | 'security_deposit' | 'other'
+                if (paymentType === 'Hamali' || paymentType === 'hamali') {
+                    type = 'hamali';
+                    notes = 'Hamali Payment';
+                } else if (paymentType === 'Rent/Other' || paymentType === 'rent') {
+                    type = 'rent';
+                    notes = 'Rent Payment'; // Default note
+                } else {
+                    // Pass through other valid types
+                    type = paymentType;
+                    notes = `${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')} Payment`;
+                }
 
                 const result = await PaymentService.createPayment(recordId, {
                     amount: paymentAmount,
@@ -79,10 +94,13 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
                 // Let's assume global revalidation is enough or we improve Service later.
                 // Revalidating /customers is broad but safe.
                 
+                if (result.customerId) {
+                    revalidatePath(`/customers/${result.customerId}`);
+                }
                 revalidatePath('/customers');
+                revalidatePath('/financials');
+                revalidatePath('/storage');
                 revalidatePath('/payments/pending');
-                // We can't easily revalidate pending/customerId without fetching it.
-                // It's a trade-off. 
                 
                 return { message: 'Payment recorded successfully!', success: true };
             } catch (error: any) {
@@ -119,6 +137,9 @@ export async function updatePayment(paymentId: string, formData: FormData) {
         revalidatePath('/customers');
         revalidatePath('/payments/pending');
         if (customerId) revalidatePath(`/customers/${customerId}`);
+        revalidatePath('/storage');
+        revalidatePath('/financials');
+        // Duplicates removed
         
         return { message: 'Payment updated successfully!', success: true };
     } catch (error: any) {
@@ -137,6 +158,9 @@ export async function deletePayment(paymentId: string, customerId: string) {
         revalidatePath('/customers');
         revalidatePath('/payments/pending');
         revalidatePath(`/customers/${customerId}`);
+        revalidatePath('/storage');
+        revalidatePath('/financials');
+        // Duplicates removed
         return { message: 'Payment deleted successfully!', success: true };
     } catch (error: any) {
         logError(error, { operation: 'delete_payment', metadata: { paymentId } });

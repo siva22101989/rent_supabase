@@ -162,7 +162,8 @@ export class BillingService {
 
     if (isClosed) {
       updates.storageEndDate = withdrawalDate;
-      updates.billingCycle = 'Completed';
+      // Do NOT set billingCycle to 'Completed'. It is strictly an Enum ('6m' | '1y').
+      // The status is determined by storageEndDate being present.
     }
 
     return { updates, isClosed };
@@ -195,8 +196,10 @@ export class BillingService {
     const shouldReopen = record.storageEndDate !== null && newBagsStored > 0;
     if (shouldReopen) {
       updates.storageEndDate = null;
-      updates.billingCycle = '6-Month Initial';
-      // Note: Ideal logic would determine correct cycle based on duration, but '6-Month Initial' implies 'Open'
+      // If we are reopening, we default to standard 6m if not set, 
+      // but usually we just keep existing cycle.
+      // If we must set it, use valid ENUM '6m'.
+      updates.billingCycle = '6m'; 
     }
 
     return { updates, shouldReopen };
@@ -232,12 +235,12 @@ export class BillingService {
     // Status Check
     if (updates.bagsStored === 0) {
         updates.storageEndDate = newTransaction.date;
-        updates.billingCycle = 'Completed';
+        // Do not set billingCycle to 'Completed'
     } else {
         // Functionally open
         if (record.storageEndDate) {
             updates.storageEndDate = null;
-            updates.billingCycle = '6-Month Initial';
+            updates.billingCycle = '6m';
         }
     }
 

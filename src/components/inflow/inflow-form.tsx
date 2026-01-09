@@ -71,7 +71,7 @@ function InflowFormInner({
     const [hamali, setHamali] = useState(0);
     const [hamaliPaid, setHamaliPaid] = useState(0);
     const [selectedCustomerId, setSelectedCustomerId] = useState(queryCustomerId || '');
-    const [inflowType, setInflowType] = useState<'Direct' | 'Plot'>('Direct');
+    const [inflowType, setInflowType] = useState<'purchase' | 'transfer_in'>('purchase');
     const [plotBags, setPlotBags] = useState(0);
     const [selectedLotId, setSelectedLotId] = useState('');
     const [selectedCropId, setSelectedCropId] = useState('');
@@ -156,7 +156,7 @@ function InflowFormInner({
     }, [state, toastSuccess, toastError, refresh, router]);
 
     useEffect(() => {
-        const bagsValue = inflowType === 'Plot' ? plotBags : bags;
+        const bagsValue = inflowType === 'transfer_in' ? plotBags : bags;
         const rateValue = rate || 0;
         
         let calculatedHamali = (bagsValue || 0) * rateValue;
@@ -179,8 +179,8 @@ function InflowFormInner({
             customerId: selectedCustomerId,
             lot: selectedLotId,
             crop: selectedCropId,
-            bags: (inflowType === 'Direct' ? bags : 0),
-            plotBags: (inflowType === 'Plot' ? plotBags : 0),
+            bags: (inflowType === 'purchase' ? bags : 0),
+            plotBags: (inflowType === 'transfer_in' ? plotBags : 0),
             type: inflowType,
         };
 
@@ -190,9 +190,9 @@ function InflowFormInner({
         else if (!tParams.lot) errMsg = 'Please select a Lot.';
         else if (!tParams.crop) errMsg = 'Please select a Crop.';
         
-        else if (tParams.type === 'Direct') {
+        else if (tParams.type === 'purchase') {
              if (!tParams.bags || tParams.bags <= 0) errMsg = 'Number of bags must be valid and greater than 0.';
-        } else if (tParams.type === 'Plot') {
+        } else if (tParams.type === 'transfer_in') {
              if (!tParams.plotBags || tParams.plotBags <= 0) errMsg = 'Plot bags must be valid and greater than 0.';
         }
 
@@ -215,7 +215,7 @@ function InflowFormInner({
                         date: new Date(formData.get('storageStartDate') as string),
                         customerName: selectedCustomer?.name || 'Customer',
                         commodity: selectedCrop?.name || 'Product',
-                        bags: tParams.type === 'Direct' ? tParams.bags : tParams.plotBags
+                        bags: tParams.type === 'purchase' ? tParams.bags : tParams.plotBags
                     });
                 });
             }
@@ -341,22 +341,22 @@ function InflowFormInner({
                         <Label>Inflow Type</Label>
                         <RadioGroup 
                             name="inflowType"
-                            defaultValue="Direct"
+                            defaultValue="purchase"
                             className="flex gap-4"
-                            onValueChange={(value: 'Direct' | 'Plot') => setInflowType(value)}
+                            onValueChange={(value: 'purchase' | 'transfer_in') => setInflowType(value)}
                         >
                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Direct" id="direct" />
-                                <Label htmlFor="direct">Direct</Label>
+                                <RadioGroupItem value="purchase" id="direct" />
+                                <Label htmlFor="direct">Direct (Purchase)</Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Plot" id="plot" />
-                                <Label htmlFor="plot">Plot</Label>
+                                <RadioGroupItem value="transfer_in" id="plot" />
+                                <Label htmlFor="plot">Plot (Transfer In)</Label>
                             </div>
                         </RadioGroup>
                     </div>
 
-                    {inflowType === 'Plot' && (
+                    {inflowType === 'transfer_in' && (
                         <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-2">
                                 <Label htmlFor="plotBags">Plot Bags <span className="text-destructive">*</span></Label>
@@ -460,7 +460,7 @@ function InflowFormInner({
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
-                        {inflowType === 'Direct' && (
+                        {inflowType === 'purchase' && (
                             <div className="space-y-2">
                                 <Label htmlFor="bagsStored">No. of Bags <span className="text-destructive">*</span></Label>
                                 <Input 

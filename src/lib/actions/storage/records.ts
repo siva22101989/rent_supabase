@@ -103,6 +103,11 @@ export async function updateStorageRecordAction(recordId: string, prevState: For
     revalidatePath('/storage');
     revalidatePath('/payments/pending');
     revalidatePath('/reports');
+    revalidatePath('/customers');
+    revalidatePath('/financials');
+    if (originalRecord.customerId) {
+        revalidatePath(`/customers/${originalRecord.customerId}`);
+    }
     return { message: 'Record updated successfully.', success: true };
 }
 
@@ -120,7 +125,7 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
     cropId?: string;
     lotId?: string;
     lorryTractorNo?: string;
-    inflowType?: 'Direct' | 'Plot';
+    inflowType?: 'purchase' | 'transfer_in' | 'return' | 'other';
 }) {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();

@@ -105,6 +105,8 @@ export function AddCustomerDialog() {
                 onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
                 placeholder="+91XXXXXXXXXX or XXXXXXXXXX"
                 required 
+                pattern="^\+?[0-9]{10,15}$"
+                title="Phone number must be 10-15 digits, optional +"
               />
               <p className="text-[10px] text-muted-foreground">
                 * 10-15 digits, optional + prefix

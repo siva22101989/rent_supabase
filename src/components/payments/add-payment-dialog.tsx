@@ -38,7 +38,7 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
   const { success: toastSuccess, error: toastError } = useUnifiedToast();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(autoOpen);
-  const [paymentType, setPaymentType] = useState<'Rent/Other' | 'Hamali'>('Rent/Other');
+  const [paymentType, setPaymentType] = useState<'rent' | 'hamali'>('rent');
   const lastHandledRef = useRef<any>(null);
   
   const initialState: PaymentFormState = { message: '', success: false };
@@ -67,8 +67,8 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
   }, [state, toastSuccess, toastError, router, onClose]);
   
   const recordDisplay = record.recordNumber || `REC-${record.id.substring(0, 8)}`;
-  const title = paymentType === 'Hamali' ? 'Add Extra Hamali Charges' : 'Record Payment';
-  const description = paymentType === 'Hamali'
+  const title = paymentType === 'hamali' ? 'Add Extra Hamali Charges' : 'Record Payment';
+  const description = paymentType === 'hamali'
     ? `Add an additional hamali charge to ${recordDisplay}.`
     : `Record a payment for ${recordDisplay}. Balance Due: ${formatCurrency(record.balanceDue)}`;
 
@@ -96,19 +96,19 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
             <div className="grid gap-2">
                 <Label>Type</Label>
                 <RadioGroup 
-                    defaultValue={state.data?.paymentType || "Rent/Other"}
+                    defaultValue={state.data?.paymentType || "rent"}
                     name="paymentType"
                     className="flex gap-4"
                     value={paymentType}
-                    onValueChange={(value: 'Rent/Other' | 'Hamali') => setPaymentType(value)}
+                    onValueChange={(value: 'rent' | 'hamali') => setPaymentType(value)}
                 >
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Rent/Other" id="r1" />
-                        <Label htmlFor="r1">Payment</Label>
+                        <RadioGroupItem value="rent" id="r1" />
+                        <Label htmlFor="r1">Rent/Other</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Hamali" id="r2" />
-                        <Label htmlFor="r2">Add Hamali Charge</Label>
+                        <RadioGroupItem value="hamali" id="r2" />
+                        <Label htmlFor="r2">Hamali Charge</Label>
                     </div>
                 </RadioGroup>
             </div>
@@ -122,14 +122,14 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
                 type="number"
                 step="0.01"
                 min="0.01"
-                max={paymentType === 'Rent/Other' ? record.balanceDue : undefined}
-                placeholder={paymentType === 'Rent/Other' ? `Max: ${formatCurrency(record.balanceDue)}` : "Enter amount"}
+                max={paymentType === 'rent' ? record.balanceDue : undefined}
+                placeholder={paymentType === 'rent' ? `Max: ${formatCurrency(record.balanceDue)}` : "Enter amount"}
                 defaultValue={state.data?.paymentAmount}
                 onFocus={(e) => e.target.select()}
                 onWheel={(e) => e.currentTarget.blur()}
                 required 
               />
-              {paymentType === 'Rent/Other' && (
+              {paymentType === 'rent' && (
                   <p className="text-xs text-muted-foreground mt-1">
                       Max available: {formatCurrency(record.balanceDue)}
                   </p>

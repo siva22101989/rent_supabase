@@ -22,7 +22,7 @@ interface DbCustomer {
 interface DbPayment {
   amount: number;
   payment_date: string;
-  type?: 'rent' | 'hamali' | 'other';
+  type?: 'rent' | 'hamali' | 'advance' | 'security_deposit' | 'other'; // Updated to DB Enum
   notes?: string;
   updated_at?: string;
 }
@@ -39,11 +39,11 @@ interface DbStorageRecord {
   bags_out?: number;
   storage_start_date: string;
   storage_end_date?: string | null;
-  billing_cycle?: '6-Month Initial' | '1-Year Rollover' | '1-Year Renewal' | 'Completed';
+  billing_cycle?: '6m' | '1y'; // Updated to DB Enum
   hamali_payable: number;
   total_rent_billed: number;
   lorry_tractor_no: string;
-  inflow_type?: 'Direct' | 'Plot';
+  inflow_type?: 'purchase' | 'transfer_in' | 'return' | 'other'; // Updated to DB Enum
   plot_bags?: number;
   load_bags?: number;
   khata_amount?: number;

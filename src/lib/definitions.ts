@@ -15,10 +15,16 @@ export type Commodity = {
   description: string;
 };
 
+// Database Enums
+export type PaymentType = 'rent' | 'hamali' | 'advance' | 'security_deposit' | 'other';
+export type BillingCycle = '6m' | '1y';
+export type InflowType = 'purchase' | 'transfer_in' | 'return' | 'other';
+export type LotStatus = 'active' | 'inactive' | 'maintenance' | 'full';
+
 export type Payment = {
   amount: number;
   date: Date | string;
-  type?: 'rent' | 'hamali' | 'other';
+  type?: PaymentType; // Updated from literal union
   notes?: string;
   paymentNumber?: number;
   updatedAt?: Date | string;
@@ -36,12 +42,12 @@ export type StorageRecord = {
   bagsStored: number;
   storageStartDate: Date | string;
   storageEndDate: Date | string | null;
-  billingCycle: '6-Month Initial' | '1-Year Rollover' | '1-Year Renewal' | 'Completed';
+  billingCycle: BillingCycle;
   payments: Payment[];
   hamaliPayable: number;
   totalRentBilled: number;
   lorryTractorNo: string;
-  inflowType?: 'Direct' | 'Plot';
+  inflowType?: InflowType;
   plotBags?: number;
   loadBags?: number;
   khataAmount?: number;

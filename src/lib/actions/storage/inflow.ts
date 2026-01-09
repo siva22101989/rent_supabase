@@ -106,7 +106,8 @@ const InflowSchema = z.object({
   lorryTractorNo: z.string().optional(),
   fatherName: z.string().optional(),
   village: z.string().optional(),
-  inflowType: z.enum(['Direct', 'Plot']).optional(),
+  // Support both Legacy UI and New DB Enum
+  inflowType: z.enum(['Direct', 'Plot', 'purchase', 'transfer_in', 'return', 'other']).optional(),
   plotBags: z.coerce.number().nonnegative('Plot bags must be a non-negative number.').optional(),
   loadBags: z.coerce.number().optional(),
   khataAmount: z.coerce.number().nonnegative('Khata amount must be a non-negative number.').optional(),
@@ -274,12 +275,15 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                   bagsStored: inflowBags,
                   storageStartDate: new Date(storageStartDate),
                   storageEndDate: null,
-                  billingCycle: '6-Month Initial',
+                  billingCycle: '6m', // Default new records to 6m Enum
                   payments: payments,
                   hamaliPayable: hamaliPayable,
                   totalRentBilled: 0,
                   lorryTractorNo: rest.lorryTractorNo ?? '',
-                  inflowType: (inflowType === 'Direct' || inflowType === 'Plot') ? inflowType : 'Direct',
+                  // Map Legacy Types to DB Enums
+                  inflowType: (inflowType === 'Direct' || inflowType === 'purchase') ? 'purchase' : 
+                              (inflowType === 'Plot' || inflowType === 'transfer_in') ? 'transfer_in' : 
+                              (inflowType === 'return' || inflowType === 'other') ? inflowType : 'purchase',
                   plotBags: finalPlotBags,
                   loadBags: finalLoadBags,
                   location: lotName,

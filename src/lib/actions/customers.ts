@@ -185,6 +185,9 @@ export async function updateCustomer(customerId: string, formData: FormData): Pr
 
             revalidatePath('/customers');
             revalidatePath(`/customers/${customerId}`);
+            revalidatePath('/storage');
+            revalidatePath('/financials');
+            revalidatePath('/inflow'); // Name changes affect search/filters
             return { message: 'Customer updated successfully!', success: true };
         }
     );
@@ -241,6 +244,40 @@ export async function deleteCustomer(customerId: string): Promise<FormState> {
 
             revalidatePath('/customers');
             redirect('/customers');
+        }
+    );
+}
+
+export async function restoreCustomer(customerId: string): Promise<FormState> {
+    return Sentry.startSpan(
+        {
+            op: "function",
+            name: "restoreCustomer",
+        },
+        async (span) => {
+            await checkRateLimit(customerId || 'anon', 'restoreCustomer', { limit: 5 });
+            span.setAttribute("customerId", customerId);
+
+            const supabase = await createClient();
+            const warehouseId = await getUserWarehouse();
+
+            if (!warehouseId) {
+                return { message: 'No warehouse found.', success: false };
+            }
+
+            const { error } = await supabase
+                .from('customers')
+                .update({ deleted_at: null })
+                .eq('id', customerId)
+                .eq('warehouse_id', warehouseId);
+
+            if (error) {
+                logError(error, { operation: 'restore_customer', warehouseId, metadata: { customerId } });
+                return { message: 'Failed to restore customer', success: false };
+            }
+
+            revalidatePath('/customers');
+            return { message: 'Customer restored successfully!', success: true };
         }
     );
 }

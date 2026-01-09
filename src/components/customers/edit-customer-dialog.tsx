@@ -84,6 +84,13 @@ export function EditCustomerDialog({ customer, variant = 'outline', size = 'sm' 
                                 name="phone"
                                 type="tel"
                                 defaultValue={customer.phone || ''}
+                                onChange={(e) => {
+                                    // Remove invalid chars immediately
+                                    const val = e.target.value.replace(/[^0-9+]/g, '').replace(/\+(?=.*\+)/g, '');
+                                    e.target.value = val;
+                                }}
+                                pattern="^\+?[0-9]{10,15}$"
+                                title="Phone number must be 10-15 digits, optional +"
                                 required
                             />
                         </div>

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
+import { RestoreCustomerDialog } from "@/components/customers/restore-customer-dialog";
 import { formatCurrency } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
@@ -195,7 +196,8 @@ export function CustomersPageClient({
           { label: 'Customers' }
         ]}
       >
-        <div data-add-customer-trigger>
+        <div data-add-customer-trigger className="flex items-center gap-2">
+          <RestoreCustomerDialog />
           <AddCustomerDialog />
         </div>
       </PageHeader>

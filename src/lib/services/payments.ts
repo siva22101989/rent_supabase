@@ -37,7 +37,7 @@ export class PaymentService {
       // Suppress notification error to not fail payment
     }
 
-    return { success: true, recordId, amount: payment.amount };
+    return { success: true, recordId, amount: payment.amount, customerId: record.customerId };
   }
 
   /**

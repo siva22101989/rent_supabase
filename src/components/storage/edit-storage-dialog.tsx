@@ -37,7 +37,7 @@ interface StorageRecord {
     cropId?: string;
     lotId?: string;
     lorryTractorNo?: string;
-    inflowType?: 'Direct' | 'Plot';
+    inflowType?: 'purchase' | 'transfer_in' | 'return' | 'other';
 }
 
 interface Props {
@@ -94,6 +94,18 @@ export function EditStorageDialog({
                     inflowType: formData.get('inflowType'),
                 })
             });
+
+            // Client-side date check (though we can't fully check EndDate here as it's not editable in this form usually, checks happen in database or separate action if closing).
+            // But if we were editing an End Date, we'd check it.
+            // This form actually only edits active records or basic details.
+            // Wait, looking at the code, `isCompleted` disables the form.
+            // If we are editing the Start Date, we should ensure it's not in the future.
+            const sDate = new Date(formData.get('storageStartDate') as string);
+            if (sDate > new Date()) {
+                 setError('Storage Start Date cannot be in the future.');
+                 setLoading(false);
+                 return;
+            }
 
             const result = await response.json();
 
@@ -198,13 +210,13 @@ export function EditStorageDialog({
 
                                 <div className="grid gap-2">
                                     <Label>Inflow Type</Label>
-                                    <RadioGroup name="inflowType" defaultValue={record.inflowType || 'Direct'} className="flex flex-row space-x-4">
+                                    <RadioGroup name="inflowType" defaultValue={record.inflowType || 'purchase'} className="flex flex-row space-x-4">
                                         <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="Direct" id="r1" />
+                                            <RadioGroupItem value="purchase" id="r1" />
                                             <Label htmlFor="r1">Direct</Label>
                                         </div>
                                         <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="Plot" id="r2" />
+                                            <RadioGroupItem value="transfer_in" id="r2" />
                                             <Label htmlFor="r2">Plot (Drying)</Label>
                                         </div>
                                     </RadioGroup>
