@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getUserWarehouse } from './data';
+import { WarehouseWithRole } from './definitions';
 import * as Sentry from "@sentry/nextjs";
 
 const { logger } = Sentry;
@@ -151,7 +152,7 @@ export async function switchWarehouse(warehouseId: string): Promise<ActionState>
     return { message: 'Switched successfully', success: true };
 }
 
-export async function getUserWarehouses() {
+export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];

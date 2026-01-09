@@ -44,8 +44,10 @@ export function filtersToSearchParams<T extends FilterState>(
       return; 
     }
 
+    const filterKey = key as keyof T;
+
     // Skip if it matches the default value
-    if (defaults && JSON.stringify(value) === JSON.stringify(defaults[key as keyof T])) {
+    if (defaults && JSON.stringify(value) === JSON.stringify(defaults[filterKey])) {
       return;
     }
 
@@ -65,7 +67,7 @@ export function filtersToSearchParams<T extends FilterState>(
 
     // Handle DateRange object
     if (typeof value === 'object' && 'from' in value) {
-      const dateRange = value as any; // DateRange from react-day-picker
+      const dateRange = value as DateRange;
       if (dateRange.from) {
         params.set('dateFrom', dateRange.from.toISOString().split('T')[0]);
       }
@@ -95,7 +97,9 @@ export function searchParamsToFilters<T extends FilterState>(
   params: URLSearchParams,
   defaults: T
 ): T {
-  const filters: any = { ...defaults }; // Use 'any' to allow mutations
+  // We need to construct this object carefully.
+  // Instead of casting to any, we can explicitly type the accumulatd object or cast just at the end.
+  const filters: T = { ...defaults };
 
   params.forEach((value, key) => {
     // If it's a dateFrom/dateTo, we'll handle it specially later if dateRange is in defaults
@@ -106,36 +110,37 @@ export function searchParamsToFilters<T extends FilterState>(
       return;
     }
 
-    const defaultValue = defaults[key];
+    const filterKey = key as keyof T;
+    const defaultValue = defaults[filterKey];
 
     // Handle arrays
     if (Array.isArray(defaultValue)) {
-      filters[key] = value.split(',').filter(Boolean);
+      (filters[filterKey] as any) = value.split(',').filter(Boolean);
       return;
     }
 
     // Handle dates
-    if (defaultValue instanceof Date || (typeof defaultValue === 'string' && !isNaN(Date.parse(value)) && (key.includes('date') || key.includes('Date')))) {
+    if ((defaultValue as any) instanceof Date || (typeof defaultValue === 'string' && !isNaN(Date.parse(value)) && (key.includes('date') || key.includes('Date')))) {
       const date = new Date(value);
-      filters[key] = isNaN(date.getTime()) ? defaultValue : date;
+      (filters[filterKey] as any) = isNaN(date.getTime()) ? defaultValue : date;
       return;
     }
 
     // Handle numbers
     if (typeof defaultValue === 'number' || (defaultValue === null && (key.includes('min') || key.includes('max') || key === 'page'))) {
       const num = Number(value);
-      filters[key] = isNaN(num) ? defaultValue : num;
+      (filters[filterKey] as any) = isNaN(num) ? defaultValue : num;
       return;
     }
 
     // Handle boolean
     if (typeof defaultValue === 'boolean') {
-      filters[key] = value === '1' || value === 'true';
+      (filters[filterKey] as any) = value === '1' || value === 'true';
       return;
     }
 
     // Handle string
-    filters[key] = value;
+    (filters[filterKey] as any) = value;
   });
 
   // Reconstruct DateRange if it's expected in defaults
@@ -144,16 +149,16 @@ export function searchParamsToFilters<T extends FilterState>(
     const to = params.get('dateTo');
     
     if (from || to) {
-      filters.dateRange = {
+      (filters as any).dateRange = {
         from: from ? new Date(from) : undefined,
         to: to ? new Date(to) : undefined,
       };
     } else {
-      filters.dateRange = defaults.dateRange;
+      (filters as any).dateRange = (defaults as any).dateRange;
     }
   }
 
-  return filters as T;
+  return filters;
 }
 
 /**

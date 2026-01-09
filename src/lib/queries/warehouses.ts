@@ -2,21 +2,36 @@ import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
 import type { UserWarehouse } from '@/lib/definitions';
 import { getAuthUser } from './auth';
+import { Database } from '@/types/supabase';
+
+type Profiles = Database['public']['Tables']['profiles']['Row'];
+type WarehouseAssignments = Database['public']['Tables']['warehouse_assignments']['Row'];
+
 
 // Helper to get current user's warehouse
 // Helper to get current user's warehouse
 export const getUserWarehouse = cache(async () => {
   const supabase = await createClient();
-  const user = await getAuthUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  // 1. Try Metadata (Fastest)
+  const metaWarehouseId = user.user_metadata?.warehouse_id;
+  if (metaWarehouseId) return metaWarehouseId;
+
+  // 2. DB Fallback (and Heal)
   const { data: profile } = await supabase
     .from('profiles')
     .select('warehouse_id')
     .eq('id', user.id)
     .single();
 
-  return profile?.warehouse_id;
+  if (profile?.warehouse_id) {
+     // Optional: Heal metadata here if we had write access context, but for query just return
+     return profile.warehouse_id;
+  }
+  
+  return null;
 });
 
 export const getCurrentUserRole = cache(async () => {
@@ -130,12 +145,12 @@ export const getTeamMembers = cache(async () => {
             return [];
         }
 
-        return allProfiles.map((p: any) => ({
+        return allProfiles.map((p) => ({
             id: p.id,
-            email: p.email,
-            fullName: p.full_name,
-            role: p.role,
-            createdAt: new Date(p.created_at),
+            email: p.email!,
+            fullName: p.full_name!,
+            role: p.role!,
+            createdAt: p.created_at ? new Date(p.created_at) : new Date(),
         }));
     }
 

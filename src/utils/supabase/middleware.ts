@@ -57,8 +57,7 @@ export const updateSession = async (request: NextRequest) => {
   
   // If user IS signed in and trying to access /login or /signup, redirect to /dashboard
   if (user && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup'))) {
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      const role = profile?.role || user.user_metadata?.role;
+      const role = user.user_metadata?.role;
 
       if (role === 'customer') {
           return NextResponse.redirect(new URL('/portal', request.url));
@@ -69,8 +68,7 @@ export const updateSession = async (request: NextRequest) => {
   // Optimize Dashboard Redirection (Zero Flicker)
   // If an authenticated manager/admin tries to visit the Landing Page ('/'), send them straight to Dashboard
   if (user && request.nextUrl.pathname === '/') {
-       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-       const role = profile?.role || user.user_metadata?.role;
+       const role = user.user_metadata?.role;
 
        if (role === 'customer') {
            return NextResponse.redirect(new URL('/portal', request.url));

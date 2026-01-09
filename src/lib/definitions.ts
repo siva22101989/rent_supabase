@@ -103,6 +103,13 @@ export type UserWarehouse = {
     warehouse?: Warehouse;
 };
 
+export interface WarehouseWithRole {
+    id: string;
+    role: string;
+    name: string;
+    location: string;
+}
+
 export const roleHierarchy: Record<string, number> = {
     'super_admin': 100,
     'owner': 90,

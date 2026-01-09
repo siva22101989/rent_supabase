@@ -4,18 +4,18 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getUserWarehouses, getActiveWarehouseId } from '@/lib/warehouse-actions';
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { createClient } from '@/utils/supabase/client';
+import type { WarehouseWithRole } from '@/lib/definitions';
 
-type Warehouse = {
-  id: string;
-  role: string;
-  name: string;
-  location: string;
+type WarehouseCache = {
+  data: WarehouseWithRole[];
+  timestamp: number;
+  activeId: string | null;
 };
 
 type WarehouseContextType = {
-  warehouses: Warehouse[];
-  currentWarehouse: Warehouse | undefined;
-  setCurrentWarehouse: (warehouse: Warehouse | undefined) => void;
+  warehouses: WarehouseWithRole[];
+  currentWarehouse: WarehouseWithRole | undefined;
+  setCurrentWarehouse: (warehouse: WarehouseWithRole | undefined) => void;
   refreshWarehouses: () => Promise<void>;
   isLoading: boolean;
 };
@@ -23,13 +23,13 @@ type WarehouseContextType = {
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
 
 const CACHE_KEY = 'grainflow_warehouses';
-const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes (reduced for better freshness)
+const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes
 
 export function WarehouseProvider({ children }: { children: React.ReactNode }) {
-  const [warehouseCache, setWarehouseCache] = useLocalStorage<any>(CACHE_KEY, null);
+  const [warehouseCache, setWarehouseCache] = useLocalStorage<WarehouseCache | null>(CACHE_KEY, null);
   
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [currentWarehouse, setCurrentWarehouse] = useState<Warehouse | undefined>();
+  const [warehouses, setWarehouses] = useState<WarehouseWithRole[]>([]);
+  const [currentWarehouse, setCurrentWarehouse] = useState<WarehouseWithRole | undefined>();
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshWarehouses = async () => {
@@ -42,7 +42,7 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
       setWarehouses(list);
       
       if (activeId) {
-        const match = list.find((w: any) => w.id === activeId);
+        const match = list.find((w) => w.id === activeId);
         setCurrentWarehouse(match);
       }
 
@@ -67,7 +67,6 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        // User not authenticated, skip warehouse loading
         setIsLoading(false);
         return;
       }
@@ -79,45 +78,37 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
           const age = Date.now() - timestamp;
           
           if (age < CACHE_DURATION) {
-            // Use cached data and show UI immediately
             setWarehouses(data);
             if (activeId) {
-              const match = data.find((w: any) => w.id === activeId);
+              const match = data.find((w) => w.id === activeId);
               setCurrentWarehouse(match);
             }
-            setIsLoading(false); // Show UI immediately with cached data
+            setIsLoading(false);
             
-            // Revalidate in background if cache is getting stale (>50% of duration)
+            // Revalidate if stale
             if (age > CACHE_DURATION * 0.5) {
-              refreshWarehouses().catch(() => {
-                // Silent background refresh failure
-              });
+              refreshWarehouses().catch(() => {});
             }
-            return; // Don't fetch from server if cache is fresh
+            return;
           }
         } catch (e) {
           console.error('Cache read error:', e);
         }
       }
 
-      // Fetch fresh data if no cache or cache expired
       await refreshWarehouses();
     };
 
     init();
-  }, []); // Remove warehouseCache dependency to prevent re-runs
+  }, []);
 
   // 2. Auth Listener
   useEffect(() => {
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
         if (event === 'SIGNED_IN') {
-             // Silently refresh on login
-             refreshWarehouses().catch(() => {
-               // Ignore errors during auth transitions
-             });
+             refreshWarehouses().catch(() => {});
         } else if (event === 'SIGNED_OUT') {
-             // Clear state and cache on logout
              setWarehouses([]);
              setCurrentWarehouse(undefined);
              setWarehouseCache(null);
@@ -128,13 +119,33 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
         subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run ONCE
+  }, []);
+
+  // 3. Optimistic Switching
+  const setCurrentWarehouseCallback = (warehouse: WarehouseWithRole | undefined) => {
+    // 1. Optimistic Update (Immediate UI change)
+    setCurrentWarehouse(warehouse);
+    
+    // 2. Persist to Cache
+    setWarehouseCache({
+      data: warehouses,
+      timestamp: Date.now(),
+      activeId: warehouse?.id || null
+    });
+    
+    // 3. Trigger Server Update (Background)
+    if (warehouse?.id) {
+       // Note: We don't await this to keep UI responsive. 
+       // The server action 'switchWarehouse' should be called by the UI component invoking this.
+       // This context mainly manages CLIENT state.
+    }
+  };
 
   return (
     <WarehouseContext.Provider value={{ 
       warehouses, 
       currentWarehouse, 
-      setCurrentWarehouse,
+      setCurrentWarehouse: setCurrentWarehouseCallback,
       refreshWarehouses,
       isLoading 
     }}>

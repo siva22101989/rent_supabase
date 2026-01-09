@@ -41,9 +41,9 @@ export async function recordUnloading(formData: {
 
         revalidatePath('/inflow');
         return { success: true, data: unloadingRecord };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error recording unloading:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -174,9 +174,9 @@ export async function movePlotToStorage(formData: {
         revalidatePath('/inflow');
         revalidatePath('/storage');
         return { success: true, data: storageRecord };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error moving plot to storage:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -204,9 +204,17 @@ export async function getPlotInventory() {
         return [];
     }
 
+    type PlotGroup = {
+        plotLocation: string;
+        totalBags: number;
+        records: typeof data;
+    };
+
     // Group by plot location
-    const grouped = data.reduce((acc: any, record: any) => {
+    const grouped = data.reduce<Record<string, PlotGroup>>((acc, record) => {
         const location = record.plot_location;
+        if (!location) return acc;
+
         if (!acc[location]) {
             acc[location] = {
                 plotLocation: location,

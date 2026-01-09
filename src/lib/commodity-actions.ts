@@ -16,6 +16,12 @@ import {
   type CommodityPrice,
 } from '@/lib/agmarknet-service';
 
+// Helper for error messages
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return String(error);
+}
+
 /**
  * Add commodity to user's watchlist
  */
@@ -57,9 +63,9 @@ export async function addToWatchlist(
     revalidatePath('/market-prices');
     
     return { success: true, message: 'Added to watchlist' };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[WATCHLIST] Add error:', error);
-    return { success: false, message: error.message || 'Failed to add to watchlist' };
+    return { success: false, message: getErrorMessage(error) || 'Failed to add to watchlist' };
   }
 }
 
@@ -84,9 +90,9 @@ export async function removeFromWatchlist(watchlistId: string) {
     revalidatePath('/market-prices');
     
     return { success: true, message: 'Removed from watchlist' };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[WATCHLIST] Remove error:', error);
-    return { success: false, message: error.message || 'Failed to remove from watchlist' };
+    return { success: false, message: getErrorMessage(error) || 'Failed to remove from watchlist' };
   }
 }
 
@@ -124,9 +130,9 @@ export async function updateWatchlistItem(
     revalidatePath('/market-prices');
     
     return { success: true, message: 'Watchlist updated' };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[WATCHLIST] Update error:', error);
-    return { success: false, message: error.message || 'Failed to update watchlist' };
+    return { success: false, message: getErrorMessage(error) || 'Failed to update watchlist' };
   }
 }
 
@@ -155,9 +161,9 @@ export async function getUserWatchlist(warehouseId: string) {
     }
 
     return { success: true, data: data || [], message: 'Watchlist fetched' };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[WATCHLIST] Fetch error:', error);
-    return { success: false, data: [], message: error.message || 'Failed to fetch watchlist' };
+    return { success: false, data: [], message: getErrorMessage(error) || 'Failed to fetch watchlist' };
   }
 }
 
@@ -182,12 +188,12 @@ export async function getCommodityPricesWithTrend(
       },
       message: 'Prices fetched successfully',
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[COMMODITY] Fetch error:', error);
     return {
       success: false,
       data: { prices: [], trend: null },
-      message: error.message || 'Failed to fetch prices',
+      message: getErrorMessage(error) || 'Failed to fetch prices',
     };
   }
 }
@@ -256,7 +262,7 @@ export async function getRecommendation(commodity: string, state?: string) {
       details: trend,
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[RECOMMENDATION] Error:', error);
     return {
       action: 'MONITOR' as const,
@@ -291,12 +297,12 @@ export async function searchCommodities(query: string) {
       data: filtered.slice(0, 20), // Limit to 20 results
       message: 'Commodities found',
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[SEARCH] Error:', error);
     return {
       success: false,
       data: [],
-      message: error.message || 'Search failed',
+      message: getErrorMessage(error) || 'Search failed',
     };
   }
 }
@@ -339,12 +345,12 @@ export async function getMarkets(commodity: string, state?: string) {
       data: markets,
       message: 'Markets found',
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[MARKETS] Error:', error);
     return {
       success: false,
       data: [],
-      message: error.message || 'Failed to fetch markets',
+      message: getErrorMessage(error) || 'Failed to fetch markets',
     };
   }
 }
