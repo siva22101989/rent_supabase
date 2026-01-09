@@ -1,5 +1,5 @@
 ---
-description: Advanced patterns including optimistic updates, real-time subscriptions, and batch operations in BagBill.
+description: Advanced patterns including optimistic updates, real-time subscriptions, and batch operations in GrainFlow.
 ---
 
 # Advanced Workflows

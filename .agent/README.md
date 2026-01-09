@@ -26,12 +26,12 @@ This folder contains customized workflows and rules for the Grain Flow project, 
 
 ```powershell
 # Copy all files to .agent directory
-Copy-Item -Path "bagbill-workflows\*" -Destination ".agent\" -Recurse -Force
+Copy-Item -Path "grainflow-workflows\*" -Destination ".agent\" -Recurse -Force
 ```
 
 ### Option 2: Manual Copy
 
-1. Open `bagbill-workflows/rules/rules.md`
+1. Open `grainflow-workflows/rules/rules.md`
 2. Copy content to `.agent/rules/rules.md`
 3. Repeat for each workflow file
 
@@ -41,8 +41,8 @@ Copy-Item -Path "bagbill-workflows\*" -Destination ".agent\" -Recurse -Force
 # Backup existing .agent (if needed)
 Rename-Item -Path ".agent" -NewName ".agent-backup"
 
-# Rename bagbill-workflows to .agent
-Rename-Item -Path "bagbill-workflows" -NewName ".agent"
+# Rename grainflow-workflows to .agent
+Rename-Item -Path "grainflow-workflows" -NewName ".agent"
 ```
 
 ## ✅ Verification
@@ -64,7 +64,7 @@ You should see:
 After copying, you can delete this folder:
 
 ```powershell
-Remove-Item -Path "bagbill-workflows" -Recurse -Force
+Remove-Item -Path "grainflow-workflows" -Recurse -Force
 ```
 
 ## 📝 What Changed

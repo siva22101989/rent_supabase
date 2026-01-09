@@ -1,4 +1,4 @@
-# Contributing to BagBill
+# Contributing to GrainFlow
 
 Welcome! This guide will help you get up to speed with our development workflow, coding standards, and contribution process.
 

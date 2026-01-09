@@ -70,3 +70,69 @@ export async function updateNotificationPreferences(
     revalidatePath('/settings');
     return { success: true };
 }
+
+export async function markNotificationsAsRead(notificationIds: string[]) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return { error: 'Unauthorized' };
+
+    const { error } = await supabase
+        .from('notification_reads')
+        .upsert(
+            notificationIds.map(id => ({ notification_id: id, user_id: user.id })),
+            { onConflict: 'notification_id,user_id' }
+        );
+
+    if (error) {
+        console.error('Failed to mark notifications read:', error);
+        return { error: 'Failed to update status' };
+    }
+    
+    return { success: true };
+}
+
+export async function markAllNotificationsAsRead() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Unauthorized' };
+
+    // 1. Get all relevant notification IDs
+    const { data: allNotes, error: fetchError } = await supabase
+        .from('notifications')
+        .select('id')
+        .or(`user_id.is.null,user_id.eq.${user.id}`);
+
+    if (fetchError) return { error: fetchError.message };
+
+    if (!allNotes || allNotes.length === 0) return { success: true };
+
+    // 2. Get already read IDs
+    const { data: readNotes, error: readError } = await supabase
+        .from('notification_reads')
+        .select('notification_id')
+        .eq('user_id', user.id);
+
+    if (readError) return { error: readError.message };
+
+    const readSet = new Set(readNotes?.map(r => r.notification_id) || []);
+    const unreadIds = allNotes.filter(n => !readSet.has(n.id)).map(n => n.id);
+
+    if (unreadIds.length === 0) return { success: true };
+
+    // 3. Bulk insert in chunks
+    const chunkSize = 1000;
+    for (let i = 0; i < unreadIds.length; i += chunkSize) {
+        const chunk = unreadIds.slice(i, i + chunkSize);
+        const { error: insertError } = await supabase
+            .from('notification_reads')
+            .upsert(
+                chunk.map(id => ({ notification_id: id, user_id: user.id })),
+                { onConflict: 'notification_id,user_id' }
+            );
+        
+        if (insertError) console.error('Error marking batch read:', insertError);
+    }
+
+    return { success: true };
+}

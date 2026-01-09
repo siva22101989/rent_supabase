@@ -2,7 +2,7 @@
 
 ## Overview
 
-BagBill uses PostgreSQL 17 via Supabase with Row Level Security (RLS) for multi-tenant data isolation. The schema is designed for agricultural warehouse management with strict referential integrity and soft delete capabilities.
+GrainFlow uses PostgreSQL 17 via Supabase with Row Level Security (RLS) for multi-tenant data isolation. The schema is designed for agricultural warehouse management with strict referential integrity and soft delete capabilities.
 
 ---
 

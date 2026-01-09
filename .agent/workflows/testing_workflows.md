@@ -1,5 +1,5 @@
 ---
-description: Comprehensive testing strategies for BagBill including unit, integration, and E2E tests.
+description: Comprehensive testing strategies for GrainFlow including unit, integration, and E2E tests.
 ---
 
 # Testing Workflows

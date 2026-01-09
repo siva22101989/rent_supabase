@@ -1,5 +1,5 @@
 ---
-description: Checklist for verifying feature completeness across Database, Server Actions, and UI in BagBill.
+description: Checklist for verifying feature completeness across Database, Server Actions, and UI in GrainFlow.
 ---
 
 # Full-Stack Audit Workflow

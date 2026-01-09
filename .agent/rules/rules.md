@@ -135,7 +135,7 @@ export function FeatureForm() {
 - **Auth Errors**: Verify middleware/proxy is configured
 - **Migration Errors**: Check `supabase/migrations/` syntax
 
-## BagBill-Specific Patterns
+## Grain Flow-Specific Patterns
 
 ### Inflow/Outflow Pattern
 

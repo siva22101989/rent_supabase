@@ -1,5 +1,5 @@
 ---
-description: Best practices for CI/CD pipelines, Vercel deployment, and database migration strategies for BagBill.
+description: Best practices for CI/CD pipelines, Vercel deployment, and database migration strategies for GrainFlow.
 ---
 
 # CI/CD Workflows

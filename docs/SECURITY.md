@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers all security configurations needed for production deployment of BagBill WMS.
+This guide covers all security configurations needed for production deployment of GrainFlow WMS.
 
 ---
 

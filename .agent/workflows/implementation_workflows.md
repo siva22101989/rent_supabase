@@ -1,5 +1,5 @@
 ---
-description: Step-by-step guides for creating new features, modifying server actions, and implementing database changes in BagBill.
+description: Step-by-step guides for creating new features, modifying server actions, and implementing database changes in GrainFlow.
 ---
 
 # Implementation Workflows

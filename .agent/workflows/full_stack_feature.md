@@ -1,8 +1,8 @@
 ---
-description: Protocol for implementing features across Database, Server Actions, and UI in BagBill.
+description: Protocol for implementing features across Database, Server Actions, and UI in GrainFlow.
 ---
 
-# Full-Stack Feature Workflow (BagBill)
+# Full-Stack Feature Workflow (GrainFlow)
 
 **Goal:** Ensure every feature has complete implementation from database to UI.
 

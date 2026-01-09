@@ -1,12 +1,12 @@
 ---
-description: Core workflows for BagBill project initialization, feature discovery, and dependency analysis.
+description: Core workflows for GrainFlow project initialization, feature discovery, and dependency analysis.
 ---
 
 # Discovery & Context Building Workflows
 
 ## Workflow 1: Session Initialization (Discovery)
 
-**Goal:** Establish a baseline understanding of the BagBill project.
+**Goal:** Establish a baseline understanding of the GrainFlow project.
 
 ### 1. Fundamental Discovery
 

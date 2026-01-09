@@ -1,5 +1,5 @@
 ---
-description: Security auditing, RLS verification, and performance optimization workflows for BagBill.
+description: Security auditing, RLS verification, and performance optimization workflows for GrainFlow.
 ---
 
 # Security Workflows

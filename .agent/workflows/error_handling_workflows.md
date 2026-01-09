@@ -1,5 +1,5 @@
 ---
-description: Systematic protocols for diagnosing errors, investigating issues, and debugging performance problems in BagBill.
+description: Systematic protocols for diagnosing errors, investigating issues, and debugging performance problems in GrainFlow.
 ---
 
 # Error Handling Workflows

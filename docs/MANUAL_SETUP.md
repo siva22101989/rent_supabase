@@ -209,7 +209,7 @@ NEXT_PUBLIC_VERCEL_ANALYTICS_ID=<your_analytics_id>
    - Click "Add New Monitor"
    - Type: HTTP(s)
    - URL: https://your-domain.com/api/health
-   - Name: BagBill Production
+   - Name: GrainFlow Production
    - Monitoring Interval: 5 minutes
 
 3. **Configure Alerts**

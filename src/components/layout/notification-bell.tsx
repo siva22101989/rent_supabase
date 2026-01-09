@@ -1,10 +1,11 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Bell, CheckCheck, Trash2 } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import type { NotificationEntry } from '@/lib/definitions';
+import { markAllNotificationsAsRead, markNotificationsAsRead } from '@/lib/notification-actions';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -48,7 +49,7 @@ export function NotificationBell() {
                 .from('notifications')
                 .select('*')
                 .order('created_at', { ascending: false })
-                .limit(20);
+                .limit(100);
              
              // Only add the filter if there are read notifications
              if (readNotificationIds.length > 0) {
@@ -117,10 +118,57 @@ export function NotificationBell() {
         };
     }, []);
 
-    const markRead = async (id: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+    const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+    
+    // Group notifications by title + type
+    const groupedNotifications = useMemo(() => {
+        const groups: Record<string, NotificationEntry[]> = {};
+        notifications.forEach(n => {
+            const key = `${n.type}-${n.title}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(n);
+        });
+        
+        return Object.entries(groups)
+            .map(([key, items]) => ({
+                key,
+                title: items[0].title,
+                type: items[0].type,
+                items: items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+                latest: items[0],
+                count: items.length
+            }))
+            .sort((a, b) => new Date(b.latest.created_at).getTime() - new Date(a.latest.created_at).getTime());
+    }, [notifications]);
 
+    const toggleGroup = (key: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setExpandedGroups(prev => 
+            prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+        );
+    };
+
+    const markGroupRead = async (ids: string[], e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Optimistic update
+        setNotifications(prev => {
+            const updated = prev.filter(n => !ids.includes(n.id));
+            setHasUnread(updated.length > 0);
+            return updated;
+        });
+
+        await markNotificationsAsRead(ids);
+    };
+
+    const markRead = async (id: string, e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
         const noteToRead = notifications.find(n => n.id === id);
         
         // Optimistic removal
@@ -130,23 +178,7 @@ export function NotificationBell() {
             return updated;
         });
 
-        // Record that THIS user has read it
-        const { error } = await supabase.from('notification_reads').upsert({
-            notification_id: id,
-            user_id: user.id
-        }, { onConflict: 'notification_id,user_id' });
-        
-        if (error) {
-            console.error("Failed to record notification read status:", error.message || error);
-            if (noteToRead) {
-                setNotifications(prev => [noteToRead, ...prev].sort((a, b) => {
-                    const aTime = new Date(a.created_at).getTime();
-                    const bTime = new Date(b.created_at).getTime();
-                    return bTime - aTime;
-                }));
-                setHasUnread(true);
-            }
-        }
+        await markNotificationsAsRead([id]);
     };
 
     const markAllRead = async (e: React.MouseEvent) => {
@@ -154,33 +186,17 @@ export function NotificationBell() {
         e.stopPropagation();
         setLoading(true);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            setLoading(false);
-            return;
-        }
-        
-        const unreadIds = notifications.map(n => n.id);
-        const oldNotes = [...notifications];
-
         // Optimistic clear
+        const oldNotes = [...notifications];
         setNotifications([]);
         setHasUnread(false);
 
-        if (unreadIds.length > 0) {
-            const upsertData = unreadIds.map(id => ({
-                notification_id: id,
-                user_id: user.id
-            }));
-            
-            const { error } = await supabase.from('notification_reads')
-                .upsert(upsertData, { onConflict: 'notification_id,user_id' });
-            
-             if (error) {
-                console.error("Failed to mark all as read:", error.message || error);
-                setNotifications(oldNotes);
-                setHasUnread(true);
-            }
+        const result = await markAllNotificationsAsRead();
+        
+        if (result.error) {
+             console.error("Failed to mark all as read:", result.error);
+             setNotifications(oldNotes);
+             setHasUnread(true);
         }
         setLoading(false);
     };
@@ -200,7 +216,9 @@ export function NotificationBell() {
                     <div>
                         <h4 className="font-semibold leading-none">Notifications</h4>
                         <p className="text-xs text-muted-foreground mt-1">
-                            You have {notifications.length} unread messages
+                            {notifications.length > 0 
+                                ? `You have ${notifications.length} unread ${notifications.length === 100 ? '(showing 100+)' : 'messages'}`
+                                : 'No unread messages'}
                         </p>
                     </div>
                     {hasUnread && (
@@ -225,30 +243,103 @@ export function NotificationBell() {
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            {notifications.map((note) => (
-                                <DropdownMenuItem 
-                                    key={note.id} 
-                                    className="flex flex-col items-start gap-1 p-4 cursor-pointer focus:bg-accent/50 border-b last:border-0 rounded-none bg-accent/5"
-                                    asChild
-                                    onClick={() => markRead(note.id)}
-                                >
-                                    <Link href={note.link || '#'} className="w-full">
-                                        <div className="flex w-full justify-between items-start gap-2">
-                                             <div className="flex-1 space-y-1">
-                                                <p className="text-sm font-bold text-primary">
-                                                    {note.title}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground w-full line-clamp-2">
-                                                    {note.message}
-                                                </p>
-                                             </div>
-                                             <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
-                                                {new Date(note.created_at).toLocaleDateString()}
-                                             </span>
+                            {groupedNotifications.map((group) => {
+                                const isExpanded = expandedGroups.includes(group.key);
+                                const isGroup = group.count > 1;
+
+                                if (!isGroup) {
+                                    const note = group.items[0];
+                                    return (
+                                        <DropdownMenuItem 
+                                            key={note.id} 
+                                            className="flex flex-col items-start gap-1 p-4 cursor-pointer focus:bg-accent/50 border-b last:border-0 rounded-none bg-accent/5"
+                                            asChild
+                                        >
+                                            <div className="w-full relative group">
+                                                <Link href={note.link || '#'} className="w-full" onClick={() => markRead(note.id)}>
+                                                    <div className="flex w-full justify-between items-start gap-2">
+                                                        <div className="flex-1 space-y-1">
+                                                            <p className="text-sm font-bold text-primary">
+                                                                {note.title}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground w-full line-clamp-2">
+                                                                {note.message}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                                                            {new Date(note.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                </Link>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="absolute -right-2 -top-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={(e) => markRead(note.id, e)}
+                                                >
+                                                    <CheckCheck className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        </DropdownMenuItem>
+                                    );
+                                }
+
+                                return (
+                                    <div key={group.key} className="border-b last:border-0 bg-accent/5">
+                                        <div 
+                                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                                            onClick={(e) => toggleGroup(group.key, e)}
+                                        >
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-primary truncate">
+                                                        {group.title} <span className="text-xs font-normal text-muted-foreground ml-1">({group.count})</span>
+                                                    </span>
+                                                    {!isExpanded && (
+                                                        <span className="text-xs text-muted-foreground truncate">
+                                                            Latest: {group.latest.message}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 text-xs ml-2 shrink-0"
+                                                onClick={(e) => markGroupRead(group.items.map(n => n.id), e)}
+                                            >
+                                                Clear Group
+                                            </Button>
                                         </div>
-                                    </Link>
-                                </DropdownMenuItem>
-                            ))}
+                                        
+                                        {isExpanded && (
+                                            <div className="bg-background/50 border-t">
+                                                {group.items.map(note => (
+                                                    <DropdownMenuItem 
+                                                        key={note.id} 
+                                                        className="flex flex-col items-start gap-1 p-3 pl-8 cursor-pointer focus:bg-accent/50 border-b last:border-0 rounded-none"
+                                                        asChild
+                                                    >
+                                                        <Link href={note.link || '#'} className="w-full" onClick={() => markRead(note.id)}>
+                                                            <div className="flex w-full justify-between items-start gap-2">
+                                                                <div className="flex-1">
+                                                                    <p className="text-xs text-muted-foreground w-full">
+                                                                        {note.message}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                                                                    {new Date(note.created_at).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </ScrollArea>

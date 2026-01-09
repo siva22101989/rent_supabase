@@ -69,27 +69,11 @@ export function CustomersPageClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [hasActiveRecords, setHasActiveRecords] = useState<boolean | null>(null);
 
-  // Track previous search to detect actual changes (useRef persists across renders)
-  const prevSearchRef = useRef(searchParams.get('search') || '');
-
-  // Update URL when debounced search changes
-  useEffect(() => {
-     const params = new URLSearchParams(searchParams);
-     if (debouncedSearch) {
-         params.set('search', debouncedSearch);
-     } else {
-         params.delete('search');
-     }
-     // Only reset pagination when search actually changes from user input
-     if (debouncedSearch !== prevSearchRef.current) {
-        setCurrentPage(1);
-        prevSearchRef.current = debouncedSearch; // Update ref
-     }
-     router.replace(`/customers?${params.toString()}`);
-  }, [debouncedSearch, router, searchParams]);
-
+  // Update URL is handled by useUrlFilters now
+  // Pagination reset
   const handleSearch = (value: string) => {
     setFilters(prev => ({ ...prev, q: value }));
+    setCurrentPage(1);
   };
   
   // Since we are filtering on the server, we just display what's passed in
