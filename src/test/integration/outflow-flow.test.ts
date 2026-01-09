@@ -183,7 +183,8 @@ describe('Outflow Flow Integration Tests', () => {
       expect(impact.updates.bagsOut).toBe(100);
       expect(impact.isClosed).toBe(true);
       expect(impact.updates.storageEndDate).toEqual(withdrawalDate);
-      expect(impact.updates.billingCycle).toBe('Completed');
+      // billingCycle is no longer set to 'Completed' on closure.
+      // Closure is determined by storageEndDate.
     });
   });
 
@@ -243,9 +244,9 @@ describe('Outflow Flow Integration Tests', () => {
         hamali_payable: 0,
         storage_start_date: new Date('2024-01-01').toISOString(),
         storage_end_date: new Date('2024-02-01').toISOString(),
-        billing_cycle: 'Completed',
+        billing_cycle: '6m',
         storageEndDate: new Date('2024-02-01'),
-        billingCycle: 'Completed'
+        billingCycle: '6m'
       };
 
       const { data: record } = await supabase
@@ -266,7 +267,7 @@ describe('Outflow Flow Integration Tests', () => {
       expect(impact.updates.bagsOut).toBe(0);
       expect(impact.updates.totalRentBilled).toBe(0);
       expect(impact.updates.storageEndDate).toBeNull(); // Reopened
-      expect(impact.updates.billingCycle).toBe('6-Month Initial');
+      expect(impact.updates.billingCycle).toBe('6m');
     });
 
     it('should handle partial outflow reversal', async () => {

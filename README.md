@@ -58,7 +58,13 @@ Built with **Next.js 16**, **Supabase**, and **Shadcn UI**, it offers a modern, 
 
 ---
 
-## 🛠️ Technology Stack
+## � Documentation
+
+For detailed architecture, database rules, and coding standards, please refer to the [Development Guidelines](docs/DEVELOPMENT_GUIDELINES.md).
+
+---
+
+## �🛠️ Technology Stack
 
 | Layer          | Technology                                         |
 | :------------- | :------------------------------------------------- |

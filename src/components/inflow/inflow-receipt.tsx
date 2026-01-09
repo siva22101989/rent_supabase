@@ -138,7 +138,7 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                         <div class="value">: ${customer.village || 'N/A'}</div>
                     </div>
                     
-                    ${record.inflowType === 'Plot' && record.plotBags ? `
+                    ${record.inflowType === 'transfer_in' && record.plotBags ? `
                     <div class="info-row">
                         <div class="label">PLOT BAGS</div>
                         <div class="value">: ${record.plotBags}</div>
@@ -233,7 +233,7 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                         <span className="w-1/3 font-bold">VILLAGE</span>
                         <span>: {customer.village || 'N/A'}</span>
                     </div>
-                    {record.inflowType === 'Plot' && (
+                    {record.inflowType === 'transfer_in' && (
                         <div className="flex">
                             <span className="w-1/3 font-bold">PLOT BAGS</span>
                             <span>: {record.plotBags}</span>

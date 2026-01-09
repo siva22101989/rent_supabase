@@ -1,10 +1,24 @@
 import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
-import type { Customer } from '@/lib/definitions';
+import type { Customer, CustomerWithBalance } from '@/lib/definitions';
 import { logError } from '@/lib/error-logger';
 import { getUserWarehouse } from './warehouses';
 
-export const getCustomersWithBalance = cache(async (limit = 50, offset = 0, search = ''): Promise<any[]> => {
+interface CustomerBalanceRow {
+  customer_id: string;
+  customer_name: string;
+  phone: string;
+  email?: string;
+  village: string;
+  active_records_count: number;
+  total_billed: number;
+  total_paid: number;
+  balance: number;
+  address?: string; // These might be null in view if not joined/propagated correctly
+  father_name?: string;
+}
+
+export const getCustomersWithBalance = cache(async (limit = 50, offset = 0, search = ''): Promise<CustomerWithBalance[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
@@ -28,12 +42,14 @@ export const getCustomersWithBalance = cache(async (limit = 50, offset = 0, sear
     return [];
   }
 
-  return data.map((c: any) => ({
+  return (data as CustomerBalanceRow[]).map((c) => ({
       id: c.customer_id,
       name: c.customer_name,
       phone: c.phone,
-      email: c.email,
-      village: c.village,
+      email: c.email || '',
+      village: c.village || '',
+      address: c.address || '',
+      fatherName: c.father_name || '',
       activeRecords: c.active_records_count,
       totalBilled: c.total_billed,
       totalPaid: c.total_paid,
@@ -41,7 +57,7 @@ export const getCustomersWithBalance = cache(async (limit = 50, offset = 0, sear
   }));
 });
 
-export const getPendingPayments = cache(async (limit = 50): Promise<any[]> => {
+export const getPendingPayments = cache(async (limit = 50): Promise<Partial<CustomerWithBalance>[]> => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     
@@ -60,10 +76,14 @@ export const getPendingPayments = cache(async (limit = 50): Promise<any[]> => {
       return [];
     }
   
-    return data.map((c: any) => ({
+    return (data as CustomerBalanceRow[]).map((c) => ({
       id: c.customer_id,
       name: c.customer_name,
       phone: c.phone,
+      email: c.email || '',
+      village: c.village || '',
+      address: c.address || '',
+      fatherName: c.father_name || '',
       totalBilled: c.total_billed,
       totalPaid: c.total_paid,
       balance: c.balance
@@ -87,7 +107,7 @@ export const getCustomers = cache(async (): Promise<Customer[]> => {
     return [];
   }
 
-  return data.map((c: any) => ({
+  return (data as any[]).map((c) => ({
     id: c.id,
     name: c.name,
     phone: c.phone,

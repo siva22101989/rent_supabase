@@ -572,7 +572,7 @@ export function StoragePageClient({
                     <MobileCard.Row label="Rent Due" value={formatCurrency(rent)} className="text-primary font-semibold" />
                   </MobileCard.Content>
                   <MobileCard.Actions>
-                    {record.inflowType === 'Plot' && (!record.loadBags || record.loadBags === 0) && (
+                    {record.inflowType === 'transfer_in' && (!record.loadBags || record.loadBags === 0) && (
                         <FinalizeDryingDialog 
                             record={{
                                 id: record.id,
@@ -640,7 +640,7 @@ export function StoragePageClient({
                                     <TableCell className="text-right font-medium">{record.bagsStored}</TableCell>
                                     <TableCell className="text-right text-muted-foreground">{formatCurrency(rent)}</TableCell>
                                     <TableCell className="text-right flex justify-end gap-2 items-center">
-                                        {record.inflowType === 'Plot' && (!record.loadBags || record.loadBags === 0) && (
+                                        {record.inflowType === 'transfer_in' && (!record.loadBags || record.loadBags === 0) && (
                                             <FinalizeDryingDialog 
                                                 record={{
                                                     id: record.id,

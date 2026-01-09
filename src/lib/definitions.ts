@@ -10,6 +10,13 @@ export type Customer = {
   linkedUserId?: string;
 };
 
+export type CustomerWithBalance = Customer & {
+  activeRecords: number;
+  totalBilled: number;
+  totalPaid: number;
+  balance: number;
+};
+
 export type Commodity = {
   id: string;
   description: string;

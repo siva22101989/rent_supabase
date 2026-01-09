@@ -28,7 +28,8 @@ describe('BillingService', () => {
       expect(result.updates.bagsOut).toBe(100);
       expect(result.updates.totalRentBilled).toBe(3600);
       expect(result.updates.storageEndDate).toEqual(new Date('2024-02-01'));
-      expect(result.updates.billingCycle).toBe('Completed');
+      // billingCycle is no longer set to 'Completed' on closure.
+      // Closure is determined by storageEndDate.
       expect(result.isClosed).toBe(true);
     });
 
@@ -83,7 +84,7 @@ describe('BillingService', () => {
         bagsOut: 100,
         totalRentBilled: 3600,
         storageEndDate: new Date('2024-02-01'),
-        billingCycle: 'Completed',
+        billingCycle: '6m',
       };
 
       const result = BillingService.calculateReversalImpact(
@@ -96,7 +97,7 @@ describe('BillingService', () => {
       expect(result.updates.bagsStored).toBe(100);
       expect(result.updates.bagsOut).toBe(0);
       expect(result.updates.storageEndDate).toBeNull();
-      expect(result.updates.billingCycle).toBe('6-Month Initial');
+      expect(result.updates.billingCycle).toBe('6m');
     });
 
     it('reverses partial outflow correctly', () => {
@@ -147,7 +148,7 @@ describe('BillingService', () => {
         bagsOut: 100,
         totalRentBilled: 3600,
         storageEndDate: new Date('2024-02-01'),
-        billingCycle: 'Completed',
+        billingCycle: '6m',
       };
 
       const result = BillingService.calculateUpdateImpact(
@@ -160,7 +161,7 @@ describe('BillingService', () => {
       expect(result.updates.bagsStored).toBe(50); // 0 - (50 - 100) = 50
       expect(result.updates.bagsOut).toBe(50); // 100 + (50 - 100) = 50
       expect(result.updates.storageEndDate).toBeNull(); // Reopened
-      expect(result.updates.billingCycle).toBe('6-Month Initial');
+      expect(result.updates.billingCycle).toBe('6m');
     });
   });
 

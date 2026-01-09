@@ -12,10 +12,10 @@ const mockRecord = (startDate: Date): StorageRecord => ({
   bagsIn: 100,
   bagsOut: 0,
   hamaliPayable: 1000,
-  billingCycle: '6-Month Initial',
+  billingCycle: '6m',
   location: 'Lot A',
   lorryTractorNo: '',
-  inflowType: 'Direct',
+  inflowType: 'purchase',
   totalRentBilled: 0,
   storageEndDate: null,
   payments: []
