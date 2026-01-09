@@ -21,7 +21,10 @@ const { logger } = Sentry;
 const OutflowSchema = z.object({
     recordId: z.string().min(1, 'A storage record must be selected.'),
     bagsToWithdraw: z.coerce.number().int().positive('Bags to withdraw must be a positive number.'),
-    withdrawalDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+    withdrawalDate: z.string().refine(val => {
+        const date = new Date(val);
+        return !isNaN(date.getTime()) && date <= new Date();
+    }, { message: "Date cannot be in the future" }),
     finalRent: z.coerce.number().nonnegative('Final rent cannot be negative.'),
     amountPaidNow: z.coerce.number().nonnegative('Amount paid must be non-negative.').optional(),
 });
@@ -74,6 +77,10 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                 return { message: 'Cannot withdraw more bags than are in storage.', success: false, data: rawData };
             }
 
+            if (new Date(withdrawalDate) < originalRecord.storageStartDate) {
+                return { message: 'Withdrawal date cannot be before storage start date.', success: false, data: rawData };
+            }
+
             const paymentMade = amountPaidNow || 0;
             
             const { updates: recordUpdate } = BillingService.calculateOutflowImpact(
@@ -102,15 +109,10 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                 
                 await updateStorageRecord(recordId, recordUpdate);
 
-                // Update Lot Capacity Manually (Reliability Fix)
-                if (originalRecord.lotId) {
-                    const supabase = await createClient();
-                    const { data: lotToUpdate } = await supabase.from('warehouse_lots').select('current_stock').eq('id', originalRecord.lotId).single();
-                    if (lotToUpdate) {
-                        const newStock = Math.max(0, (lotToUpdate.current_stock || 0) - bagsToWithdraw);
-                        await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', originalRecord.lotId);
-                    }
-                }
+                // Update Lot Capacity Manually (Reliability Fix) - REMOVED
+                // Manual update is redundant because 'updateStorageRecord' above
+                // triggers 'sync_lot_stock' in the database, which recalculates stock.
+                // Keeping two sources of truth causes sync issues.
 
                 // Save Withdrawal Transaction Audit
                 const transactionId = await saveWithdrawalTransaction(recordId, bagsToWithdraw, new Date(withdrawalDate), finalRent);
@@ -198,9 +200,10 @@ export async function deleteOutflow(transactionId: string) {
     }
 
     // 4. Delete Transaction
+    // 4. Soft Delete Transaction
     const { error: delError } = await supabase
         .from('withdrawal_transactions')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', transactionId);
 
     if (delError) {

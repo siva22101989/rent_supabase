@@ -505,7 +505,10 @@ export const updateExpense = async (id: string, data: Partial<Expense>): Promise
 export const deleteExpense = async (id: string): Promise<void> => {
     'use server';
     const supabase = await createClient();
-    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    const { error } = await supabase
+        .from('expenses')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
     if (error) throw error;
 };
 
@@ -540,14 +543,10 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
          }
     }
 
-    if (record.lot_id) {
-         const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', record.lot_id).single();
-         if (lot) {
-             const newStock = Math.max(0, (lot.current_stock || 0) - (record.bags_stored || 0));
-             const { error: stockError } = await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', record.lot_id);
-             if (stockError) throw stockError;
-         }
-    }
+    // Manual stock update REMOVED.
+    // The DB trigger 'sync_lot_stock' now correctly handles soft deletions
+    // by excluding records where deleted_at IS NOT NULL.
+    // Letting the DB handle this prevents race conditions and double-counting.
 
 
     // Soft Delete: Mark as deleted instead of removing
@@ -616,15 +615,8 @@ export const restoreStorageRecord = async (id: string): Promise<void> => {
          else throw new Error("Access Denied");
     }
 
-    // 1. Re-occupy Lot Space
-    if (record.lot_id) {
-         const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', record.lot_id).single();
-         if (lot) {
-             const newStock = (lot.current_stock || 0) + (record.bags_stored || 0);
-             const { error: stockError } = await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', record.lot_id);
-             if (stockError) throw stockError;
-         }
-    }
+    // Manual stock restoral REMOVED.
+    // Trigger 'sync_lot_stock' automatically recalculates when record is updated (restored).
 
     // 2. Restore linked payments and transactions
     await supabase.from('payments').update({ deleted_at: null }).eq('storage_record_id', id);

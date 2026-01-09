@@ -92,11 +92,23 @@ export function isValidEmail(email: string): boolean {
 }
 
 /**
- * Validate phone number (Indian format)
+ * Validate phone number (International format: 10-15 digits, optional +)
+ * Matches DB constraint: ^\+?[0-9]{10,15}$
  */
 export function isValidPhone(phone: string): boolean {
-  const phoneRegex = /^[6-9]\d{9}$/;
-  return phoneRegex.test(phone.replace(/\s/g, ''));
+  // Remove spaces and dashes for validation
+  const cleaned = phone.replace(/[\s-]/g, '');
+  const phoneRegex = /^\+?[0-9]{10,15}$/;
+  return phoneRegex.test(cleaned);
+}
+
+/**
+ * Format phone number by removing invalid characters
+ */
+export function formatPhoneNumber(phone: string): string {
+  // Keep only digits and optional leading +
+  return phone.replace(/[^0-9+]/g, '')
+    .replace(/\+(?=.*\+)/g, ''); // Remove duplicate +
 }
 
 /**
@@ -123,7 +135,9 @@ export const CommonSchemas = {
   
   phone: z.string()
     .min(10, 'Phone number must be at least 10 digits')
-    .regex(/^[6-9]\d{9}$/, 'Invalid Indian phone number'),
+    .max(16, 'Phone number too long') // +15 digits = 16 chars
+    .regex(/^\+?[0-9]{10,15}$/, 'Invalid phone number format (10-15 digits, optional +)')
+    .transform(val => val.replace(/[\s-]/g, '')), // Auto-format: remove spaces/dashes
   
   positiveInt: z.number()
     .int('Must be a whole number')

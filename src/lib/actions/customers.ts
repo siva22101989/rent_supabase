@@ -11,12 +11,13 @@ import { saveCustomer } from '@/lib/data';
 import { logError } from '@/lib/error-logger';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { FormState } from './common';
+import { CommonSchemas } from '../validation';
 
 const { logger } = Sentry;
 
 const CustomerSchema = z.object({
     name: z.string().min(3, 'Name must be at least 3 characters.'),
-    phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
+    phone: CommonSchemas.phone, // Uses international format validation with auto-format
     address: z.string().min(5, 'Address must be at least 5 characters.'),
     email: z.string().optional(),
     fatherName: z.string().optional(),
@@ -206,11 +207,12 @@ export async function deleteCustomer(customerId: string): Promise<FormState> {
                 return { message: 'No warehouse found for user', success: false };
             }
 
-            // Check if customer has any storage records
+            // Check if customer has any active storage records (ignore deleted ones)
             const { data: records, error: checkError } = await supabase
                 .from('storage_records')
                 .select('id')
                 .eq('customer_id', customerId)
+                .is('deleted_at', null)
                 .limit(1);
 
             if (checkError) {
@@ -225,10 +227,10 @@ export async function deleteCustomer(customerId: string): Promise<FormState> {
                 };
             }
 
-            // Delete customer
+            // Soft Delete customer instead of Hard Delete
             const { error } = await supabase
                 .from('customers')
-                .delete()
+                .update({ deleted_at: new Date().toISOString() })
                 .eq('id', customerId)
                 .eq('warehouse_id', warehouseId);
 

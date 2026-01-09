@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { useUnifiedToast } from '@/components/shared/toast-provider';
 import { useCustomers } from '@/contexts/customer-context';
 import { FormError } from '../shared/form-error';
+import { formatPhoneNumber } from '@/lib/validation';
 
 // Local SubmitButton removed in favor of shared component
 
@@ -31,6 +32,7 @@ export function AddCustomerDialog() {
   const { success: toastSuccess, error: toastError } = useUnifiedToast();
   const { refreshCustomers } = useCustomers();
   const [isOpen, setIsOpen] = useState(false);
+  const [phone, setPhone] = useState('');
   const lastHandledRef = useRef<any>(null);
   
   const initialState: FormState = { message: '', success: false };
@@ -42,7 +44,8 @@ export function AddCustomerDialog() {
       if (state.success) {
         toastSuccess('Success', state.message);
         refreshCustomers(true);
-        setIsOpen(false); 
+        setIsOpen(false);
+        setPhone(''); // Reset phone on success 
       } else {
         toastError('Error', state.message);
       }
@@ -95,7 +98,17 @@ export function AddCustomerDialog() {
               <Label htmlFor="phone">
                 Phone
               </Label>
-              <Input id="phone" name="phone" defaultValue={state.data?.phone} required />
+              <Input 
+                id="phone" 
+                name="phone" 
+                value={phone || state.data?.phone || ''}
+                onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
+                placeholder="+91XXXXXXXXXX or XXXXXXXXXX"
+                required 
+              />
+              <p className="text-[10px] text-muted-foreground">
+                * 10-15 digits, optional + prefix
+              </p>
             </div>
              <div className="grid gap-2">
               <Label htmlFor="email">

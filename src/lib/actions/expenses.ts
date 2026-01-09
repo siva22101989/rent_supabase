@@ -12,7 +12,10 @@ import { FormState } from './common';
 const ExpenseSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
-  date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  date: z.string().refine(val => {
+      const date = new Date(val);
+      return !isNaN(date.getTime()) && date <= new Date();
+  }, { message: "Date cannot be in the future" }),
   category: z.enum(expenseCategories, { required_error: 'Category is required.' }),
 });
 
@@ -133,7 +136,7 @@ export async function deleteExpenseSimple(expenseId: string) {
 
   const { error } = await supabase
     .from('expenses')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq('id', expenseId)
     .eq('warehouse_id', warehouseId);
 

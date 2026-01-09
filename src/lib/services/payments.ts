@@ -71,7 +71,7 @@ export class PaymentService {
       const supabase = await createClient();
       const { error } = await supabase
           .from('payments')
-          .delete()
+          .update({ deleted_at: new Date().toISOString() })
           .eq('id', paymentId);
 
       if (error) {
@@ -92,21 +92,24 @@ export class PaymentService {
             total_rent_billed,
             hamali_payable,
             storage_start_date,
-            payments (amount, type)
+            payments (amount, type, deleted_at)
         `)
         .eq('customer_id', customerId)
         .is('storage_end_date', null)
+        .is('deleted_at', null) // Filter active records
         .order('storage_start_date', { ascending: true });
 
       if (!records) return [];
 
       // We need to cast because Supabase select types might not fully match specialized joins automatically
       return (records as any[]).map((r) => {
-           const rentPayments = (r.payments || [])
+           const validPayments = (r.payments || []).filter((p: any) => !p.deleted_at);
+
+           const rentPayments = validPayments
             .filter((p: any) => p.type === 'rent')
             .reduce((sum: number, p: any) => sum + p.amount, 0);
         
-           const hamaliPayments = (r.payments || [])
+           const hamaliPayments = validPayments
             .filter((p: any) => p.type === 'hamali')
             .reduce((sum: number, p: any) => sum + p.amount, 0);
 

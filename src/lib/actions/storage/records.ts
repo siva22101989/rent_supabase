@@ -58,7 +58,10 @@ const StorageRecordUpdateSchema = z.object({
   location: z.string().min(1, 'Location is required.'),
   bagsStored: z.coerce.number().int().positive('Bags must be a positive number.'),
   hamaliPayable: z.coerce.number().nonnegative('Hamali charges must be a non-negative number.'),
-  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  storageStartDate: z.string().refine(val => {
+      const date = new Date(val);
+      return !isNaN(date.getTime()) && date <= new Date();
+  }, { message: "Date cannot be in the future" }),
   cropId: z.string().optional(),
 });
 
@@ -125,6 +128,13 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
     if (!warehouseId) {
         return { message: 'No warehouse found for user', success: false };
     }
+
+    // Validation Logic
+    if (formData.bagsStored <= 0) return { message: 'Bags must be positive', success: false };
+    if (formData.hamaliPayable < 0) return { message: 'Hamali cannot be negative', success: false };
+    const startDate = new Date(formData.storageStartDate);
+    if (isNaN(startDate.getTime()) || startDate > new Date()) return { message: 'Invalid or future start date', success: false };
+
 
     // Check if record is completed
     const { data: record } = await supabase
@@ -193,7 +203,6 @@ export async function restoreStorageRecordAction(recordId: string): Promise<Form
     return { message: error.message || 'Failed to restore record.', success: false };
   }
 }
-
 
 export async function getCustomerRecordsAction(customerId: string) {
     const { getStorageRecords } = await import('@/lib/queries');

@@ -30,6 +30,7 @@ export function formatInvoiceNumber(prefix: string, type: 'inflow' | 'outflow', 
 }
 
 
+
 export async function getNextInvoiceNumber(type: 'inflow' | 'outflow'): Promise<string> {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
@@ -38,26 +39,17 @@ export async function getNextInvoiceNumber(type: 'inflow' | 'outflow'): Promise<
         throw new Error("No warehouse assigned to user");
     }
 
-    // 1. Get Warehouse Name for Prefix
-    const { data: warehouse } = await supabase
-        .from('warehouses')
-        .select('name')
-        .eq('id', warehouseId)
-        .single();
-        
-    const prefix = generateWarehouseCode(warehouse?.name || 'WH');
-    const typeCode = type === 'inflow' ? 'IN' : 'OUT';
-
-    // 2. Call Database Function to Increment Sequence
-    const { data: nextVal, error } = await supabase.rpc('get_next_sequence_value', {
+    // Call the thread-safe database function
+    const { data: invoiceNumber, error } = await supabase.rpc('generate_invoice_number', {
         p_warehouse_id: warehouseId,
         p_type: type
     });
 
     if (error) {
-        console.error('Error generating sequence:', error);
-        throw new Error(`Failed to generate ${type} sequence`);
+        console.error('Error generating invoice number:', error);
+        throw new Error(`Failed to generate ${type} invoice number`);
     }
 
-    return formatInvoiceNumber(prefix, type, nextVal || 0);
+    return invoiceNumber;
 }
+
