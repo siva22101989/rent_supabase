@@ -118,11 +118,11 @@ export function StoragePageClient({
   }, [initialPage]);
 
   // SWR for data fetching with different status
-  const { data, isLoading, mutate } = useSWR(
+  const { data, isLoading, mutate, error } = useSWR(
     ['storage-records', page, debouncedSearch, status], 
     async ([_, p, q, s]) => fetchStorageRecordsAction(p as number, 25, q as string, s as any),
     {
-        fallbackData: page === initialPage && debouncedSearch === (searchParams.get('q') || '') && status === 'active' ? {
+        fallbackData: page === initialPage && (debouncedSearch || '') === (searchParams.get('q') || '') && status === 'active' ? {
             records: initialRecords,
             totalPages: initialTotalPages,
             totalCount: 0
@@ -402,7 +402,7 @@ export function StoragePageClient({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h3 className="text-lg font-medium flex items-center gap-2">
               Detailed Stock Register
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              {isTableLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </h3>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

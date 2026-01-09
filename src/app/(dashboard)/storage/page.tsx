@@ -26,7 +26,7 @@ export default async function StoragePage({
       getCustomers(),
       getCurrentUserRole(),
       supabase.from('crops').select('id, name').eq('warehouse_id', warehouseId).order('name').then(res => res.data || []),
-      supabase.from('lots').select('id, name').eq('warehouse_id', warehouseId).eq('status', 'active').then(res => res.data || [])
+      supabase.from('warehouse_lots').select('id, name').eq('warehouse_id', warehouseId).eq('status', 'active').then(res => res.data || [])
   ]);
 
   return (
