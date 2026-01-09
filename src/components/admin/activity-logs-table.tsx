@@ -32,20 +32,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-
-interface ActivityLog {
-    id: string;
-    created_at: string;
-    action: string;
-    entity: string;
-    entity_id: string;
-    details: any;
-    user: { full_name: string; email: string; } | null;
-    warehouse: { name: string; } | null;
-}
+import type { ActivityLogEntry } from '@/lib/definitions';
 
 interface ActivityLogsTableProps {
-    logs: ActivityLog[];
+    logs: ActivityLogEntry[];
     totalCount?: number; // Optional if we implement count query
 }
 
@@ -107,7 +97,7 @@ export function ActivityLogsTable({ logs }: ActivityLogsTableProps) {
         }
     };
 
-    const formatActionMessage = (log: ActivityLog) => {
+    const formatActionMessage = (log: ActivityLogEntry) => {
         const details = log.details || {};
         const action = log.action?.toUpperCase();
         const entity = log.entity;
