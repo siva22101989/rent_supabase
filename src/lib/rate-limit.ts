@@ -1,52 +1,46 @@
-
-/**
- * Simple in-memory rate limiter for server actions.
- * In a production environment with multiple instances, use Redis or a similar external store.
- */
-
-interface RateLimitStore {
-  [key: string]: {
-    count: number;
-    resetTime: number;
-  };
-}
-
-const store: RateLimitStore = {};
+import { createClient } from '@/utils/supabase/server';
 
 interface RateLimitOptions {
   limit?: number; // Max requests
   windowMs?: number; // Time window in milliseconds
 }
 
+/**
+ * Distributed rate limiter using Supabase/Postgres.
+ * Uses the `check_rate_limit` RPC function.
+ */
 export async function rateLimit(
   identifier: string,
   options: RateLimitOptions = {}
-): Promise<{ success: boolean; limit: number; remaining: number; reset: number }> {
+): Promise<{ success: boolean }> {
   const { limit = 10, windowMs = 60000 } = options;
-  const now = Date.now();
+  const windowSeconds = Math.ceil(windowMs / 1000);
   
-  // Cleanup old entries periodically (could be more sophisticated)
-  if (Math.random() < 0.05) {
-     Object.keys(store).forEach(key => {
-        if (store[key].resetTime < now) delete store[key];
-     });
+  try {
+    const supabase = await createClient();
+    
+    // We use a safe key format
+    const key = `ratelimit:${identifier}`;
+    
+    const { data: success, error } = await supabase.rpc('check_rate_limit', {
+        p_key: key,
+        p_limit: limit,
+        p_window_seconds: windowSeconds
+    });
+
+    if (error) {
+        console.error('Rate limit RPC error:', error);
+        // Fail open in case of DB error to prevent blocking users during outages
+        // But define this policy: strict or lenient? Lenient for now.
+        return { success: true };
+    }
+
+    return { success: !!success };
+
+  } catch (error) {
+     console.error('Rate limit exception:', error);
+     return { success: true };
   }
-
-  if (!store[identifier] || store[identifier].resetTime < now) {
-    store[identifier] = {
-      count: 0,
-      resetTime: now + windowMs,
-    };
-  }
-
-  store[identifier].count++;
-
-  return {
-    success: store[identifier].count <= limit,
-    limit,
-    remaining: Math.max(0, limit - store[identifier].count),
-    reset: store[identifier].resetTime,
-  };
 }
 
 /**

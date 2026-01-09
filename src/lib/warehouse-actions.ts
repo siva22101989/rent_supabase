@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getUserWarehouse } from './data';
 import { WarehouseWithRole } from './definitions';
+import { checkRateLimit } from '@/lib/rate-limit';
 import * as Sentry from "@sentry/nextjs";
 
 const { logger } = Sentry;
@@ -29,6 +30,12 @@ export async function createWarehouse(name: string, location: string, capacity: 
             if (!user) {
                 logger.warn("Unauthorized warehouse creation attempt");
                 return { message: 'Unauthorized', success: false };
+            }
+            
+            try {
+                await checkRateLimit(user.id, 'createWarehouse', { limit: 3, windowMs: 3600000 }); // 3 per hour
+            } catch (e: any) {
+                 return { message: e.message, success: false };
             }
 
             span.setAttribute("warehouseName", name);

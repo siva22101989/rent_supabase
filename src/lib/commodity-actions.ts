@@ -8,6 +8,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/utils/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import {
   getCachedPrices,
   getPriceTrend,
@@ -40,6 +41,8 @@ export async function addToWatchlist(
     if (!user) {
       return { success: false, message: 'Not authenticated' };
     }
+
+    await checkRateLimit(user.id, 'addToWatchlist', { limit: 10 });
 
     const { error } = await supabase
       .from('user_commodity_watchlist')
@@ -76,6 +79,13 @@ export async function removeFromWatchlist(watchlistId: string) {
   const supabase = await createClient();
   
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+         return { success: false, message: 'Not authenticated' };
+    }
+    
+    await checkRateLimit(user.id, 'removeFromWatchlist', { limit: 20 });
+
     const { error } = await supabase
       .from('user_commodity_watchlist')
       .delete()
@@ -111,6 +121,13 @@ export async function updateWatchlistItem(
   const supabase = await createClient();
   
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+         return { success: false, message: 'Not authenticated' };
+    }
+
+    await checkRateLimit(user.id, 'updateWatchlistItem', { limit: 20 });
+    
     const { error } = await supabase
       .from('user_commodity_watchlist')
       .update({
