@@ -144,7 +144,7 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
     // Check if record is completed
     const { data: record } = await supabase
         .from('storage_records')
-        .select('storage_end_date')
+        .select('storage_end_date, customer_id')
         .eq('id', recordId)
         .single();
 
@@ -182,6 +182,13 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
     revalidatePath('/storage');
     revalidatePath('/payments/pending');
     revalidatePath('/reports');
+    revalidatePath('/customers');
+    revalidatePath('/financials');
+    if (formData.customerId) {
+        revalidatePath(`/customers/${formData.customerId}`);
+    } else if (record?.customer_id) {
+         revalidatePath(`/customers/${record.customer_id}`);
+    }
     return { message: 'Record updated successfully!', success: true };
 }
 

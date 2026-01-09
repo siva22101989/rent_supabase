@@ -141,6 +141,11 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                 logger.info("Outflow recorded successfully", { recordId, bagsOut: bagsToWithdraw });
                 revalidatePath('/storage');
                 revalidatePath('/reports');
+                revalidatePath('/financials');
+                revalidatePath('/customers'); // Stock changes affect list via 'Active Bags'
+                if (originalRecord.customerId) {
+                     revalidatePath(`/customers/${originalRecord.customerId}`);
+                }
                 redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
             } catch (error: any) {
                 if (error.message === 'NEXT_REDIRECT') throw error;
@@ -212,6 +217,9 @@ export async function deleteOutflow(transactionId: string) {
 
     revalidatePath('/outflow');
     revalidatePath('/storage');
+    revalidatePath('/financials');
+    revalidatePath('/reports');
+    revalidatePath('/customers');
 
     if (record.customerId) {
         revalidatePath(`/customers/${record.customerId}`);
@@ -270,6 +278,10 @@ export async function updateOutflow(transactionId: string, formData: FormData) {
 
         revalidatePath('/outflow');
         revalidatePath('/storage');
+        revalidatePath('/financials');
+        revalidatePath('/reports');
+        revalidatePath('/customers');
+        if (record.customerId) revalidatePath(`/customers/${record.customerId}`);
 
         return { success: true, message: 'Outflow updated successfully' };
 
