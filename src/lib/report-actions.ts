@@ -39,6 +39,7 @@ import { getUserWarehouse } from '@/lib/queries';
           `)
           .eq('customer_id', filters.customerId)
           .eq('warehouse_id', warehouseId)
+          .is('deleted_at', null)
           .order('storage_start_date', { ascending: false });
   
         if (!records) return { type: 'customer-dues-details', data: [], customer };
@@ -162,7 +163,8 @@ import { getUserWarehouse } from '@/lib/queries';
       .from('storage_records')
       .select('customer_id, bags_stored, total_rent_billed, hamali_payable')
       .eq('warehouse_id', warehouseId)
-      .is('storage_end_date', null);
+      .is('storage_end_date', null)
+      .is('deleted_at', null);
     
     return { 
       type: 'all-customers', 
@@ -181,6 +183,7 @@ import { getUserWarehouse } from '@/lib/queries';
       `)
       .eq('warehouse_id', warehouseId)
       .is('storage_end_date', null)
+      .is('deleted_at', null)
       .order('storage_start_date');
       
     return {
@@ -198,6 +201,7 @@ import { getUserWarehouse } from '@/lib/queries';
         customers (name)
       `)
       .eq('warehouse_id', warehouseId)
+      .is('deleted_at', null)
       .order('storage_start_date', { ascending: false });
 
     if (filters?.startDate) {
@@ -228,6 +232,7 @@ import { getUserWarehouse } from '@/lib/queries';
         customers (name)
       `)
       .eq('warehouse_id', warehouseId)
+      .is('deleted_at', null)
       .not('storage_end_date', 'is', null) // Only completed/outflow records
       .order('storage_end_date', { ascending: false });
 
@@ -262,6 +267,7 @@ import { getUserWarehouse } from '@/lib/queries';
         customers (name)
       `)
       .eq('warehouse_id', warehouseId)
+      .is('deleted_at', null)
       .order('payment_date', { ascending: false });
 
     if (filters?.startDate) {
@@ -313,7 +319,8 @@ import { getUserWarehouse } from '@/lib/queries';
         *,
         payments (amount)
       `)
-      .eq('warehouse_id', warehouseId); 
+      .eq('warehouse_id', warehouseId)
+      .is('deleted_at', null); 
       // Ideally we filter where total_rent + hamali > total_paid
     
     // Filter in memory for precise calculation
@@ -360,7 +367,8 @@ import { getUserWarehouse } from '@/lib/queries';
           *,
           payments (amount, type)
         `)
-        .eq('warehouse_id', warehouseId);
+        .eq('warehouse_id', warehouseId)
+        .is('deleted_at', null);
       
       const reportData = customers.map(c => {
          const userRecords = records?.filter((r: any) => r.customer_id === c.id) || [];
@@ -437,7 +445,8 @@ import { getUserWarehouse } from '@/lib/queries';
         crops (name)
       `)
       .eq('warehouse_id', warehouseId)
-      .is('storage_end_date', null);
+      .is('storage_end_date', null)
+      .is('deleted_at', null);
 
     if (!records) return { type: 'lot-inventory', data: [] };
 
@@ -485,6 +494,7 @@ import { getUserWarehouse } from '@/lib/queries';
         customers (name)
       `)
       .eq('warehouse_id', warehouseId)
+      .is('deleted_at', null)
       .order('storage_start_date', { ascending: false })
       .limit(1000); // Limit for safety
       
@@ -503,6 +513,7 @@ import { getUserWarehouse } from '@/lib/queries';
         customers (name)
       `)
       .eq('warehouse_id', warehouseId)
+      .is('deleted_at', null)
       .gt('hamali_payable', 0)
       .order('storage_start_date', { ascending: false });
 
@@ -544,6 +555,7 @@ import { getUserWarehouse } from '@/lib/queries';
             crop:crops(name)
         `)
         .eq('warehouse_id', warehouseId)
+        .is('deleted_at', null)
         .order('unload_date', { ascending: false });
     
     if (filters?.startDate) query = query.gte('unload_date', filters.startDate);
@@ -564,6 +576,7 @@ import { getUserWarehouse } from '@/lib/queries';
           .select('*')
           .eq('warehouse_id', warehouseId)
           .eq('category', 'Hamali')
+          .is('deleted_at', null)
           .order('date', { ascending: false });
       
       if (filters?.startDate) query = query.gte('date', filters.startDate);

@@ -50,13 +50,14 @@ export const getAdminDashboardStats = cache(async () => {
             }
         }
         if (table === 'profiles') q = q.neq('role', 'customer');
-        if (table === 'storage_records') q = q.is('storage_end_date', null);
+        if (table === 'storage_records') q = q.is('storage_end_date', null).is('deleted_at', null);
+        if (table === 'customers' || table === 'warehouses') q = q.is('deleted_at', null);
 
         const { count } = await q;
         return count || 0;
     };
     
-    let lotsQuery = supabase.from('warehouse_lots').select('current_stock');
+    let lotsQuery = supabase.from('warehouse_lots').select('current_stock').is('deleted_at', null);
     if (!isSuper && warehouseIds.length > 0) {
         lotsQuery = lotsQuery.in('warehouse_id', warehouseIds);
     }
@@ -106,6 +107,7 @@ export const getAllWarehousesAdmin = cache(async () => {
             warehouse_lots (current_stock, capacity),
             storage_records (id, bags_stored)
         `)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
     if (isOwner) {
@@ -213,6 +215,7 @@ export const getPlatformAnalytics = cache(async () => {
     const { data: warehouses } = await supabase
         .from('warehouses')
         .select('created_at')
+        .is('deleted_at', null)
         .order('created_at', { ascending: true });
 
     const { data: users } = await supabase
@@ -243,7 +246,8 @@ export const getPlatformAnalytics = cache(async () => {
     const { data: stocks } = await supabase
         .from('storage_records')
         .select('commodity_description, bags_stored')
-        .is('storage_end_date', null);
+        .is('storage_end_date', null)
+        .is('deleted_at', null);
 
     const commodityDistribution = (stocks || []).reduce((acc: any, s: any) => {
         const name = s.commodity_description || 'Unknown';
