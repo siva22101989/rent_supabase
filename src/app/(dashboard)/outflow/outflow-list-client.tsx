@@ -17,7 +17,7 @@ import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
 
 interface OutflowFilterState {
-  search: string;
+  q: string;
   dateRange: DateRange | undefined;
   selectedCommodities: string[];
   minBags: number | null;
@@ -31,15 +31,15 @@ interface OutflowListClientProps {
 
 export function OutflowListClient({ outflows }: OutflowListClientProps) {
     const [filters, setFilters] = useUrlFilters<OutflowFilterState>({
-        search: '',
-        dateRange: undefined as DateRange | undefined,
-        selectedCommodities: [] as string[],
-        minBags: null as number | null,
-        maxBags: null as number | null,
+        q: '',
+        dateRange: undefined,
+        selectedCommodities: [],
+        minBags: null,
+        maxBags: null,
         sortBy: 'date-desc'
     });
     
-    const searchTerm = filters.search;
+    const query = filters.q;
     const dateRange = filters.dateRange;
     const selectedCommodities = filters.selectedCommodities;
     const minBags = filters.minBags;
@@ -50,8 +50,8 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
         let result = [...outflows];
 
         // Search filter
-        if (searchTerm) {
-            const search = searchTerm.toLowerCase();
+        if (query) {
+            const search = query.toLowerCase();
             result = result.filter(o =>
                 o.customerName?.toLowerCase().includes(search) ||
                 o.invoiceNo?.toLowerCase().includes(search) ||
@@ -100,7 +100,7 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
         });
 
         return result;
-    }, [outflows, searchTerm, dateRange, selectedCommodities, minBags, maxBags, sortBy]);
+    }, [outflows, query, dateRange, selectedCommodities, minBags, maxBags, sortBy]);
 
     // Prepare filter options
     const commodityOptions: MultiSelectOption[] = useMemo(() => {
@@ -152,8 +152,8 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
             {/* Search and Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <SearchBar
-                    value={searchTerm}
-                    onChange={(value) => setFilters(prev => ({ ...prev, search: value }))}
+                    value={query}
+                    onChange={(value) => setFilters(prev => ({ ...prev, q: value }))}
                     placeholder="Search by customer, invoice, or commodity..."
                     className="flex-1"
                 />
@@ -226,8 +226,8 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                 {filteredOutflows.length === 0 && (
                     <EmptyState
                         icon={ArrowUpFromDot}
-                        title={searchTerm || dateRange ? "No withdrawals found" : "No withdrawals yet"}
-                        description={searchTerm || dateRange ? "Try adjusting your search or date range." : "Your recent withdrawals will appear here once you process your first outflow using the form above."}
+                        title={query || dateRange ? "No withdrawals found" : "No withdrawals yet"}
+                        description={query || dateRange ? "Try adjusting your search or date range." : "Your recent withdrawals will appear here once you process your first outflow using the form above."}
                     />
                 )}
             </div>
@@ -272,8 +272,8 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                                 <TableCell colSpan={6} className="h-48">
                                     <EmptyState
                                         icon={ArrowUpFromDot}
-                                        title={searchTerm || dateRange ? "No withdrawals found" : "No withdrawals yet"}
-                                        description={searchTerm || dateRange ? "Try adjusting your search or date range." : "Your recent withdrawals will appear here once you process your first outflow using the form above."}
+                                        title={query || dateRange ? "No withdrawals found" : "No withdrawals yet"}
+                                        description={query || dateRange ? "Try adjusting your search or date range." : "Your recent withdrawals will appear here once you process your first outflow using the form above."}
                                     />
                                 </TableCell>
                             </TableRow>

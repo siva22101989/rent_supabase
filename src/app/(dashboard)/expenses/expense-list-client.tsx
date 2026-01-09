@@ -19,7 +19,7 @@ import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
 
 interface ExpenseFilterState {
-  search: string;
+  q: string;
   dateRange: DateRange | undefined;
   selectedCategories: string[];
   minAmount: number | null;
@@ -33,15 +33,15 @@ interface ExpenseListClientProps {
 
 export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
     const [filters, setFilters] = useUrlFilters<ExpenseFilterState>({
-        search: '',
-        dateRange: undefined as DateRange | undefined,
-        selectedCategories: [] as string[],
-        minAmount: null as number | null,
-        maxAmount: null as number | null,
+        q: '',
+        dateRange: undefined,
+        selectedCategories: [],
+        minAmount: null,
+        maxAmount: null,
         sortBy: 'date-desc'
     });
     
-    const searchTerm = filters.search;
+    const query = filters.q;
     const dateRange = filters.dateRange;
     const selectedCategories = filters.selectedCategories;
     const minAmount = filters.minAmount;
@@ -52,8 +52,8 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
         let result = [...expenses];
 
         // Search filter
-        if (searchTerm) {
-            const search = searchTerm.toLowerCase();
+        if (query) {
+            const search = query.toLowerCase();
             result = result.filter(e =>
                 e.description?.toLowerCase().includes(search) ||
                 e.category?.toLowerCase().includes(search)
@@ -101,7 +101,7 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
         });
 
         return result;
-    }, [expenses, searchTerm, dateRange, selectedCategories, minAmount, maxAmount, sortBy]);
+    }, [expenses, query, dateRange, selectedCategories, minAmount, maxAmount, sortBy]);
 
     // Prepare filter options
     const categoryOptions: MultiSelectOption[] = useMemo(() => {
@@ -156,8 +156,8 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
                     {/* Search and Filter Controls */}
                     <div className="flex flex-col sm:flex-row gap-3 mb-4">
                         <SearchBar
-                            value={searchTerm}
-                            onChange={(value) => setFilters(prev => ({ ...prev, search: value }))}
+                            value={query}
+                            onChange={(value) => setFilters(prev => ({ ...prev, q: value }))}
                             placeholder="Search by description or category..."
                             className="flex-1"
                         />
@@ -225,8 +225,8 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
                         {filteredExpenses.length === 0 && (
                             <EmptyState
                                 icon={Wallet}
-                                title={searchTerm || dateRange ? "No expenses found" : "No expenses recorded"}
-                                description={searchTerm || dateRange ? "Try adjusting your search or date range." : "Your expense history will appear here."}
+                                title={query || dateRange ? "No expenses found" : "No expenses recorded"}
+                                description={query || dateRange ? "Try adjusting your search or date range." : "Your expense history will appear here."}
                             />
                         )}
                     </div>
@@ -257,7 +257,7 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
                             {filteredExpenses.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={5} className="text-center text-muted-foreground p-6">
-                                        {searchTerm || dateRange ? "No expenses found matching your criteria." : "No expenses have been recorded yet."}
+                                        {query || dateRange ? "No expenses found matching your criteria." : "No expenses have been recorded yet."}
                                     </TableCell>
                                 </TableRow>
                             )}

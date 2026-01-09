@@ -16,7 +16,7 @@ import { useUrlFilters } from '@/hooks/use-url-filters';
 
 // Filter state interface
 interface InflowFilterState {
-  search: string;
+  q: string;
   dateRange: DateRange | undefined;
   selectedCommodities: string[];
   minBags: number | null;
@@ -31,16 +31,16 @@ interface InflowListClientProps {
 export function InflowListClient({ inflows }: InflowListClientProps) {
     // URL-synchronized filter state
     const [filters, setFilters] = useUrlFilters<InflowFilterState>({
-        search: '',
-        dateRange: undefined as DateRange | undefined,
-        selectedCommodities: [] as string[],
-        minBags: null as number | null,
-        maxBags: null as number | null,
+        q: '',
+        dateRange: undefined,
+        selectedCommodities: [],
+        minBags: null,
+        maxBags: null,
         sortBy: 'date-desc'
     });
     
     // Extract values
-    const searchTerm = filters.search;
+    const query = filters.q;
     const dateRange = filters.dateRange;
     const selectedCommodities = filters.selectedCommodities;
     const minBags = filters.minBags;
@@ -51,8 +51,8 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
         let result = [...inflows];
 
         // Search filter
-        if (searchTerm) {
-            const search = searchTerm.toLowerCase();
+        if (query) {
+            const search = query.toLowerCase();
             result = result.filter(i =>
                 i.customerName?.toLowerCase().includes(search) ||
                 i.commodity?.toLowerCase().includes(search) ||
@@ -102,7 +102,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
         });
 
         return result;
-    }, [inflows, searchTerm, dateRange, selectedCommodities, minBags, maxBags, sortBy]);
+    }, [inflows, query, dateRange, selectedCommodities, minBags, maxBags, sortBy]);
 
     // Prepare filter options
     const commodityOptions: MultiSelectOption[] = useMemo(() => {
@@ -154,8 +154,8 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
             {/* Search and Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <SearchBar
-                    value={searchTerm}
-                    onChange={(value) => setFilters(prev => ({ ...prev, search: value }))}
+                    value={query}
+                    onChange={(value) => setFilters(prev => ({ ...prev, q: value }))}
                     placeholder="Search by customer or commodity..."
                     className="flex-1"
                 />
@@ -218,8 +218,8 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                 {filteredInflows.length === 0 && (
                     <EmptyState
                         icon={ArrowDownToDot}
-                        title={searchTerm || dateRange ? "No inflows found" : "No inflows yet"}
-                        description={searchTerm || dateRange ? "Try adjusting your search or date range." : "Your recent inflows will appear here once you add your first storage record using the form above."}
+                        title={query || dateRange ? "No inflows found" : "No inflows yet"}
+                        description={query || dateRange ? "Try adjusting your search or date range." : "Your recent inflows will appear here once you add your first storage record using the form above."}
                     />
                 )}
             </div>
@@ -253,8 +253,8 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                                 <TableCell colSpan={5} className="h-48">
                                     <EmptyState
                                         icon={ArrowDownToDot}
-                                        title={searchTerm || dateRange ? "No inflows found" : "No inflows yet"}
-                                        description={searchTerm || dateRange ? "Try adjusting your search or date range." : "Your recent inflows will appear here once you add your first storage record using the form above."}
+                                        title={query || dateRange ? "No inflows found" : "No inflows yet"}
+                                        description={query || dateRange ? "Try adjusting your search or date range." : "Your recent inflows will appear here once you add your first storage record using the form above."}
                                     />
                                 </TableCell>
                             </TableRow>

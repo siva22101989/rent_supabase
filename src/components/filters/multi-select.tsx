@@ -1,28 +1,21 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown, Search, X } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export interface MultiSelectOption {
   label: string;
   value: string;
+  count?: number;
 }
 
 interface MultiSelectProps {
@@ -46,10 +39,18 @@ export function MultiSelect({
   const [search, setSearch] = React.useState('');
 
   const handleToggle = (value: string) => {
-    const newSelected = selected.includes(value)
-      ? selected.filter((item) => item !== value)
-      : [...selected, value];
-    onChange(newSelected);
+    // Case-insensitive check
+    const isSelected = selected.some(item => item.toLowerCase() === value.toLowerCase());
+    
+    if (isSelected) {
+      // Remove (filter out matching case-insensitive)
+      const newSelected = selected.filter((item) => item.toLowerCase() !== value.toLowerCase());
+      onChange(newSelected);
+    } else {
+      // Add (find original case from options if possible)
+      const originalOption = options.find(opt => opt.value.toLowerCase() === value.toLowerCase());
+      onChange([...selected, originalOption ? originalOption.value : value]);
+    }
   };
 
   const handleSelectAll = () => {
@@ -65,8 +66,17 @@ export function MultiSelect({
     onChange([]);
   };
 
+  // Filter options based on search
+  const filteredOptions = React.useMemo(() => {
+    if (!search) return options;
+    const searchLower = search.toLowerCase();
+    return options.filter((opt) =>
+      opt.label.toLowerCase().includes(searchLower)
+    );
+  }, [options, search]);
+
   const selectedLabels = options
-    .filter((opt) => selected.includes(opt.value))
+    .filter((opt) => selected.some(s => s.toLowerCase() === opt.value.toLowerCase()))
     .map((opt) => opt.label);
 
   const displayText = React.useMemo(() => {
@@ -74,8 +84,8 @@ export function MultiSelect({
     if (selected.length <= maxDisplay) {
       return selectedLabels.join(', ');
     }
-    return `${selectedLabels.slice(0, maxDisplay).join(', ')} +${selected.length - maxDisplay}`;
-  }, [selected, selectedLabels, maxDisplay, placeholder]);
+    return `${selected.length} selected`;
+  }, [selected.length, selectedLabels, maxDisplay, placeholder]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -84,66 +94,95 @@ export function MultiSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between text-left font-normal"
+          className="w-full justify-between font-normal"
         >
           <span className="truncate">{displayText}</span>
-          <div className="flex items-center gap-1 ml-2">
+          <div className="flex items-center gap-1">
             {selected.length > 0 && (
-              <Badge variant="secondary" className="h-5 px-1 text-xs">
-                {selected.length}
-              </Badge>
-            )}
-            {selected.length > 0 ? (
-              <X
-                className="h-4 w-4 shrink-0 opacity-50 hover:opacity-100"
+              <span
                 onClick={handleClear}
-              />
-            ) : (
-              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                className="rounded-sm opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
+                aria-label="Clear selection"
+              >
+                <X className="h-4 w-4" />
+              </span>
             )}
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
-        <Command>
-          <CommandInput
-            placeholder={`Search...`}
-            value={search}
-            onValueChange={setSearch}
-          />
-          <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
-            <CommandGroup>
-              <CommandItem
-                onSelect={handleSelectAll}
-                className="font-medium"
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <div className="flex flex-col">
+          {/* Search Input */}
+          <div className="border-b p-2">
+            <Input
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8"
+            />
+          </div>
+
+          {/* Options List */}
+          <ScrollArea className="h-[300px]">
+            <div className="p-2">
+              {/* Select All Option */}
+              <div
+                className="flex items-center gap-2 rounded-sm px-2 py-1.5 cursor-pointer hover:bg-accent transition-colors"
+                onClick={handleSelectAll}
               >
-                <Checkbox
-                  checked={selected.length === options.length}
-                  onCheckedChange={handleSelectAll}
-                  className="mr-2"
-                />
-                Select All ({options.length})
-              </CommandItem>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  onSelect={() => handleToggle(option.value)}
-                >
-                  <Checkbox
-                    checked={selected.includes(option.value)}
-                    onCheckedChange={() => handleToggle(option.value)}
-                    className="mr-2"
-                  />
-                  <span>{option.label}</span>
-                  {selected.includes(option.value) && (
-                    <Check className="ml-auto h-4 w-4" />
+                <div
+                  className={cn(
+                    'flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                    selected.length === options.length
+                      ? 'bg-primary text-primary-foreground'
+                      : 'opacity-50'
                   )}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+                >
+                  {selected.length === options.length && (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                </div>
+                <span className="font-medium">Select All ({options.length})</span>
+              </div>
+
+              {/* Individual Options */}
+              {filteredOptions.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  {emptyText}
+                </div>
+              ) : (
+                filteredOptions.map((option) => {
+                  const isSelected = selected.some(s => s.toLowerCase() === option.value.toLowerCase());
+                  return (
+                    <div
+                      key={option.value}
+                      className="flex items-center gap-2 rounded-sm px-2 py-1.5 cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => handleToggle(option.value)}
+                    >
+                      <div
+                        className={cn(
+                          'flex h-4 w-4 items-center justify-center rounded-sm border border-primary transition-colors',
+                          isSelected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'opacity-50'
+                        )}
+                      >
+                        {isSelected && <Check className="h-3.5 w-3.5" />}
+                      </div>
+                      <span className="flex-1">{option.label}</span>
+                      {option.count !== undefined && (
+                        <span className="text-xs text-muted-foreground">
+                          ({option.count})
+                        </span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );

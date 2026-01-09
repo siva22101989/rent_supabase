@@ -28,7 +28,7 @@ import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
 
 interface CustomerFilterState {
-  search: string;
+  q: string;
   selectedVillages: string[];
   minBalance: number | null;
   maxBalance: number | null;
@@ -52,20 +52,20 @@ export function CustomersPageClient({
   
   // URL-synchronized filter state
   const [filters, setFilters] = useUrlFilters<CustomerFilterState>({
-    search: searchParams.get('q') || '',
-    selectedVillages: [] as string[],
-    minBalance: null as number | null,
-    maxBalance: null as number | null,
+    q: '',
+    selectedVillages: [],
+    minBalance: null,
+    maxBalance: null,
     sortBy: 'balance-desc'
   });
   
-  const searchTerm = filters.search;
+  const query = filters.q;
   const selectedVillages = filters.selectedVillages;
   const minBalance = filters.minBalance;
   const maxBalance = filters.maxBalance;
   const sortBy = filters.sortBy;
   
-  const debouncedSearch = useDebounce(searchTerm, 500);
+  const debouncedSearch = useDebounce(query, 500);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasActiveRecords, setHasActiveRecords] = useState<boolean | null>(null);
 
@@ -89,7 +89,7 @@ export function CustomersPageClient({
   }, [debouncedSearch, router, searchParams]);
 
   const handleSearch = (value: string) => {
-    setFilters(prev => ({ ...prev, search: value }));
+    setFilters(prev => ({ ...prev, q: value }));
   };
   
   // Since we are filtering on the server, we just display what's passed in
@@ -208,7 +208,7 @@ export function CustomersPageClient({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search all customers (Server-Side)..."
-              value={searchTerm}
+              value={query}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-10"
             />
@@ -256,10 +256,10 @@ export function CustomersPageClient({
         {filteredCustomers.length === 0 ? (
           <EmptyState
             icon={Users}
-            title={searchTerm ? "No customers found" : "No customers yet"}
-            description={searchTerm ? `No customers match "${searchTerm}".` : "Add your first customer to start tracking storage and payments."}
-            actionLabel={searchTerm ? undefined : "Add First Customer"}
-            onAction={searchTerm ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-Customer-trigger]')?.click()}
+            title={query ? "No customers found" : "No customers yet"}
+            description={query ? `No customers match "${query}".` : "Add your first customer to start tracking storage and payments."}
+            actionLabel={query ? undefined : "Add First Customer"}
+            onAction={query ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-Customer-trigger]')?.click()}
           />
         ) : (
           paginatedCustomers.map((customer) => (
@@ -319,10 +319,10 @@ export function CustomersPageClient({
                   <TableCell colSpan={7} className="h-64">
                     <EmptyState
                       icon={Users}
-                      title={searchTerm ? "No customers found" : "No customers yet"}
-                      description={searchTerm ? `No customers match "${searchTerm}".` : "Add your first customer to start tracking storage and payments."}
-                      actionLabel={searchTerm ? undefined : "Add First Customer"}
-                      onAction={searchTerm ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
+                      title={query ? "No customers found" : "No customers yet"}
+                      description={query ? `No customers match "${query}".` : "Add your first customer to start tracking storage and payments."}
+                      actionLabel={query ? undefined : "Add First Customer"}
+                      onAction={query ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-customer-trigger]')?.click()}
                     />
                   </TableCell>
                 </TableRow>

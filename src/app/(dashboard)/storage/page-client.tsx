@@ -40,7 +40,7 @@ import { countActiveFilters } from '@/lib/url-filters';
 
 // Filter state interface
 interface StorageFilterState {
-  search: string;
+  q: string;
   status: 'active' | 'all' | 'released';
   selectedCommodities: string[];
   selectedLocations: string[];
@@ -80,22 +80,22 @@ export function StoragePageClient({
   
   // URL-synchronized filter state
   const [filters, setFilters] = useUrlFilters<StorageFilterState>({
-    search: searchParams.get('q') || '',
-    status: (searchParams.get('status') as any) || 'active',
-    selectedCommodities: [] as string[],
-    selectedLocations: [] as string[],
-    dateRange: undefined as DateRange | undefined,
-    minBags: null as number | null,
-    maxBags: null as number | null,
-    minRent: null as number | null,
-    maxRent: null as number | null,
+    q: '',
+    status: 'active',
+    selectedCommodities: [],
+    selectedLocations: [],
+    dateRange: undefined,
+    minBags: null,
+    maxBags: null,
+    minRent: null,
+    maxRent: null,
     sortBy: 'date-desc',
     page: initialPage
   });
   
   // Extract individual values for easier access
-  const searchTerm = filters.search;
-  const status = filters.status;
+  const query = filters.q;
+  const statusFilter = filters.status;
   const selectedCommodities = filters.selectedCommodities;
   const selectedLocations = filters.selectedLocations;
   const dateRange = filters.dateRange;
@@ -107,22 +107,15 @@ export function StoragePageClient({
   const page = filters.page;
 
   
-  const debouncedSearch = useDebounce(searchTerm, 300);
+  const debouncedSearch = useDebounce(query, 300);
   const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
-
-  // Sync page state with prop when server updates (keep for compatibility)
-  useEffect(() => {
-    if (initialPage !== page) {
-      setFilters(prev => ({ ...prev, page: initialPage }));
-    }
-  }, [initialPage]);
 
   // SWR for data fetching with different status
   const { data, isLoading, mutate, error } = useSWR(
-    ['storage-records', page, debouncedSearch, status], 
+    ['storage-records', page, debouncedSearch, statusFilter], 
     async ([_, p, q, s]) => fetchStorageRecordsAction(p as number, 25, q as string, s as any),
     {
-        fallbackData: page === initialPage && (debouncedSearch || '') === (searchParams.get('q') || '') && status === 'active' ? {
+        fallbackData: page === initialPage && (debouncedSearch || '') === (searchParams.get('q') || '') && statusFilter === 'active' ? {
             records: initialRecords,
             totalPages: initialTotalPages,
             totalCount: 0
@@ -236,7 +229,6 @@ export function StoragePageClient({
   // Count active filters
   const activeFilters = useMemo(() => {
     let count = 0;
-    if (status !== 'active') count++;
     if (selectedCommodities.length > 0) count++;
     if (selectedLocations.length > 0) count++;
     if (dateRange?.from) count++;
@@ -306,25 +298,7 @@ export function StoragePageClient({
       downloadFile(xml, 'tally-import.xml', 'text/xml');
   };
 
-  // Track previous search to detect actual changes
-  const prevSearchRef = useRef(searchParams.get('q') || '');
-  
-  // Sync search with URL
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams);    
-    if (debouncedSearch) {
-      params.set('q', debouncedSearch);
-    } else {
-      params.delete('q');
-    }    
-    // Only reset to page 1 if search term actually changed from user input
-    if (debouncedSearch !== prevSearchRef.current) {
-        params.set('page', '1');
-        setFilters(prev => ({ ...prev, page: 1 }));
-        prevSearchRef.current = debouncedSearch;
-    }    
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [debouncedSearch, pathname, router, searchParams]);
+
 
   const handlePageChange = (newPage: number) => {
     setFilters(prev => ({ ...prev, page: newPage }));
@@ -408,16 +382,16 @@ export function StoragePageClient({
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by customer..."
-                value={searchTerm}
-                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                value={query}
+                onChange={(e) => setFilters(prev => ({ ...prev, q: e.target.value, page: 1 }))}
                 className="pl-10"
               />
-              {searchTerm && (
+              {query && (
                 <Button
                   variant="ghost"
                   size="icon"
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7"
-                  onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
+                  onClick={() => setFilters(prev => ({ ...prev, q: '', page: 1 }))}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -547,10 +521,10 @@ export function StoragePageClient({
           {filteredRecords.length === 0 ? (
             <EmptyState
               icon={Warehouse}
-              title={searchTerm ? "No results found" : "No active storage records"}
-              description={searchTerm ? `No records match "${searchTerm}".` : "Get started by adding your first inflow."}
-              actionLabel={searchTerm ? undefined : "Add First Inflow"}
-              actionHref={searchTerm ? undefined : "/inflow"}
+              title={query ? "No results found" : "No active storage records"}
+              description={query ? `No records match "${query}".` : "Get started by adding your first inflow."}
+              actionLabel={query ? undefined : "Add First Inflow"}
+              actionHref={query ? undefined : "/inflow"}
             />
           ) : (
             filteredRecords.map((record) => {
@@ -661,10 +635,10 @@ export function StoragePageClient({
                                 <TableCell colSpan={9} className="h-64">
                                     <EmptyState
                                         icon={Warehouse}
-                                        title={searchTerm ? "No results found" : "No active storage records"}
-                                        description={searchTerm ? `No records match "${searchTerm}".` : "Get started by adding your first inflow."}
-                                        actionLabel={searchTerm ? undefined : "Add First Inflow"}
-                                        actionHref={searchTerm ? undefined : "/inflow"}
+                                        title={query ? "No results found" : "No active storage records"}
+                                        description={query ? `No records match "${query}".` : "Get started by adding your first inflow."}
+                                        actionLabel={query ? undefined : "Add First Inflow"}
+                                        actionHref={query ? undefined : "/inflow"}
                                     />
                                 </TableCell>
                             </TableRow>

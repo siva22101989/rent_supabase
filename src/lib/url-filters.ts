@@ -11,7 +11,7 @@ export interface FilterState {
  * Storage page specific filter state
  */
 export interface StorageFilterState {
-  search: string;
+  q: string;
   status: 'active' | 'released' | 'all';
   selectedCommodities: string[];
   selectedLocations: string[];
@@ -28,12 +28,25 @@ export interface StorageFilterState {
 /**
  * Serialize filter state to URL search parameters
  */
-export function filtersToSearchParams(filters: FilterState): URLSearchParams {
+/**
+ * Converts a filter state object to URL search parameters
+ * Skips values that match defaults to keep URL clean
+ */
+export function filtersToSearchParams<T extends FilterState>(
+  filters: T,
+  defaults?: T
+): URLSearchParams {
   const params = new URLSearchParams();
 
   Object.entries(filters).forEach(([key, value]) => {
+    // Skip if value is null/undefined/empty string
     if (value === null || value === undefined || value === '') {
-      return; // Skip empty values
+      return; 
+    }
+
+    // Skip if it matches the default value
+    if (defaults && JSON.stringify(value) === JSON.stringify(defaults[key as keyof T])) {
+      return;
     }
 
     // Handle arrays (comma-separated)
@@ -52,7 +65,7 @@ export function filtersToSearchParams(filters: FilterState): URLSearchParams {
 
     // Handle DateRange object
     if (typeof value === 'object' && 'from' in value) {
-      const dateRange = value as DateRange;
+      const dateRange = value as any; // DateRange from react-day-picker
       if (dateRange.from) {
         params.set('dateFrom', dateRange.from.toISOString().split('T')[0]);
       }
@@ -85,6 +98,9 @@ export function searchParamsToFilters<T extends FilterState>(
   const filters: any = { ...defaults }; // Use 'any' to allow mutations
 
   params.forEach((value, key) => {
+    // If it's a dateFrom/dateTo, we'll handle it specially later if dateRange is in defaults
+    if (key === 'dateFrom' || key === 'dateTo') return;
+
     // Skip if key not in defaults
     if (!(key in defaults)) {
       return;
@@ -99,16 +115,16 @@ export function searchParamsToFilters<T extends FilterState>(
     }
 
     // Handle dates
-    if (defaultValue instanceof Date || key.includes('date') || key.includes('Date')) {
+    if (defaultValue instanceof Date || (typeof defaultValue === 'string' && !isNaN(Date.parse(value)) && (key.includes('date') || key.includes('Date')))) {
       const date = new Date(value);
-      filters[key] = isNaN(date.getTime()) ? null : date;
+      filters[key] = isNaN(date.getTime()) ? defaultValue : date;
       return;
     }
 
     // Handle numbers
-    if (typeof defaultValue === 'number' || key.includes('min') || key.includes('max') || key === 'page') {
+    if (typeof defaultValue === 'number' || (defaultValue === null && (key.includes('min') || key.includes('max') || key === 'page'))) {
       const num = Number(value);
-      filters[key] = isNaN(num) ? null : num;
+      filters[key] = isNaN(num) ? defaultValue : num;
       return;
     }
 
@@ -122,8 +138,8 @@ export function searchParamsToFilters<T extends FilterState>(
     filters[key] = value;
   });
 
-  // Reconstruct DateRange if dateFrom/dateTo exist
-  if ('dateFrom' in filters || 'dateTo' in filters) {
+  // Reconstruct DateRange if it's expected in defaults
+  if ('dateRange' in defaults) {
     const from = params.get('dateFrom');
     const to = params.get('dateTo');
     
@@ -132,6 +148,8 @@ export function searchParamsToFilters<T extends FilterState>(
         from: from ? new Date(from) : undefined,
         to: to ? new Date(to) : undefined,
       };
+    } else {
+      filters.dateRange = defaults.dateRange;
     }
   }
 
