@@ -34,8 +34,8 @@ export default async function InflowPage() {
             .order('name')
             .then(res => res.data || []),
         supabase
-            .from('lots')
-            .select('id, name, capacity, current_bags, commodity_description')
+            .from('warehouse_lots')
+            .select('id, name, capacity, current_stock')
             .eq('warehouse_id', warehouseId)
             .eq('status', 'active')
             .then(res => res.data || [])
