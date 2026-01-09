@@ -346,7 +346,7 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<{ id: st
     khata_amount: record.khataAmount,
     storage_start_date: record.storageStartDate instanceof Date ? record.storageStartDate.toISOString() : record.storageStartDate as string,
     storage_end_date: record.storageEndDate ? (record.storageEndDate instanceof Date ? record.storageEndDate.toISOString() : record.storageEndDate) : undefined,
-    billing_cycle: record.billingCycle || '6-Month Initial',
+    billing_cycle: record.billingCycle || '6m',
     hamali_payable: record.hamaliPayable,
     total_rent_billed: record.totalRentBilled,
     warehouse_id: warehouseId,
