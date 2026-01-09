@@ -5,6 +5,7 @@ import { cache } from 'react';
 export type PortfolioItem = {
     warehouseName: string;
     warehouseLocation: string;
+    warehouseGst?: string;
     totalBags: number;
     totalPaid: number;
     totalBilled: number;
@@ -22,14 +23,18 @@ export const getCustomerPortfolio = async () => {
         .from('customers')
         .select(`
             id, 
+            name,
             warehouse_id, 
-            warehouses (name, location)
+            warehouses (name, location, gst_number)
         `)
         .eq('linked_user_id', user.id);
 
     if (!customers || customers.length === 0) return [];
 
     const customerIds = customers.map(c => c.id);
+    
+    // Create a map for quick access
+    const customerMap = new Map(customers.map(c => [c.id, c.name]));
 
     // 2. Fetch Storage Records and their Payments
     const { data: records } = await supabase
@@ -55,10 +60,13 @@ export const getCustomerPortfolio = async () => {
             const wName = c.warehouses?.name || 'Unknown Warehouse';
             // @ts-ignore
             const wLoc = c.warehouses?.location || '';
+            // @ts-ignore
+            const wGst = c.warehouses?.gst_number || undefined;
             
             portfolio[c.warehouse_id] = {
                 warehouseName: wName,
                 warehouseLocation: wLoc,
+                warehouseGst: wGst,
                 totalBags: 0,
                 totalPaid: 0,
                 totalBilled: 0,
@@ -84,7 +92,10 @@ export const getCustomerPortfolio = async () => {
                 billed: recordBilled,
                 is_active: r.storage_end_date === null,
                 // @ts-ignore
-                lot_name: r.warehouse_lots?.name || r.lot_id || 'N/A'
+                lot_name: r.warehouse_lots?.name || r.lot_id || 'N/A',
+                // Explicit mapping for Receipts
+                customerName: customerMap.get(r.customer_id) || 'Valued Customer',
+                commodityDescription: r.commodity_description || r.crops?.name || 'N/A'
             };
 
             portfolio[whId].records.push(enrichedRecord);

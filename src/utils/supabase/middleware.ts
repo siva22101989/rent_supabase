@@ -47,11 +47,14 @@ export const updateSession = async (request: NextRequest) => {
 
   // Protected Routes Logic
   // List of public routes that don't require authentication
-  const publicRoutes = ['/', '/pricing', '/login', '/signup', '/auth', '/invite', '/forgot-password', '/reset-password'];
+  const publicRoutes = ['/', '/pricing', '/login', '/signup', '/auth', '/invite', '/forgot-password', '/reset-password', '/portal/login'];
   const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(route + '/'));
 
   // If user is NOT signed in and trying to access protected pages, redirect to /login
   if (!user && !isPublicRoute) {
+      if (request.nextUrl.pathname.startsWith('/portal')) {
+          return NextResponse.redirect(new URL('/portal/login', request.url));
+      }
       return NextResponse.redirect(new URL('/login', request.url));
   }
   

@@ -64,6 +64,13 @@ export function WarehouseSettingsTab({ warehouse, allWarehouses = [] }: Warehous
                             </div>
                         </div>
                         <div className="grid gap-2">
+                             <Label htmlFor="gstNumber">GST Number</Label>
+                             <div className="relative">
+                                <Box className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input id="gstNumber" name="gstNumber" defaultValue={warehouse?.gst_number || ''} className="pl-9" placeholder="GSTIN" />
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
                             <Label htmlFor="capacity">Capacity (Bags)</Label>
                              <div className="relative">
                                 <Box className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />

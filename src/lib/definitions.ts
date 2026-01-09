@@ -92,6 +92,7 @@ export type Warehouse = {
     name: string;
     location: string;
     capacity_bags: number;
+    gst_number?: string;
     created_at: Date | string;
 };
 
@@ -108,6 +109,7 @@ export interface WarehouseWithRole {
     role: string;
     name: string;
     location: string;
+    gst_number?: string;
 }
 
 export const roleHierarchy: Record<string, number> = {

@@ -145,8 +145,9 @@ export async function updateWarehouseDetails(formData: FormData) {
     const email = formData.get('email') as string;
     const capacityStr = formData.get('capacity') as string;
     const capacity = capacityStr ? parseInt(capacityStr) : undefined;
+    const gstNumber = formData.get('gstNumber') as string;
 
-    const updates: any = { name, location, phone, email };
+    const updates: any = { name, location, phone, email, gst_number: gstNumber };
     if (capacity !== undefined && !isNaN(capacity)) {
         updates.capacity_bags = capacity;
     }

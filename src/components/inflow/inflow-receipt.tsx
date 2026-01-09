@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
-import { FileText } from 'lucide-react';
+import { PrintButton } from '../common/print-button';
 import { toDate } from '@/lib/utils';
 
 interface InflowReceiptProps {
@@ -21,179 +21,9 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
         setFormattedDate(format(startDate, 'dd/MM/yy'));
     }, [record.storageStartDate]);
 
-    const handlePrint = () => {
-        const warehouseName = warehouse?.name || 'Sri Lakshmi Warehouse';
-        const warehouseAddress = warehouse?.location || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122';
-        const warehousePhone = warehouse?.phone || '9703503423, 9160606633';
-        const warehouseEmail = warehouse?.email || '';
-        
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Godown Receipt - ${record.recordNumber || record.id}</title>
-                <style>
-                    @media print {
-                        @page { margin: 1cm; }
-                        body { margin: 0; }
-                        .no-print { display: none; }
-                    }
-                    
-                    body {
-                        font-family: 'Courier New', Courier, monospace;
-                        padding: 20px;
-                        max-width: 210mm;
-                        margin: 0 auto;
-                    }
-                    
-                    .receipt {
-                        border: 2px solid #1e40af;
-                        padding: 20px;
-                    }
-                    
-                    .header {
-                        text-align: center;
-                        margin-bottom: 20px;
-                    }
-                    
-                    .header h1 {
-                        margin: 5px 0;
-                        font-size: 24px;
-                        color: #1e3a8a;
-                    }
-                    
-                    .header .contact {
-                        font-size: 11px;
-                        margin: 3px 0;
-                    }
-                    
-                    .title {
-                        font-weight: bold;
-                        text-decoration: underline;
-                        margin: 15px 0;
-                    }
-                    
-                    .info-row {
-                        display: flex;
-                        margin: 8px 0;
-                    }
-                    
-                    .label {
-                        font-weight: bold;
-                        width: 35%;
-                    }
-                    
-                    .value {
-                        width: 65%;
-                    }
-                    
-                    .serial-date {
-                        display: flex;
-                        justify-between;
-                        margin: 15px 0;
-                    }
-                    
-                    .no-print {
-                        text-align: center;
-                        margin: 20px 0;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="receipt">
-                    <div class="header">
-                        <div class="contact">Cell: ${warehousePhone}</div>
-                        <h1>${warehouseName.toUpperCase()}</h1>
-                        <div class="contact">${warehouseAddress}</div>
-                        ${warehouseEmail ? `<div class="contact">${warehouseEmail}</div>` : ''}
-                    </div>
-                    
-                    <div class="title">GODOWN RECEIPT</div>
-                    
-                    <div class="serial-date">
-                        <div><span class="label">Receipt #</span> ${record.recordNumber || record.id}</div>
-                        <div><span class="label">Date:</span> ${formattedDate}</div>
-                    </div>
-                    
-                    <div class="info-row">
-                        <div class="label">LORRY / TRACTOR No.</div>
-                        <div class="value">: ${record.lorryTractorNo || 'N/A'}</div>
-                    </div>
-                    
-                    <div class="info-row">
-                        <div class="label">NAME OF THE FARMER</div>
-                        <div class="value">: ${customer.name}</div>
-                    </div>
-                    
-                    ${customer.fatherName ? `
-                    <div class="info-row">
-                        <div class="label">FATHER'S NAME</div>
-                        <div class="value">: ${customer.fatherName}</div>
-                    </div>
-                    ` : ''}
-                    
-                    <div class="info-row">
-                        <div class="label">VILLAGE</div>
-                        <div class="value">: ${customer.village || 'N/A'}</div>
-                    </div>
-                    
-                    ${record.inflowType === 'transfer_in' && record.plotBags ? `
-                    <div class="info-row">
-                        <div class="label">PLOT BAGS</div>
-                        <div class="value">: ${record.plotBags}</div>
-                    </div>
-                    ` : ''}
-                    
-                    <div class="info-row">
-                        <div class="label">COMMODITY</div>
-                        <div class="value">: ${record.commodityDescription || 'N/A'}</div>
-                    </div>
-                    
-                    <div class="info-row">
-                        <div class="label">NO. OF BAGS</div>
-                        <div class="value">: ${record.bagsStored}</div>
-                    </div>
-                    
-                    <div class="info-row">
-                        <div class="label">LOT NO.</div>
-                        <div class="value">: ${record.location || 'N/A'}</div>
-                    </div>
-                    
-                    <div class="info-row">
-                        <div class="label">HAMALI PAYABLE</div>
-                        <div class="value">: ₹${record.hamaliPayable || 0}</div>
-                    </div>
-
-                    ${record.notes ? `
-                    <div class="info-row">
-                        <div class="label">NOTES</div>
-                        <div class="value">: ${record.notes}</div>
-                    </div>
-                    ` : ''}
-                </div>
-                
-                <div class="no-print">
-                    <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 4px;">
-                        Print / Save as PDF
-                    </button>
-                    <button onclick="window.close()" style="padding: 10px 20px; font-size: 14px; cursor: pointer; background: #95a5a6; color: white; border: none; border-radius: 4px; margin-left: 10px;">
-                        Close
-                    </button>
-                </div>
-            </body>
-            </html>
-        `;
-        
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
-            setTimeout(() => {
-                printWindow.print();
-            }, 250);
-        }
-    };
+    // Custom HandlePrint removed in favor of PrintButton, but we keep the view below primarily for user satisfaction "I see the receipt".
+    // Actually the user view is just the React generic view.
+    // The ReceiptTemplate is what gets printed.
 
     return (
         <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
@@ -264,10 +94,25 @@ export function InflowReceipt({ record, customer, warehouse }: InflowReceiptProp
                 </div>
             </div>
             
-            <div className="mt-6 flex justify-center">
-                <Button onClick={handlePrint}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Print / Download PDF
+            <div className="mt-6 flex justify-center gap-4">
+                <PrintButton 
+                    data={{
+                        ...record,
+                        customerName: customer.name,
+                        commodityDescription: record.commodityDescription || 'N/A',
+                        bagsIn: record.bagsStored,
+                        // Warehouse Info
+                        warehouseName: warehouse?.name,
+                        warehouseAddress: warehouse?.location,
+                        gstNo: warehouse?.gst_number,
+                    }} 
+                    type="inflow" 
+                    buttonText="Print / Download PDF"
+                    variant="default"
+                />
+                
+                <Button onClick={() => window.location.reload()} variant="outline">
+                    Done
                 </Button>
             </div>
         </div>

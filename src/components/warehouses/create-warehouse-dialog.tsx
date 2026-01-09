@@ -25,6 +25,7 @@ export function CreateWarehouseDialog({
 }) {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
+  const [gstNumber, setGstNumber] = useState('');
   const [capacity, setCapacity] = useState('10000');
   const [loading, setLoading] = useState(false);
   const { success: toastSuccess, error: toastError } = useUnifiedToast();
@@ -50,7 +51,8 @@ export function CreateWarehouseDialog({
         location, 
         parseInt(capacity),
         undefined, // Email
-        undefined  // Phone
+        undefined,  // Phone
+        gstNumber
       );
 
       if (result.success) {
@@ -58,6 +60,7 @@ export function CreateWarehouseDialog({
         onOpenChange(false);
         setName('');
         setLocation('');
+        setGstNumber('');
       } else {
         toastError('Creation Failed', result.message);
       }
@@ -103,6 +106,16 @@ export function CreateWarehouseDialog({
               type="number"
               value={capacity}
               onChange={(e) => setCapacity(e.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="gstNumber">GST Number (Optional)</Label>
+            <Input
+              id="gstNumber"
+              placeholder="37ABCDE1234F1Z5"
+              value={gstNumber}
+              onChange={(e) => setGstNumber(e.target.value)}
             />
           </div>
         </div>

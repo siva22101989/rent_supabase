@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState } from "@/components/ui/empty-state";
 import { ArrowDownToDot } from "lucide-react";
 import { MobileCard } from "@/components/ui/mobile-card";
+import { PrintButton } from "@/components/common/print-button";
 import { SearchBar } from "@/components/ui/search-bar";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
@@ -13,6 +14,7 @@ import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdo
 import { exportInflowRecordsWithFilters } from "@/lib/export-utils-filtered";
 import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
+import { useWarehouses } from '@/contexts/warehouse-context';
 
 // Filter state interface
 interface InflowFilterState {
@@ -38,6 +40,8 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
         maxBags: null,
         sortBy: 'date-desc'
     });
+    
+    const { currentWarehouse: warehouse } = useWarehouses();
     
     // Extract values
     const query = filters.q;
@@ -234,6 +238,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                             <TableHead>Customer</TableHead>
                             <TableHead>Item</TableHead>
                             <TableHead className="text-right">Bags</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -245,12 +250,29 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                                     <TableCell>{record.customerName}</TableCell>
                                     <TableCell>{record.commodity}</TableCell>
                                     <TableCell className="text-right">{record.bags}</TableCell>
+                                    <TableCell>
+                                         <PrintButton 
+                                            data={{
+                                                ...record,
+                                                // Warehouse Info
+                                                warehouseName: warehouse?.name,
+                                                warehouseAddress: warehouse?.location,
+                                                gstNo: warehouse?.gst_number,
+                                            }}
+                                            type="inflow"
+                                            buttonText=""
+                                            variant="ghost" 
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            icon={<ArrowDownToDot className="h-4 w-4" />}
+                                        />
+                                    </TableCell>
                                 </TableRow>
                             );
                         })}
                         {filteredInflows.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-48">
+                                <TableCell colSpan={6} className="h-48">
                                     <EmptyState
                                         icon={ArrowDownToDot}
                                         title={query || dateRange ? "No inflows found" : "No inflows yet"}

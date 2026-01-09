@@ -18,7 +18,7 @@ export type ActionState = {
 
 // --- Warehouse Management ---
 
-export async function createWarehouse(name: string, location: string, capacity: number, email?: string, phone?: string): Promise<ActionState> {
+export async function createWarehouse(name: string, location: string, capacity: number, email?: string, phone?: string, gstNumber?: string): Promise<ActionState> {
     return Sentry.startSpan(
         {
             op: "function",
@@ -63,7 +63,14 @@ export async function createWarehouse(name: string, location: string, capacity: 
                 }
             }
 
-            // 2. Create Warehouse via Secure RPC
+            // 2. Create Warehouse via Secure RPC (updated for GST)
+            // Note: If RPC doesn't support gst_number, we might need to update migration OR use direct insert if safer/allowed.
+            // Since we added column, we should ideally check if RPC supports it. 
+            // If create_new_warehouse is a PLPGSQL function, it needs update!
+            // Let's first check if we can just update the warehouse after creation or if we need to update RPC.
+            // RPC is usually strict. 
+            // Workaround: Create via RPC, then update.
+            
             const { data: warehouseId, error } = await supabase.rpc('create_new_warehouse', {
                 p_name: name,
                 p_location: location,
@@ -78,8 +85,13 @@ export async function createWarehouse(name: string, location: string, capacity: 
                 return { 
                     message: 'Failed to create warehouse: ' + error.message, 
                     success: false,
-                    data: { name, location, capacity, email, phone }
+                    data: { name, location, capacity, email, phone, gstNumber }
                 };
+            }
+            
+            // Update GST Number immediately if provided
+            if (gstNumber) {
+                 await supabase.from('warehouses').update({ gst_number: gstNumber }).eq('id', warehouseId);
             }
 
             // 2. Switch Context
@@ -171,7 +183,7 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
         // Fetch ALL warehouses
         const { data, error } = await supabase
             .from('warehouses')
-            .select('id, name, location');
+            .select('id, name, location, gst_number');
         
         if (error) {
             console.error("Fetch all warehouses error:", error);
@@ -182,7 +194,8 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
             id: w.id,
             role: 'super_admin',
             name: w.name,
-            location: w.location || ''
+            location: w.location || '',
+            gst_number: w.gst_number || ''
         }));
     }
 
@@ -194,8 +207,10 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
             warehouse_id,
             warehouses (
                 id,
+                id,
                 name,
-                location
+                location,
+                gst_number
             )
         `)
         .eq('user_id', user.id);
@@ -209,7 +224,8 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
         id: d.warehouse_id,
         role: d.role,
         name: d.warehouses?.name || 'Unknown',
-        location: d.warehouses?.location || ''
+        location: d.warehouses?.location || '',
+        gst_number: d.warehouses?.gst_number || ''
     }));
 }
 

@@ -8,11 +8,13 @@ import { MapPin, Calendar, ArrowRight, Clock, CreditCard, Package, History, Down
 import { differenceInDays, format } from 'date-fns';
 import { RecordDetailDialog } from './record-detail-dialog';
 import { generateConsolidatedPDF } from '@/lib/pdf-generator';
+import { PrintButton } from '@/components/common/print-button';
 
 // Types from queries
 type PortfolioItem = {
     warehouseName: string;
     warehouseLocation: string;
+    warehouseGst?: string;
     totalBags: number;
     totalPaid: number;
     totalBilled: number;
@@ -243,14 +245,36 @@ function WarehouseList({ portfolio, type, currentDate }: { portfolio: PortfolioI
                                             )}
                                         </div>
                                         
-                                        <RecordDetailDialog 
-                                            record={record} 
-                                            trigger={
-                                                <button className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
-                                                    View Details <ArrowRight className="h-3 w-3" />
-                                                </button>
-                                            } 
-                                        />
+                                        <div className="flex gap-2">
+                                            <PrintButton 
+                                                data={{
+                                                    ...record,
+                                                    recordNumber: record.record_number, 
+                                                    bagsIn: record.bags_stored,         
+                                                    bagsStored: record.bags_stored,     
+                                                    lotId: record.lot_name,             
+                                                    totalRentBilled: record.total_rent_billed, 
+                                                    hamaliPayable: record.hamali_payable,
+                                                    // Warehouse Info from PortfolioItem
+                                                    warehouseName: wh.warehouseName,
+                                                    warehouseAddress: wh.warehouseLocation,
+                                                    gstNo: wh.warehouseGst
+                                                }}
+                                                type={type === 'active' ? 'inflow' : 'bill'} 
+                                                buttonText="Print"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-[10px] h-7 px-2"
+                                            />
+                                            <RecordDetailDialog 
+                                                record={record} 
+                                                trigger={
+                                                    <button className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
+                                                        View Details <ArrowRight className="h-3 w-3" />
+                                                    </button>
+                                                } 
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             );

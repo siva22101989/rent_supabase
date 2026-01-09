@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState } from "@/components/ui/empty-state";
 import { ArrowUpFromDot } from "lucide-react";
 import { MobileCard } from "@/components/ui/mobile-card";
+import { PrintButton } from "@/components/common/print-button";
 import { DeleteOutflowButton } from "@/components/outflow/delete-outflow-button";
 import { EditOutflowDialog } from "@/components/outflow/edit-outflow-dialog";
 import { SearchBar } from "@/components/ui/search-bar";
@@ -15,6 +16,7 @@ import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdo
 import { exportOutflowRecordsWithFilters } from "@/lib/export-utils-filtered";
 import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
+import { useWarehouses } from '@/contexts/warehouse-context';
 
 interface OutflowFilterState {
   q: string;
@@ -38,6 +40,10 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
         maxBags: null,
         sortBy: 'date-desc'
     });
+    
+    
+    // Warehouse Context
+    const { currentWarehouse: warehouse } = useWarehouses();
     
     const query = filters.q;
     const dateRange = filters.dateRange;
@@ -256,6 +262,22 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                                     <TableCell className="text-right">{record.bags}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-1">
+                                            <PrintButton 
+                                                data={{
+                                                    ...record,
+                                                    customerName: record.customerName,
+                                                    commodityDescription: record.commodity,
+                                                    // Warehouse Info
+                                                    warehouseName: warehouse?.name,
+                                                    warehouseAddress: warehouse?.location,
+                                                    gstNo: warehouse?.gst_number,
+                                                }}
+                                                type="outflow"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                                                icon={<ArrowUpFromDot className="h-4 w-4" />}
+                                            />
                                             <EditOutflowDialog transaction={record} />
                                             <DeleteOutflowButton
                                                 transactionId={record.id}
