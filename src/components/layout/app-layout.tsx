@@ -8,7 +8,7 @@ import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, LogOut } from 'lucide-react';
-// import { NotificationBell } from './notification-bell';
+import { NotificationBell } from './notification-bell';
 import { CommandSearch } from './command-search';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { WarehouseSwitcher } from '@/components/layout/warehouse-switcher';
@@ -210,8 +210,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                             )}
                           </div>
                           <ThemeToggle />
-                          
-                          {/* <NotificationBell /> */}
+                          <NotificationBell />
 
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

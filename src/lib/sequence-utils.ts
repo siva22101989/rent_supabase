@@ -36,8 +36,11 @@ export async function getNextInvoiceNumber(type: 'inflow' | 'outflow'): Promise<
     const warehouseId = await getUserWarehouse();
 
     if (!warehouseId) {
+        console.error('getNextInvoiceNumber: No warehouse ID found');
         throw new Error("No warehouse assigned to user");
     }
+
+    console.log(`Generating ${type} invoice number for warehouse: ${warehouseId}`);
 
     // Call the thread-safe database function
     const { data: invoiceNumber, error } = await supabase.rpc('generate_invoice_number', {
@@ -46,10 +49,19 @@ export async function getNextInvoiceNumber(type: 'inflow' | 'outflow'): Promise<
     });
 
     if (error) {
-        console.error('Error generating invoice number:', error);
-        throw new Error(`Failed to generate ${type} invoice number`);
+        console.error('Error generating invoice number:', {
+            error: error,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            warehouseId,
+            type
+        });
+        throw new Error(`Failed to generate ${type} invoice number: ${error.message || JSON.stringify(error)}`);
     }
 
+    console.log(`Generated invoice number: ${invoiceNumber}`);
     return invoiceNumber;
 }
 

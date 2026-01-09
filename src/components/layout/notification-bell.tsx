@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Bell, CheckCheck, Trash2 } from 'lucide-react';
+import type { NotificationEntry } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,38 +17,104 @@ import {
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 export function NotificationBell() {
-    const [notifications, setNotifications] = useState<any[]>([]);
+    const [notifications, setNotifications] = useState<NotificationEntry[]>([]);
     const [hasUnread, setHasUnread] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const supabase = createClient();
 
-    const fetchNotes = async () => {
-         const { data: { user } } = await supabase.auth.getUser();
-         if (!user) return;
+    const { toast } = useToast();
 
-         // Fetch all notifications for warehouse (RLS handles warehouse filter)
-         // Join with notification_reads to see what this user has read
-         const { data, error } = await supabase.from('notifications')
-            .select(`
-                *,
-                notification_reads!left(user_id)
-            `)
-            .is('notification_reads.user_id', null) // Only fetch what THIS user hasn't read
-            .order('created_at', { ascending: false })
-            .limit(20);
-         
-         if (data) {
-             setNotifications(data);
-             setHasUnread(data.length > 0);
+    const fetchNotes = async () => {
+         try {
+             setError(null);
+             const { data: { user } } = await supabase.auth.getUser();
+             if (!user) return;
+
+             // Fetch notifications that this user hasn't read yet
+             // Get all read notification IDs for current user first
+             const { data: readIds } = await supabase
+                .from('notification_reads')
+                .select('notification_id')
+                .eq('user_id', user.id);
+             
+             const readNotificationIds = readIds?.map(r => r.notification_id) || [];
+             
+             // Now fetch notifications excluding the ones already read
+             let query = supabase
+                .from('notifications')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(20);
+             
+             // Only add the filter if there are read notifications
+             if (readNotificationIds.length > 0) {
+                 query = query.not('id', 'in', `(${readNotificationIds.join(',')})`);
+             }
+             
+             const { data, error } = await query;
+             
+             if (error) {
+                 console.error('Failed to fetch notifications:', error);
+                 setError('Failed to load notifications');
+                 return;
+             }
+             
+             if (data) {
+                 setNotifications(data as NotificationEntry[]);
+                 setHasUnread(data.length > 0);
+             }
+         } catch (err) {
+             console.error('Error fetching notifications:', err);
+             setError('An error occurred');
          }
     };
 
     useEffect(() => {
         fetchNotes();
-        const interval = setInterval(fetchNotes, 30000); 
-        return () => clearInterval(interval);
+        
+        // Set up real-time subscription for new notifications
+        const channel = supabase
+            .channel('notifications-realtime')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'notifications'
+                },
+                async (payload) => {
+                    const newNotification = payload.new as NotificationEntry;
+                    
+                    // Check if this notification is for the current user
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+                    
+                    // If notification is for specific user or for everyone (null)
+                    if (newNotification.user_id === null || newNotification.user_id === user.id) {
+                        // Add to notifications list
+                        setNotifications(prev => [newNotification, ...prev]);
+                        setHasUnread(true);
+                        
+                        // Show toast for warning/error notifications
+                        if (newNotification.type === 'warning' || newNotification.type === 'error') {
+                            toast({
+                                title: newNotification.title,
+                                description: newNotification.message,
+                                variant: newNotification.type === 'error' ? 'destructive' : 'default'
+                            });
+                        }
+                    }
+                }
+            )
+            .subscribe();
+        
+        return () => {
+            channel.unsubscribe();
+        };
     }, []);
 
     const markRead = async (id: string) => {
@@ -72,7 +139,11 @@ export function NotificationBell() {
         if (error) {
             console.error("Failed to record notification read status:", error.message || error);
             if (noteToRead) {
-                setNotifications(prev => [noteToRead, ...prev].sort((a,b) => b.created_at.localeCompare(a.created_at)));
+                setNotifications(prev => [noteToRead, ...prev].sort((a, b) => {
+                    const aTime = new Date(a.created_at).getTime();
+                    const bTime = new Date(b.created_at).getTime();
+                    return bTime - aTime;
+                }));
                 setHasUnread(true);
             }
         }

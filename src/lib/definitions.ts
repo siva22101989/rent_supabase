@@ -123,6 +123,7 @@ export interface NotificationEntry {
     message: string;
     type: 'info' | 'warning' | 'error' | 'success';
     read: boolean;
+    link?: string;
     created_at: Date | string;
 }
 
