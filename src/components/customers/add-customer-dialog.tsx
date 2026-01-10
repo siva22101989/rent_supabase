@@ -25,6 +25,7 @@ import { useUnifiedToast } from '@/components/shared/toast-provider';
 import { useCustomers } from '@/contexts/customer-context';
 import { FormError } from '../shared/form-error';
 import { formatPhoneNumber } from '@/lib/validation';
+import { usePreventNavigation } from '@/hooks/use-prevent-navigation';
 
 export function AddCustomerDialog() {
   const { success: toastSuccess, error: toastError } = useUnifiedToast();
@@ -35,6 +36,9 @@ export function AddCustomerDialog() {
   
   const initialState: FormState = { message: '', success: false };
   const [state, formAction, isPending] = useActionState(addCustomer, initialState);
+  
+  // Prevent navigation while pending
+  usePreventNavigation(isPending);
 
   useEffect(() => {
     if (state.message && state !== lastHandledRef.current) {

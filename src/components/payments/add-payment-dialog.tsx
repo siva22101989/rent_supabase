@@ -31,6 +31,8 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 // Local SubmitButton removed in favor of shared component
 
+import { usePreventNavigation } from '@/hooks/use-prevent-navigation';
+
 export function AddPaymentDialog({ record, onClose, autoOpen = false }: { 
   record: StorageRecord & { balanceDue: number };
   onClose?: () => void;
@@ -42,6 +44,9 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
   const [paymentType, setPaymentType] = useState<'rent' | 'hamali'>('rent');
   
   const { runAction, isPending } = useServerAction();
+  
+  // Prevent navigation while pending
+  usePreventNavigation(isPending);
   
   // Handlers for closing
   const handleClose = () => {

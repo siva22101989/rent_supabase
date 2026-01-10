@@ -224,9 +224,8 @@ export async function processBulkOutflow(prevState: any, formData: FormData): Pr
                          const { textBeeService } = await import('@/lib/textbee');
                          
                          const message = `Bulk Outflow Processed
-Total Bags: ${processedCount}
 Item: ${commodity}
-Withdrawn: ${totalBagsToWithdraw}
+Total Bags: ${totalBagsToWithdraw}
 Rent: ${totalBatchRent > 0 ? 'Rs.' + totalBatchRent.toLocaleString('en-IN') : 'N/A'}
 Paid: ${amountPaidNow && amountPaidNow > 0 ? 'Rs.' + amountPaidNow.toLocaleString('en-IN') : 'Rs.0'}
 Thank you.`;

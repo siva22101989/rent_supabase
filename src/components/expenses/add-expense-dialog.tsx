@@ -28,6 +28,8 @@ import { expenseCategories } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
 import { FormError } from '../shared/form-error';
 
+import { usePreventNavigation } from '@/hooks/use-prevent-navigation';
+
 // Local SubmitButton removed in favor of shared component
 
 export function AddExpenseDialog() {
@@ -38,6 +40,9 @@ export function AddExpenseDialog() {
   
   const initialState: FormState = { message: '', success: false };
   const [state, formAction, isPending] = useActionState(addExpense, initialState);
+  
+  // Prevent navigation while pending
+  usePreventNavigation(isPending);
 
   useEffect(() => {
     if (state.message && state !== lastHandledRef.current) {

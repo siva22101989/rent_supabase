@@ -25,6 +25,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 import { useCustomers } from "@/contexts/customer-context";
 import { useStaticData } from "@/hooks/use-static-data";
+import { usePreventNavigation } from "@/hooks/use-prevent-navigation";
 import { useServerAction } from "@/hooks/use-server-action";
 
 interface InflowFormInnerProps {
@@ -61,6 +62,10 @@ function InflowFormInner({
     const lots = propLots.length > 0 ? propLots : hookLots;
 
     const { runAction, isPending } = useServerAction();
+    
+    // Prevent navigation while pending
+    usePreventNavigation(isPending);
+    
     const router = useRouter();
 
     const [bags, setBags] = useState(0);

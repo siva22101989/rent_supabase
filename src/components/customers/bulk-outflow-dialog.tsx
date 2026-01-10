@@ -25,22 +25,31 @@ import { processBulkOutflow, type BulkOutflowResult } from '@/lib/actions/storag
 import { useUnifiedToast } from '@/components/shared/toast-provider';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { calculateFinalRent } from '@/lib/billing';
+import { usePreventNavigation } from '@/hooks/use-prevent-navigation';
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface BulkOutflowDialogProps {
     customer: Customer;
     records: StorageRecord[];
+    onOpenChange?: (open: boolean) => void;
 }
 
 const initialState: BulkOutflowResult = {
-    success: false,
     message: '',
+    success: false
 };
 
-export function BulkOutflowDialog({ customer, records }: BulkOutflowDialogProps) {
+export function BulkOutflowDialog({ customer, records, onOpenChange }: BulkOutflowDialogProps) {
     const [open, setOpen] = useState(false);
     // Removed step state
     const { success: showSuccess, error: showError } = useUnifiedToast();
     const router = useRouter();
+
+    const [state, formAction, isPending] = useActionState(processBulkOutflow, initialState);
+
+    // Prevent navigation while pending
+    usePreventNavigation(isPending);
 
     // Form Stats
     const [commodity, setCommodity] = useState<string>('');
@@ -54,8 +63,6 @@ export function BulkOutflowDialog({ customer, records }: BulkOutflowDialogProps)
     useMemo(() => {
         setExcludedRecordIds(new Set());
     }, [commodity]);
-
-    const [state, formAction, isPending] = useActionState(processBulkOutflow, initialState);
 
     // Derived: Available Commodities
     const commodities = useMemo(() => {
@@ -266,7 +273,65 @@ export function BulkOutflowDialog({ customer, records }: BulkOutflowDialogProps)
                                         </AlertDescription>
                                     </Alert>
 
-                                    <div className="border rounded-md max-h-[300px] overflow-y-auto overflow-x-auto">
+                                    <div className="border rounded-md max-h-[400px] overflow-y-auto">
+                                        {/* Mobile View: Cards */}
+                                        <div className="md:hidden space-y-2 p-2">
+                                            {records
+                                                .filter(r => r.commodityDescription === commodity && !r.storageEndDate && r.bagsStored > 0)
+                                                .sort((a, b) => new Date(a.storageStartDate).getTime() - new Date(b.storageStartDate).getTime())
+                                                .map((r) => {
+                                                    const inPlan = previewPlan.operations.find(op => op.record.id === r.id);
+                                                    const isExcluded = excludedRecordIds.has(r.id);
+                                                    
+                                                    return (
+                                                        <Card key={r.id} className={`overflow-hidden transition-all ${inPlan?.isClosing ? "border-destructive/50 bg-destructive/5" : (isExcluded ? "opacity-60 bg-muted/50" : "bg-card")}`}>
+                                                            <CardContent className="p-3">
+                                                                <div className="flex items-start gap-3">
+                                                                    <Checkbox 
+                                                                        checked={!isExcluded}
+                                                                        onCheckedChange={(c) => toggleRecordSelection(r.id, !!c)}
+                                                                        disabled={isPending}
+                                                                        className="mt-1"
+                                                                    />
+                                                                    <div className="flex-1 space-y-2">
+                                                                        {/* Header */}
+                                                                        <div className="flex justify-between items-start">
+                                                                            <div>
+                                                                                <div className="font-medium pr-2">
+                                                                                    Record #{r.recordNumber}
+                                                                                </div>
+                                                                                <div className="text-xs text-muted-foreground">
+                                                                                    {new Date(r.storageStartDate).toLocaleDateString()}
+                                                                                    {r.location && ` • ${r.location}`}
+                                                                                </div>
+                                                                            </div>
+                                                                            <Badge variant="outline" className="shrink-0">
+                                                                                {r.bagsStored} Bags
+                                                                            </Badge>
+                                                                        </div>
+
+                                                                        {inPlan && (
+                                                                            <div className="flex items-center justify-between text-sm bg-background/50 p-2 rounded border border-border/50">
+                                                                                <div className="font-semibold text-destructive flex items-center gap-1">
+                                                                                    <PackageMinus className="h-3 w-3" />
+                                                                                    -{inPlan.take}
+                                                                                    {inPlan.isClosing && <Badge variant="destructive" className="h-4 px-1 text-[10px] ml-1">CLOSE</Badge>}
+                                                                                </div>
+                                                                                <div className="font-medium text-muted-foreground">
+                                                                                    Rent: {formatCurrency(inPlan.rent)}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </CardContent>
+                                                        </Card>
+                                                    )
+                                                })}
+                                        </div>
+
+                                        {/* Desktop View: Table */}
+                                        <div className="hidden md:block overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
@@ -312,6 +377,7 @@ export function BulkOutflowDialog({ customer, records }: BulkOutflowDialogProps)
                                                     })}
                                             </TableBody>
                                         </Table>
+                                        </div>
                                     </div>
 
                                     <div className="pt-2">
