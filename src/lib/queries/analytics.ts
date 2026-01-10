@@ -11,7 +11,7 @@ import type {
     CommodityDistribution
 } from '@/lib/definitions';
 
-export async function getNotifications(limit = 5): Promise<NotificationEntry[]> {
+export const getNotifications = cache(async (limit = 5): Promise<NotificationEntry[]> => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     const { data: { user } } = await supabase.auth.getUser();
@@ -27,7 +27,7 @@ export async function getNotifications(limit = 5): Promise<NotificationEntry[]> 
         .limit(limit);
 
     return data || [];
-}
+});
 
 export const getAdminDashboardStats = cache(async (): Promise<AdminDashboardStats | null> => {
     const supabase = await createClient();

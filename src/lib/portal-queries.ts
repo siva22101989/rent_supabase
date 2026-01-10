@@ -12,7 +12,7 @@ export type PortfolioItem = {
     records: any[];
 };
 
-export const getCustomerPortfolio = async () => {
+export const getCustomerPortfolio = cache(async () => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -109,4 +109,4 @@ export const getCustomerPortfolio = async () => {
     });
 
     return Object.values(portfolio).sort((a, b) => b.totalBags - a.totalBags);
-};
+});

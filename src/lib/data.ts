@@ -84,23 +84,23 @@ export const getUserWarehouse = cache(async () => {
   return profile?.warehouse_id;
 });
 
-export const getAvailableCrops = async () => {
+export const getAvailableCrops = cache(async () => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return [];
 
     const { data } = await supabase.from('crops').select('*').eq('warehouse_id', warehouseId).order('name');
     return data || [];
-};
+});
 
-export const getAvailableLots = async () => {
+export const getAvailableLots = cache(async () => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return [];
 
     const { data } = await supabase.from('warehouse_lots').select('*').eq('warehouse_id', warehouseId).order('name');
     return data || [];
-};
+});
 
 export const getDashboardMetrics = cache(async () => {
     const supabase = await createClient();
@@ -135,7 +135,7 @@ export const getDashboardMetrics = cache(async () => {
 });
 
 // Customer Functions
-export async function customers(): Promise<Customer[]> {
+export const customers = cache(async (): Promise<Customer[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
@@ -164,7 +164,7 @@ export async function customers(): Promise<Customer[]> {
     village: c.village || '',
     updatedAt: c.updated_at ? new Date(c.updated_at) : undefined,
   }));
-}
+});
 
 export const getCustomer = async (id: string): Promise<Customer | null> => {
   const supabase = await createClient();
@@ -216,7 +216,7 @@ export const saveCustomer = async (customer: Customer): Promise<void> => {
 
 
 // Storage Record Functions
-export async function storageRecords(): Promise<StorageRecord[]> {
+export const storageRecords = cache(async (): Promise<StorageRecord[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
@@ -267,7 +267,7 @@ export async function storageRecords(): Promise<StorageRecord[]> {
     notes: r.notes,
     updatedAt: r.updated_at ? new Date(r.updated_at) : undefined
   }));
-}
+});
 
 export const getStorageRecord = async (id: string): Promise<StorageRecord | null> => {
   const supabase = await createClient();
@@ -439,7 +439,7 @@ export const addPaymentToRecord = async (recordId: string, payment: Payment) => 
 
 
 // Expense Functions
-export async function expenses(): Promise<Expense[]> {
+export const expenses = cache(async (): Promise<Expense[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
 
@@ -463,7 +463,7 @@ export async function expenses(): Promise<Expense[]> {
     category: e.category,
     updatedAt: e.updated_at ? new Date(e.updated_at) : undefined
   }));
-}
+});
 
 export async function saveExpense(expense: Expense): Promise<void> {
   'use server';

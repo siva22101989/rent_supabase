@@ -66,7 +66,7 @@ function mapRecords(records: any[]): StorageRecord[] {
   }));
 }
 
-export async function getStorageRecords(): Promise<StorageRecord[]> {
+export const getStorageRecords = cache(async (): Promise<StorageRecord[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
@@ -89,9 +89,9 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
   }
 
   return mapRecords(records);
-}
+});
 
-export async function getActiveStorageRecords(limit = 50): Promise<StorageRecord[]> {
+export const getActiveStorageRecords = cache(async (limit = 50): Promise<StorageRecord[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
@@ -116,9 +116,9 @@ export async function getActiveStorageRecords(limit = 50): Promise<StorageRecord
   }
 
   return mapRecords(records);
-}
+});
 
-export async function getStorageStats() {
+export const getStorageStats = cache(async () => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0 };
@@ -140,9 +140,9 @@ export async function getStorageStats() {
         totalOutflow,
         balanceStock
     };
-}
+});
 
-export const getStorageRecord = async (id: string): Promise<StorageRecord | null> => {
+export const getStorageRecord = cache(async (id: string): Promise<StorageRecord | null> => {
   const supabase = await createClient();
   const { data: r, error } = await supabase
     .from('storage_records')
@@ -186,7 +186,7 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
     loadBags: r.load_bags,
     khataAmount: r.khata_amount
   };
-};
+});
 
 export async function getCustomerRecords(customerId: string): Promise<StorageRecord[]> {
     const supabase = await createClient();
@@ -239,7 +239,7 @@ export async function getCustomerRecords(customerId: string): Promise<StorageRec
     }));
 }
 
-export async function getRecentInflows(limit = 5) {
+export const getRecentInflows = cache(async (limit = 5) => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   if (!warehouseId) return [];
@@ -269,9 +269,9 @@ export async function getRecentInflows(limit = 5) {
     commodity: r.commodity_description,
     bags: r.bags_in
   }));
-}
+});
 
-export async function getRecentOutflows(limit = 5) {
+export const getRecentOutflows = cache(async (limit = 5) => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   if (!warehouseId) return [];
@@ -310,9 +310,9 @@ export async function getRecentOutflows(limit = 5) {
     rentCollected: r.rent_collected || 0,
     maxEditableBags: (r.storage_record?.bags_stored || 0) + r.bags_withdrawn 
   }));
-}
+});
 
-export async function searchActiveStorageRecords(query: string, limit = 50) {
+export const searchActiveStorageRecords = cache(async (query: string, limit = 50) => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   if (!warehouseId) return [];
@@ -354,14 +354,14 @@ export async function searchActiveStorageRecords(query: string, limit = 50) {
       date: new Date(r.storage_start_date),
       bags: r.bags_stored
   }));
-}
+});
 
-export async function getPaginatedStorageRecords(
+export const getPaginatedStorageRecords = cache(async (
     page: number = 1, 
     limit: number = 20, 
     search?: string,
     status: 'active' | 'all' | 'released' = 'active'
-): Promise<{ records: StorageRecord[], totalCount: number, totalPages: number }> {
+): Promise<{ records: StorageRecord[], totalCount: number, totalPages: number }> => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     
@@ -423,4 +423,4 @@ export async function getPaginatedStorageRecords(
         totalCount: count || 0,
         totalPages: Math.ceil((count || 0) / limit)
     };
-}
+});

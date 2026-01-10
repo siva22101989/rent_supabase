@@ -59,7 +59,7 @@ export async function toggleWarehouseAccess(
             .from('warehouse_assignments')
             .update({ 
                 deleted_at: null,
-                role: role // Update role just in case
+                role: role 
             })
             .eq('id', existingAccess.id);
 
@@ -78,6 +78,8 @@ export async function toggleWarehouseAccess(
             });
 
         if (error) return { message: 'Failed to grant access: ' + error.message, success: false };
+        
+        // New access: No need to sync profile as they wouldn't be active in it yet
 
         revalidatePath('/settings/team');
         return { message: 'Access granted successfully', success: true };
