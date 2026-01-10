@@ -34,6 +34,7 @@ import { StaticDataProvider } from '@/hooks/use-static-data';
 import { AuthListener } from '@/components/auth/auth-listener';
 import { OfflineIndicator } from '@/components/shared/offline-indicator';
 import { AnalyticsProvider } from '@/components/shared/analytics-provider';
+import { LoadingProvider } from '@/components/providers/loading-provider';
 
 import { Suspense } from 'react';
 
@@ -47,15 +48,17 @@ export default function RootLayout({
       <body className={`${inter.className} font-body antialiased bg-background`}>
         <ThemeProvider>
           <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
-          {children}
-          <Toaster />
-          <SpeedInsights />
-          <Analytics />
-          <Suspense fallback={null}>
-            <AnalyticsProvider />
-          </Suspense>
-          <KeyboardShortcuts />
-          <OfflineIndicator />
+          <LoadingProvider>
+            {children}
+            <Toaster />
+            <SpeedInsights />
+            <Analytics />
+            <Suspense fallback={null}>
+              <AnalyticsProvider />
+            </Suspense>
+            <KeyboardShortcuts />
+            <OfflineIndicator />
+          </LoadingProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
 import type { Expense } from '@/lib/definitions';
+import type { ExpenseQueryOptions } from '@/lib/types/query-options';
 import { logError } from '@/lib/error-logger';
 import { getUserWarehouse } from './warehouses';
 
@@ -36,30 +37,62 @@ export const getFinancialStats = cache(async () => {
     };
 });
 
-export const getExpenses = cache(async (limit = 50): Promise<Expense[]> => {
-  const supabase = await createClient();
-  const warehouseId = await getUserWarehouse();
+// Query builder helper for expenses
+function buildExpensesQuery(
+  supabase: any,
+  warehouseId: string,
+  options: ExpenseQueryOptions = {}
+) {
+  const { category, dateFrom, dateTo, minAmount, maxAmount } = options;
 
-  if (!warehouseId) return [];
-
-  const { data, error } = await supabase
+  let query = supabase
     .from('expenses')
     .select('*')
-    .eq('warehouse_id', warehouseId)
-    .is('deleted_at', null)
-    .order('expense_date', { ascending: false })
-    .limit(limit);
+    .eq('warehouse_id', warehouseId);
+
+  if (category) {
+    query = query.eq('category', category);
+  }
+
+  if (dateFrom) {
+    query = query.gte('date', dateFrom.toISOString());
+  }
+
+  if (dateTo) {
+    query = query.lte('date', dateTo.toISOString());
+  }
+
+  if (minAmount !== undefined) {
+    query = query.gte('amount', minAmount);
+  }
+
+  if (maxAmount !== undefined) {
+    query = query.lte('amount', maxAmount);
+  }
+
+  return query;
+}
+
+export const getExpenses = cache(async (limit = 20, offset = 0): Promise<Expense[]> => {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+  
+  if (!warehouseId) return [];
+
+  const { data, error } = await buildExpensesQuery(supabase, warehouseId)
+    .order('date', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) {
     logError(error, { operation: 'fetch_expenses', warehouseId });
     return [];
   }
 
-  return data.map((e: any) => ({
+  return (data as any[]).map((e) => ({
     id: e.id,
+    date: e.date,
+    category: e.category,
     description: e.description,
     amount: e.amount,
-    date: new Date(e.expense_date),
-    category: e.category,
   }));
 });

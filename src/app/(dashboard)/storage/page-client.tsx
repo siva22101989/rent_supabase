@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { useDebounce } from "@uidotdev/usehooks";
 import { useEffect, useState, useRef } from 'react';
+import { usePagination } from '@/hooks/use-pagination';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Printer } from "lucide-react";
 import { ExportButton } from "@/components/shared/export-button";
@@ -111,9 +112,13 @@ export function StoragePageClient({
   const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
 
   // SWR for data fetching with different status
+  // Pagination state
+  const pagination = usePagination(20);
+  const pageSize = pagination.pageSize;
+  
   const { data, isLoading, mutate, error } = useSWR(
-    ['storage-records', page, debouncedSearch, statusFilter], 
-    async ([_, p, q, s]) => fetchStorageRecordsAction(p as number, 25, q as string, s as any),
+    ['storage-records', page, debouncedSearch, statusFilter, pageSize], 
+    async ([_, p, q, s, size]) => fetchStorageRecordsAction(p as number, size as number, q as string, s as any),
     {
         fallbackData: page === initialPage && (debouncedSearch || '') === (searchParams.get('q') || '') && statusFilter === 'active' ? {
             records: initialRecords,
@@ -652,7 +657,14 @@ export function StoragePageClient({
           <Pagination
             currentPage={page}
             totalPages={totalPages}
+            totalItems={data?.totalCount}
+            pageSize={pageSize}
             onPageChange={handlePageChange}
+            onPageSizeChange={(size) => {
+              pagination.setPageSize(size);
+              setFilters(prev => ({ ...prev, page: 1 }));
+            }}
+            showPageInfo={true}
           />
         )}
 

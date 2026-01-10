@@ -1,8 +1,10 @@
 import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
 import type { StorageRecord } from '@/lib/definitions';
+import type { StorageQueryOptions } from '@/lib/types/query-options';
 import { logError } from '@/lib/error-logger';
 import { getUserWarehouse } from './warehouses';
+import { measureQuery } from '@/lib/utils/query-logger';
 
 export const getDashboardMetrics = cache(async () => {
     const supabase = await createClient();
@@ -66,49 +68,75 @@ function mapRecords(records: any[]): StorageRecord[] {
   }));
 }
 
-export const getStorageRecords = cache(async (): Promise<StorageRecord[]> => {
-  const supabase = await createClient();
-  const warehouseId = await getUserWarehouse();
-  
-  if (!warehouseId) return [];
+// Query builder helper to reduce duplication
+function buildStorageRecordsQuery(
+  supabase: any,
+  warehouseId: string,
+  options: StorageQueryOptions = {}
+) {
+  const {
+    activeOnly = false,
+    customerId,
+    includePayments = true,
+    includeCustomer = true
+  } = options;
 
-  const { data: records, error } = await supabase
+  // Build select clause
+  const selectParts = ['*'];
+  if (includePayments) selectParts.push('payments (*)');
+  if (includeCustomer) selectParts.push('customer:customers(name)');
+
+  let query = supabase
     .from('storage_records')
-    .select(`
-      *,
-      payments (*),
-      customer:customers(name)
-    `)
-    .eq('warehouse_id', warehouseId)
-    .is('deleted_at', null)
-    .order('storage_start_date', { ascending: false });
+    .select(selectParts.join(', '))
+    .eq('warehouse_id', warehouseId);
 
-  if (error) {
-    logError(error, { operation: 'fetch_storage_records', warehouseId });
-    return [];
+  // Apply filters
+  if (activeOnly) {
+    query = query.gt('bags_stored', 0);
+  }
+  if (customerId) {
+    query = query.eq('customer_id', customerId);
   }
 
-  return mapRecords(records);
-});
+  return query.is('deleted_at', null);
+}
 
-export const getActiveStorageRecords = cache(async (limit = 50): Promise<StorageRecord[]> => {
+
+export const getStorageRecords = cache(async (limit = 20, offset = 0): Promise<StorageRecord[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
   if (!warehouseId) return [];
 
-  const { data: records, error } = await supabase
-    .from('storage_records')
-    .select(`
-      *,
-      payments (*),
-      customer:customers(name)
-    `)
-    .eq('warehouse_id', warehouseId)
-    .is('storage_end_date', null)
-    .is('deleted_at', null)
+  return measureQuery(
+    'getStorageRecords',
+    'fetch_storage_records',
+    async () => {
+      const { data: records, error } = await buildStorageRecordsQuery(supabase, warehouseId)
+        .order('storage_start_date', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        logError(error, { operation: 'fetch_storage_records', warehouseId });
+        return [];
+      }
+
+      return mapRecords(records);
+    },
+    { limit, offset, warehouseId }
+  );
+});
+
+export const getActiveStorageRecords = cache(async (limit = 20, offset = 0): Promise<StorageRecord[]> => {
+  const supabase = await createClient();
+  const warehouseId = await getUserWarehouse();
+  
+  if (!warehouseId) return [];
+
+  const { data: records, error } = await buildStorageRecordsQuery(supabase, warehouseId, { activeOnly: true })
     .order('storage_start_date', { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
   if (error) {
     logError(error, { operation: 'fetch_active_storage_records', warehouseId });
@@ -156,87 +184,23 @@ export const getStorageRecord = cache(async (id: string): Promise<StorageRecord 
 
   if (error || !r) return null;
 
-  return {
-    id: r.id,
-    recordNumber: r.record_number,
-    customerId: r.customer_id,
-    customerName: r.customer?.name || 'Unknown',
-    cropId: r.crop_id,
-    commodityDescription: r.commodity_description,
-    location: r.location,
-    bagsIn: r.bags_in || r.bags_stored,
-    bagsOut: r.bags_out || 0,
-    bagsStored: r.bags_stored,
-    storageStartDate: new Date(r.storage_start_date),
-    storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
-    billingCycle: r.billing_cycle,
-    payments: (r.payments || []).map((p: any) => ({
-      amount: p.amount,
-      date: new Date(p.payment_date),
-      type: p.type || 'other', 
-      notes: p.notes,
-      paymentNumber: p.payment_number
-    })),
-    hamaliPayable: r.hamali_payable,
-    totalRentBilled: r.total_rent_billed,
-    outflowInvoiceNo: r.outflow_invoice_no,
-    lorryTractorNo: r.lorry_tractor_no,
-    inflowType: r.inflow_type,
-    plotBags: r.plot_bags,
-    loadBags: r.load_bags,
-    khataAmount: r.khata_amount
-  };
+  // Use shared mapping helper
+  return mapRecords([r])[0];
 });
 
-export async function getCustomerRecords(customerId: string): Promise<StorageRecord[]> {
+export async function getCustomerRecords(customerId: string, limit = 200, offset = 0): Promise<StorageRecord[]> {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return [];
 
-    const { data: records, error } = await supabase
-        .from('storage_records')
-        .select(`
-          *,
-          payments (*),
-          customer:customers(name)
-        `)
-        .eq('warehouse_id', warehouseId)
-        .eq('customer_id', customerId)
-        .is('deleted_at', null)
-        .order('storage_start_date', { ascending: false });
+    const { data: records, error } = await buildStorageRecordsQuery(supabase, warehouseId, { customerId })
+        .order('storage_start_date', { ascending: false })
+        .range(offset, offset + limit - 1);
 
     if (error) return [];
 
-    return records.map((r: any) => ({
-        id: r.id,
-        recordNumber: r.record_number,
-        customerId: r.customer_id,
-        customerName: r.customer?.name || 'Unknown',
-        cropId: r.crop_id,
-        commodityDescription: r.commodity_description,
-        location: r.location,
-        bagsIn: r.bags_in || r.bags_stored,
-        bagsOut: r.bags_out || 0,
-        bagsStored: r.bags_stored,
-        storageStartDate: new Date(r.storage_start_date),
-        storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
-        billingCycle: r.billing_cycle,
-        payments: (r.payments || []).map((p: any) => ({
-            amount: p.amount,
-            date: new Date(p.payment_date),
-            type: p.payment_type || 'other',
-            notes: p.notes,
-            paymentNumber: p.payment_number
-        })),
-        hamaliPayable: r.hamali_payable,
-        totalRentBilled: r.total_rent_billed,
-        outflowInvoiceNo: r.outflow_invoice_no,
-        lorryTractorNo: r.lorry_tractor_no,
-        inflowType: r.inflow_type,
-        plotBags: r.plot_bags,
-        loadBags: r.load_bags,
-        khataAmount: r.khata_amount,
-    }));
+    // Use shared mapping helper
+    return mapRecords(records);
 }
 
 export const getRecentInflows = cache(async (limit = 5) => {
@@ -312,7 +276,7 @@ export const getRecentOutflows = cache(async (limit = 5) => {
   }));
 });
 
-export const searchActiveStorageRecords = cache(async (query: string, limit = 50) => {
+export const searchActiveStorageRecords = cache(async (query: string, limit = 20, offset = 0) => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   if (!warehouseId) return [];
@@ -332,7 +296,7 @@ export const searchActiveStorageRecords = cache(async (query: string, limit = 50
     .is('storage_end_date', null)
     .gt('bags_stored', 0) 
     .order('storage_start_date', { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
   if (query) {
        if (!isNaN(Number(query))) {

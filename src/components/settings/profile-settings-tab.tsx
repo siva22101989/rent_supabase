@@ -44,8 +44,8 @@ function ChangePasswordForm() {
                     <Input id="confirmPassword" name="confirmPassword" type="password" className="pl-9" required minLength={6} placeholder="••••••" />
                 </div>
             </div>
-            <div className="md:col-span-2 flex justify-end">
-                <SubmitButton>Update Password</SubmitButton>
+            <div className="md:col-span-2 flex flex-col sm:flex-row sm:justify-end">
+                <SubmitButton className="w-full sm:w-auto">Update Password</SubmitButton>
             </div>
         </form>
     );
@@ -117,8 +117,8 @@ export function ProfileSettingsTab({ profile }: ProfileTabProps) {
                              <p className="text-[0.8rem] text-muted-foreground">Used for customer portal linking.</p>
                         </div>
                         
-                        <div className="md:col-span-2 flex justify-end">
-                            <SubmitButton>Update Profile</SubmitButton>
+                        <div className="md:col-span-2 flex flex-col sm:flex-row sm:justify-end">
+                            <SubmitButton className="w-full sm:w-auto">Update Profile</SubmitButton>
                         </div>
                     </form>
                 </CardContent>

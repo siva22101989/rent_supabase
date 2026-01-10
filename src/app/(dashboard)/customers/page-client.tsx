@@ -22,6 +22,7 @@ import { Search, Users, Phone, MapPin } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { useDebounce } from "@uidotdev/usehooks";
+import { usePagination } from '@/hooks/use-pagination';
 import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, ExportButton, type MultiSelectOption, type SortOption } from '@/components/filters';
 import { exportCustomersWithFilters } from "@/lib/export-utils-filtered";
 import { getAppliedFiltersSummary } from "@/lib/url-filters";
@@ -66,6 +67,9 @@ export function CustomersPageClient({
   const sortBy = filters.sortBy;
   
   const debouncedSearch = useDebounce(query, 500);
+  
+  // Pagination
+  const pagination = usePagination(20);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasActiveRecords, setHasActiveRecords] = useState<boolean | null>(null);
 
@@ -124,6 +128,12 @@ export function CustomersPageClient({
 
     return result;
   }, [paginatedCustomers, selectedVillages, minBalance, maxBalance, hasActiveRecords, sortBy]);
+
+  // Client-side pagination
+  const startIndex = (currentPage - 1) * pagination.pageSize;
+  const endIndex = startIndex + pagination.pageSize;
+  const paginatedFiltered = filteredCustomers.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredCustomers.length / pagination.pageSize);
 
   // Prepare filter options
   const villageOptions: MultiSelectOption[] = useMemo(() => {
@@ -246,7 +256,7 @@ export function CustomersPageClient({
             onAction={query ? undefined : () => document.querySelector<HTMLButtonElement>('[data-add-Customer-trigger]')?.click()}
           />
         ) : (
-          paginatedCustomers.map((customer) => (
+          paginatedFiltered.map((customer) => (
             <Link key={customer.id} href={`/customers/${customer.id}`} className="block">
               <MobileCard className="hover:border-primary/50 transition-colors">
                 <MobileCard.Header>
@@ -349,10 +359,23 @@ export function CustomersPageClient({
         </CardContent>
       </Card>
 
-      {/* 
-        Current implementation: Server-side limit of 50 customers with search.
-        Future enhancement: Add pagination for large customer bases (100+ customers).
-      */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredCustomers.length}
+          pageSize={pagination.pageSize}
+          onPageChange={(page) => {
+            setCurrentPage(page);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onPageSizeChange={(size) => {
+            pagination.setPageSize(size);
+            setCurrentPage(1);
+          }}
+          showPageInfo={true}
+        />
+      )}
     </>
   );
 }

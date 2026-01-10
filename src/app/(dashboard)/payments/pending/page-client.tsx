@@ -22,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 
 interface PendingPaymentsClientProps {
     pendingCustomers: any[];
@@ -71,6 +73,14 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
         
         return result;
     }, [pendingCustomers, searchTerm, sortBy]);
+
+    // Pagination
+    const pagination = usePagination(20);
+    const [currentPage, setCurrentPage] = useState(1);
+    const startIndex = (currentPage - 1) * pagination.pageSize;
+    const endIndex = startIndex + pagination.pageSize;
+    const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(filteredCustomers.length / pagination.pageSize);
 
     const handleToggleExpand = async (customerId: string) => {
         if (expandedCustomerId === customerId) {
@@ -199,7 +209,7 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
             <div className="space-y-4">
                 {/* Mobile View */}
                 <div className="grid gap-4 md:hidden">
-                    {filteredCustomers.map((customer: any) => {
+                    {paginatedCustomers.map((customer: any) => {
                         const isExpanded = expandedCustomerId === customer.id;
                         const isLoading = loadingCustomerId === customer.id;
                         const records = customerRecords[customer.id] || [];
@@ -372,7 +382,7 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredCustomers.map((customer: any) => {
+                                {paginatedCustomers.map((customer: any) => {
                                     const isExpanded = expandedCustomerId === customer.id;
                                     const isLoading = loadingCustomerId === customer.id;
                                     const records = customerRecords[customer.id] || [];
@@ -504,6 +514,24 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
                     </CardContent>
                 </Card>
             </div>
+
+            {totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredCustomers.length}
+                    pageSize={pagination.pageSize}
+                    onPageChange={(page) => {
+                        setCurrentPage(page);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onPageSizeChange={(size) => {
+                        pagination.setPageSize(size);
+                        setCurrentPage(1);
+                    }}
+                    showPageInfo={true}
+                />
+            )}
 
             {/* Payment Dialog */}
             {selectedRecord && (

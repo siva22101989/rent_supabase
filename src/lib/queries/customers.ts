@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
 import type { Customer, CustomerWithBalance } from '@/lib/definitions';
+import type { CustomerQueryOptions } from '@/lib/types/query-options';
 import { logError } from '@/lib/error-logger';
 import { getUserWarehouse } from './warehouses';
 
@@ -18,24 +19,47 @@ interface CustomerBalanceRow {
   father_name?: string;
 }
 
-export const getCustomersWithBalance = cache(async (limit = 50, offset = 0, search = ''): Promise<CustomerWithBalance[]> => {
+// Query builder helper for customers
+function buildCustomersQuery(
+  supabase: any,
+  warehouseId: string,
+  options: CustomerQueryOptions = {}
+) {
+  const { search, pendingOnly = false, includeBalance = false } = options;
+
+  let query = includeBalance
+    ? supabase.from('customer_balances').select('*')
+    : supabase.from('customers').select('*');
+
+  query = query.eq('warehouse_id', warehouseId);
+
+  if (!includeBalance) {
+    query = query.is('deleted_at', null);
+  }
+
+  if (pendingOnly) {
+    query = query.gt('balance', 0);
+  }
+
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  return query;
+}
+
+export const getCustomersWithBalance = cache(async (limit = 20, offset = 0, search = ''): Promise<CustomerWithBalance[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
   if (!warehouseId) return [];
 
-  let query = supabase
-    .from('customer_balances')
-    .select('*')
-    .eq('warehouse_id', warehouseId)
+  const { data, error } = await buildCustomersQuery(supabase, warehouseId, { 
+    search, 
+    includeBalance: true 
+  })
     .order('customer_name', { ascending: true })
     .range(offset, offset + limit - 1);
-
-  if (search) {
-     query = query.or(`customer_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
-  }
-
-  const { data, error } = await query;
 
   if (error) {
     logError(error, { operation: 'fetch_customer_balances', warehouseId });
@@ -57,19 +81,18 @@ export const getCustomersWithBalance = cache(async (limit = 50, offset = 0, sear
   }));
 });
 
-export const getPendingPayments = cache(async (limit = 50): Promise<Partial<CustomerWithBalance>[]> => {
+export const getPendingPayments = cache(async (limit = 20, offset = 0): Promise<Partial<CustomerWithBalance>[]> => {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
     
     if (!warehouseId) return [];
   
-    const { data, error } = await supabase
-      .from('customer_balances')
-      .select('*')
-      .eq('warehouse_id', warehouseId)
-      .gt('balance', 0)
+    const { data, error } = await buildCustomersQuery(supabase, warehouseId, { 
+      pendingOnly: true,
+      includeBalance: true 
+    })
       .order('balance', { ascending: false })
-      .limit(limit);
+      .range(offset, offset + limit - 1);
   
     if (error) {
       logError(error, { operation: 'fetch_pending_payments', warehouseId });
@@ -90,7 +113,7 @@ export const getPendingPayments = cache(async (limit = 50): Promise<Partial<Cust
     }));
 });
 
-export const getCustomers = cache(async (): Promise<Customer[]> => {
+export const getCustomers = cache(async (limit = 1000, offset = 0): Promise<Customer[]> => {
   const supabase = await createClient();
   const warehouseId = await getUserWarehouse();
   
@@ -100,7 +123,8 @@ export const getCustomers = cache(async (): Promise<Customer[]> => {
     .from('customers')
     .select('*')
     .eq('warehouse_id', warehouseId)
-    .is('deleted_at', null);
+    .is('deleted_at', null)
+    .range(offset, offset + limit - 1);
 
   if (error) {
     logError(error, { operation: 'fetch_customers', warehouseId });

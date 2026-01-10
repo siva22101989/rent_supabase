@@ -13,6 +13,8 @@ import { CommandSearch } from './command-search';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { WarehouseSwitcher } from '@/components/layout/warehouse-switcher';
 import { useWarehouses } from '@/contexts/warehouse-context';
+import { signOutAction } from '@/lib/actions/auth';
+import { useServerAction } from '@/hooks/use-server-action';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -117,10 +119,12 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [user, loading, router]);
 
 
+  const { runAction } = useServerAction();
+
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    // derived state change will trigger the redirect in the useEffect above
+    await runAction(async () => {
+      await signOutAction();
+    }, { loadingMessage: 'Signing out...' });
   };
 
   const getBackLink = () => {

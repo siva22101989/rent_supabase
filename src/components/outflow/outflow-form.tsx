@@ -23,6 +23,7 @@ import { toDate } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { useCustomers } from '@/contexts/customer-context';
 import { useStaticData } from '@/hooks/use-static-data';
+import { useServerAction } from '@/hooks/use-server-action';
 
 import { AsyncRecordSelector } from './async-record-selector';
 
@@ -37,18 +38,14 @@ export function OutflowForm({
     smsEnabledDefault: boolean
 }) {
     const { success: toastSuccess, error: toastError } = useUnifiedToast();
-    const initialState: OutflowFormState = { message: '', success: false };
-    const [state, formAction, isPending] = useActionState(addOutflow, initialState);
-
+    
     // Hooks for data
     const { customers, isLoading: customersLoading } = useCustomers();
     const { crops, loading: cropsLoading, refresh } = useStaticData(); 
     const router = useRouter();
     const lastHandledRef = useRef<any>(null);
+    const { runAction, isPending } = useServerAction();
     
-    // Derived loading state if needed, but we can just show skeletal UI or wait.
-    // For now we render selectors empty until loaded.
-
     const [selectedRecordId, setSelectedRecordId] = useState<string>('');
     const [selectedRecord, setSelectedRecord] = useState<StorageRecord | null>(null);
     const [bagsToWithdraw, setBagsToWithdraw] = useState(0);
@@ -76,8 +73,6 @@ export function OutflowForm({
             const record = await getStorageRecordAction(recordId);
             if(record) {
                 setSelectedRecord(record);
-                // Auto-set customer ID format compatibility if needed by action
-                // But action likely uses hidden inputs or state
             }
         } catch(e) {
             toastError("Error", "Failed to load record details");
@@ -85,47 +80,6 @@ export function OutflowForm({
             setIsLoadingRecord(false);
         }
     };
-
-    // Auto-restoration from state.data on error
-    useEffect(() => {
-        if (state.data) {
-             // If we have an error and state returns data, we technically need to re-fetch the record to show the form again 
-             // or rely on what's already selected.
-             // Ideally we shouldn't lose state on server action error if we prevent default reset.
-             if (state.data.recordId && state.data.recordId !== selectedRecordId) {
-                  handleRecordSelect(state.data.recordId);
-             }
-             if (state.data.bagsToWithdraw) setBagsToWithdraw(Number(state.data.bagsToWithdraw));
-            if (state.data.withdrawalDate) setWithdrawalDate(new Date(state.data.withdrawalDate));
-        }
-    }, [state.data]);
-
-    useEffect(() => {
-        if (state.message && state !== lastHandledRef.current) {
-            lastHandledRef.current = state;
-
-            Sentry.withScope((scope) => {
-                scope.setTag("form", "outflow");
-                scope.setExtra("success", state.success);
-
-                if (state.success) {
-                    // Redirect is handled by the action, no toast needed for success
-                    const initRefresh = async () => {
-                        await Sentry.startSpan(
-                            { name: "outflow-success-refresh", op: "ui.action.refresh" },
-                            async () => {
-                                await refresh();
-                                router.refresh();
-                            }
-                        );
-                    };
-                    initRefresh();
-                } else {
-                    toastError('Error', state.message);
-                }
-            });
-        }
-    }, [state, toastError, refresh, router]);
 
     useEffect(() => {
         if (selectedRecord) {
@@ -176,50 +130,63 @@ export function OutflowForm({
         setWithdrawalDate(dateValue);
     }
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (formData: FormData) => {
         if (!selectedRecordId) {
-            e.preventDefault();
              // Standard unified toast from context
              toastError('Error', 'Please select a storage record to withdraw from.');
              return;
         }
         if (bagsToWithdraw <= 0 || isNaN(bagsToWithdraw)) {
-            e.preventDefault();
             toastError('Error', 'Please enter a valid number of bags.');
             return;
         }
          if (selectedRecord && bagsToWithdraw > selectedRecord.bagsStored) {
-            e.preventDefault();
             toastError('Error', `Cannot withdraw more than stored (${selectedRecord.bagsStored} bags).`);
             return;
         }
 
-        // Basic prediction for optimistic UI
-        if (onSuccess && selectedRecord) {
-            startTransition(() => {
-                onSuccess({
-                    id: 'optimistic-' + Date.now(),
-                    date: withdrawalDate,
-                    customerName: selectedRecord.customerName || 'Customer', // Corrected property name
-                    commodity: selectedRecord.commodityDescription || 'Product',
-                    bags: bagsToWithdraw,
-                    totalAmount: totalPayable
-                });
-            });
-        }
+        await runAction(async () => {
+             const result = await addOutflow({ message: '', success: false }, formData); // Pass initial state as addOutflow expects previous state
+             
+             // If result is undefined/null, it means a redirect happened (success).
+             // Only throw if we have a concrete failure result.
+             if (result && !result.success) {
+                  throw new Error(result.message);
+             }
+             return result;
+        }, {
+             // blocking: false, // Reverted to local button loading per user request
+             onSuccess: (result) => {
+                  if (onSuccess && selectedRecord) {
+                    startTransition(() => {
+                        onSuccess({
+                            id: 'optimistic-' + Date.now(),
+                            date: withdrawalDate,
+                            customerName: selectedRecord.customerName || 'Customer', // Corrected property name
+                            commodity: selectedRecord.commodityDescription || 'Product',
+                            bags: bagsToWithdraw,
+                            totalAmount: totalPayable
+                        });
+                    });
+                  }
+                  // Action will redirect, so we don't need manual router.push here
+             }
+        });
     };
 
   return (
     <div className="flex justify-center">
-        <form action={formAction} onSubmit={handleSubmit} className="w-full max-w-lg">
-            <Card>
-                <CardHeader>
-                <CardTitle>Withdrawal Details</CardTitle>
-                <CardDescription>Select a customer, then choose a record and enter withdrawal information.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+        <form action={handleSubmit} className="w-full max-w-lg">
+            <fieldset disabled={isPending} className="contents">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Withdrawal Details</CardTitle>
+                    <CardDescription>Select a customer, then choose a record and enter withdrawal information.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                     {/* Standardized Error Alert */}
-                    <FormError message={!state.success ? state.message : undefined} className="mb-4" />
+                    {/* Standardized Error Alert - handled by toast usually, but can keep if we have local error state */}
+                    {/* <FormError message={!state.success ? state.message : undefined} className="mb-4" /> */}
                     <div className="space-y-2">
                         <Label>Search Record</Label>
                         <AsyncRecordSelector onSelect={handleRecordSelect} />
@@ -253,7 +220,6 @@ export function OutflowForm({
                                         min="1"
                                         max={selectedRecord.bagsStored}
                                         required 
-                                        defaultValue={state.data?.bagsToWithdraw}
                                         onFocus={(e) => e.target.select()}
                                         onWheel={(e) => e.currentTarget.blur()}
                                         onChange={e => setBagsToWithdraw(Number(e.target.value))}
@@ -268,7 +234,7 @@ export function OutflowForm({
                                         id="withdrawalDate" 
                                         name="withdrawalDate" 
                                         type="date"
-                                        defaultValue={state.data?.withdrawalDate || new Date().toISOString().split('T')[0]}
+                                        defaultValue={new Date().toISOString().split('T')[0]}
                                         required
                                         onChange={handleDateChange}
                                      />
@@ -307,7 +273,6 @@ export function OutflowForm({
                                             max={totalPayable.toFixed(2)}
                                             onFocus={(e) => e.target.select()}
                                             onWheel={(e) => e.currentTarget.blur()}
-                                            defaultValue={state.data?.amountPaidNow}
                                         />
                                         <p className="text-xs text-muted-foreground">
                                             Enter the amount paid by the customer. Leave blank if unpaid.
@@ -323,6 +288,7 @@ export function OutflowForm({
                     <SubmitButton isLoading={isPending}>Process Outflow</SubmitButton>
                 </CardFooter>
             </Card>
+            </fieldset>
         </form>
     </div>
   );

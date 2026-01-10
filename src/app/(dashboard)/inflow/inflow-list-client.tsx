@@ -14,6 +14,8 @@ import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdo
 import { exportInflowRecordsWithFilters } from "@/lib/export-utils-filtered";
 import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import { useWarehouses } from '@/contexts/warehouse-context';
 
 // Filter state interface
@@ -107,6 +109,14 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
 
         return result;
     }, [inflows, query, dateRange, selectedCommodities, minBags, maxBags, sortBy]);
+
+    // Pagination
+    const pagination = usePagination(20);
+    const [currentPage, setCurrentPage] = useState(1);
+    const startIndex = (currentPage - 1) * pagination.pageSize;
+    const endIndex = startIndex + pagination.pageSize;
+    const paginatedInflows = filteredInflows.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(filteredInflows.length / pagination.pageSize);
 
     // Prepare filter options
     const commodityOptions: MultiSelectOption[] = useMemo(() => {
@@ -203,7 +213,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
 
             {/* Mobile View */}
             <div className="md:hidden space-y-4">
-                {filteredInflows.map((record) => (
+                {paginatedInflows.map((record) => (
                     <MobileCard key={record.id}>
                         <MobileCard.Header>
                             <div className="flex-1">
@@ -242,7 +252,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredInflows.map((record) => {
+                        {paginatedInflows.map((record) => {
                             return (
                                 <TableRow key={record.id}>
                                     <TableCell>{record.date.toLocaleDateString()}</TableCell>
@@ -284,6 +294,24 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                     </TableBody>
                 </Table>
             </div>
+            
+            {totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredInflows.length}
+                    pageSize={pagination.pageSize}
+                    onPageChange={(page) => {
+                        setCurrentPage(page);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onPageSizeChange={(size) => {
+                        pagination.setPageSize(size);
+                        setCurrentPage(1);
+                    }}
+                    showPageInfo={true}
+                />
+            )}
         </div>
     );
 }

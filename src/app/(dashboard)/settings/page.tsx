@@ -70,10 +70,10 @@ export default async function SettingsPage() {
         </Button>
       </PageHeader>
 
-      <div className="-mx-3 md:mx-0">
+      <div>
         <Tabs defaultValue="profile" className="w-full">
           {/* Segmented Control Style Tabs - Multiline on mobile */}
-          <TabsList className="w-full flex h-auto p-1 bg-muted/40 rounded-xl mb-6 md:mb-8 border items-stretch justify-start flex-wrap px-3 md:px-1 gap-1">
+          <TabsList className="w-full flex h-auto p-1 bg-muted/40 rounded-xl mb-6 md:mb-8 border items-stretch justify-start flex-wrap gap-1">
               <TabsTrigger 
                   value="profile" 
                   className="flex-grow basis-[45%] md:basis-auto lg:flex-1 min-w-[100px] flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary text-sm md:text-base"
@@ -126,14 +126,14 @@ export default async function SettingsPage() {
               </TabsTrigger>
           </TabsList>
           
-          <div className="px-3 md:px-0">
+          <div className="w-full">
             <TabsContent value="profile" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
                 <div className="grid gap-4">
                     <ProfileSettingsTab profile={profile} />
                 </div>
             </TabsContent>
             
-            <TabsContent value="warehouse" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2">
+            <TabsContent value="warehouse" className="mt-6 space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2 w-full">
                 <WarehouseSettingsTab warehouse={warehouse} allWarehouses={userWarehouses} />
             </TabsContent>
             

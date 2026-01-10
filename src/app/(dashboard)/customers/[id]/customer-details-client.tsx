@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import { PageHeader } from '@/components/shared/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +41,16 @@ interface CustomerDetailsClientProps {
 
 export function CustomerDetailsClient({ customer, initialRecords }: CustomerDetailsClientProps) {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    
+    // Pagination for each tab
+    const activePagination = usePagination(10);
+    const [activePage, setActivePage] = useState(1);
+    
+    const paymentsPagination = usePagination(20);
+    const [paymentsPage, setPaymentsPage] = useState(1);
+    
+    const historyPagination = usePagination(10);
+    const [historyPage, setHistoryPage] = useState(1);
 
     // --- Filtering Logic ---
     const filteredRecords = useMemo(() => {
@@ -71,6 +83,39 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
     // Derived Lists based on FILTERED records
     const activeRecords = filteredRecords.filter(r => !r.storageEndDate);
     const historyRecords = filteredRecords.filter(r => r.storageEndDate || r.bagsOut > 0);
+    
+    // Paginated active records
+    const activeStartIndex = (activePage - 1) * activePagination.pageSize;
+    const activeEndIndex = activeStartIndex + activePagination.pageSize;
+    const paginatedActiveRecords = activeRecords.slice(activeStartIndex, activeEndIndex);
+    const activeTotalPages = Math.ceil(activeRecords.length / activePagination.pageSize);
+    
+    // Paginated history records
+    const historyStartIndex = (historyPage - 1) * historyPagination.pageSize;
+    const historyEndIndex = historyStartIndex + historyPagination.pageSize;
+    const paginatedHistoryRecords = historyRecords.slice(historyStartIndex, historyEndIndex);
+    const historyTotalPages = Math.ceil(historyRecords.length / historyPagination.pageSize);
+    
+    // Paginated payments
+    const allPayments = filteredRecords.flatMap(r => 
+        (r.payments || [])
+        .filter(p => {
+            if (!dateRange?.from) return true;
+            const start = startOfDay(dateRange.from);
+            const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+            return isWithinInterval(new Date(p.date), { start, end });
+        })
+        .map((p: any, idx: number) => ({
+            ...p,
+            recordId: r.id,
+            recordNumber: r.recordNumber,
+            paymentId: `${r.id}-${idx}`
+        }))
+    );
+    const paymentsStartIndex = (paymentsPage - 1) * paymentsPagination.pageSize;
+    const paymentsEndIndex = paymentsStartIndex + paymentsPagination.pageSize;
+    const paginatedPayments = allPayments.slice(paymentsStartIndex, paymentsEndIndex);
+    const paymentsTotalPages = Math.ceil(allPayments.length / paymentsPagination.pageSize);
     
     // --- KPIs (Calculated from FILTERED data) ---
     // Note: User might want KPIs to reflect the filter OR total lifetime.
@@ -212,8 +257,9 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                         {dateRange ? "No active records in this period." : "No active stock found."}
                     </div>
                 ) : (
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {activeRecords.map((r) => (
+                    <>
+                        <div className="grid gap-4 md:grid-cols-2">
+                        {paginatedActiveRecords.map((r) => (
                             <div key={r.id} className="border rounded-lg p-4 bg-card shadow-sm flex flex-col justify-between">
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
@@ -242,29 +288,33 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                                 </div>
                             </div>
                         ))}
-                    </div>
+                        </div>
+                        
+                        {activeTotalPages > 1 && (
+                            <Pagination
+                                currentPage={activePage}
+                                totalPages={activeTotalPages}
+                                totalItems={activeRecords.length}
+                                pageSize={activePagination.pageSize}
+                                onPageChange={(page) => {
+                                    setActivePage(page);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                onPageSizeChange={(size) => {
+                                    activePagination.setPageSize(size);
+                                    setActivePage(1);
+                                }}
+                                showPageInfo={true}
+                            />
+                        )}
+                    </>
                 )}
             </TabsContent>
 
             <TabsContent value="payments" className="mt-4">
                 {/* Mobile View (Cards) */}
                 <div className="grid gap-4 md:hidden">
-                    {filteredRecords.flatMap(r => 
-                         // IMPORTANT: Handle filtering for individual payments here too!
-                        (r.payments || [])
-                        .filter(p => {
-                            if (!dateRange?.from) return true;
-                            const start = startOfDay(dateRange.from);
-                            const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-                            return isWithinInterval(new Date(p.date), { start, end });
-                        })
-                        .map((p: any, idx: number) => ({
-                            ...p,
-                            recordId: r.id,
-                            recordNumber: r.recordNumber,
-                            paymentId: `${r.id}-${idx}`
-                        }))
-                    ).map((payment: any) => (
+                    {paginatedPayments.map((payment: any) => (
                         <div key={payment.paymentId} className="border rounded-lg p-4 bg-card shadow-sm space-y-3">
                             <div className="flex justify-between items-start">
                                 <div>
@@ -297,10 +347,30 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                             </div>
                         </div>
                     ))}
-                     {filteredRecords.flatMap(r => r.payments || []).length === 0 && (
+                     {allPayments.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">No payments recorded.</div>
                      )}
                 </div>
+                
+                {paymentsTotalPages > 1 && (
+                    <div className="md:hidden mt-4">
+                        <Pagination
+                            currentPage={paymentsPage}
+                            totalPages={paymentsTotalPages}
+                            totalItems={allPayments.length}
+                            pageSize={paymentsPagination.pageSize}
+                            onPageChange={(page) => {
+                                setPaymentsPage(page);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            onPageSizeChange={(size) => {
+                                paymentsPagination.setPageSize(size);
+                                setPaymentsPage(1);
+                            }}
+                            showPageInfo={true}
+                        />
+                    </div>
+                )}
 
                 {/* Desktop View (Table) */}
                 <div className="hidden md:block rounded-md border overflow-hidden">
@@ -316,21 +386,7 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredRecords.flatMap(r => 
-                                (r.payments || [])
-                                .filter(p => {
-                                    if (!dateRange?.from) return true;
-                                    const start = startOfDay(dateRange.from);
-                                    const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-                                    return isWithinInterval(new Date(p.date), { start, end });
-                                })
-                                .map((p: any, idx: number) => ({
-                                    ...p,
-                                    recordId: r.id,
-                                    recordNumber: r.recordNumber,
-                                    paymentId: `${r.id}-${idx}` 
-                                }))
-                            ).map((payment: any) => (
+                            {paginatedPayments.map((payment: any) => (
                                 <tr key={payment.paymentId} className="border-b last:border-0 hover:bg-muted/50">
                                     <td className="p-3">{new Date(payment.date).toLocaleDateString()}</td>
                                     <td className="p-3 font-mono">#{payment.recordNumber}</td>
@@ -359,7 +415,7 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                                     </td>
                                 </tr>
                             ))}
-                            {filteredRecords.flatMap(r => r.payments || []).length === 0 && (
+                            {allPayments.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="p-8 text-center text-muted-foreground">No payments in this period.</td>
                                 </tr>
@@ -367,12 +423,32 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                         </tbody>
                     </table>
                 </div>
+                
+                {paymentsTotalPages > 1 && (
+                    <div className="hidden md:block mt-4">
+                        <Pagination
+                            currentPage={paymentsPage}
+                            totalPages={paymentsTotalPages}
+                            totalItems={allPayments.length}
+                            pageSize={paymentsPagination.pageSize}
+                            onPageChange={(page) => {
+                                setPaymentsPage(page);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            onPageSizeChange={(size) => {
+                                paymentsPagination.setPageSize(size);
+                                setPaymentsPage(1);
+                            }}
+                            showPageInfo={true}
+                        />
+                    </div>
+                )}
             </TabsContent>
 
             <TabsContent value="history" className="mt-4">
                 {/* Mobile View (Cards) */}
                 <div className="grid gap-4 md:hidden">
-                    {historyRecords.map((r) => (
+                    {paginatedHistoryRecords.map((r) => (
                         <div key={r.id} className="border rounded-lg p-4 bg-card shadow-sm space-y-3">
                             <div className="flex justify-between items-start">
                                 <div>
@@ -394,6 +470,26 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                         <div className="text-center py-8 text-muted-foreground">No history in this period.</div>
                     )}
                 </div>
+                
+                {historyTotalPages > 1 && (
+                    <div className="md:hidden mt-4">
+                        <Pagination
+                            currentPage={historyPage}
+                            totalPages={historyTotalPages}
+                            totalItems={historyRecords.length}
+                            pageSize={historyPagination.pageSize}
+                            onPageChange={(page) => {
+                                setHistoryPage(page);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            onPageSizeChange={(size) => {
+                                historyPagination.setPageSize(size);
+                                setHistoryPage(1);
+                            }}
+                            showPageInfo={true}
+                        />
+                    </div>
+                )}
 
                 {/* Desktop View (Table) */}
                  <div className="hidden md:block rounded-md border overflow-hidden">
@@ -408,7 +504,7 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                             </tr>
                         </thead>
                         <tbody>
-                            {historyRecords.map((r) => (
+                            {paginatedHistoryRecords.map((r) => (
                                 <tr key={r.id} className="border-b last:border-0 hover:bg-muted/50">
                                     <td className="p-3 font-mono">#{r.recordNumber}</td>
                                     <td className="p-3">{new Date(r.storageStartDate).toLocaleDateString()}</td>
@@ -427,6 +523,26 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                         </tbody>
                     </table>
                  </div>
+                 
+                 {historyTotalPages > 1 && (
+                     <div className="hidden md:block mt-4">
+                         <Pagination
+                             currentPage={historyPage}
+                             totalPages={historyTotalPages}
+                             totalItems={historyRecords.length}
+                             pageSize={historyPagination.pageSize}
+                             onPageChange={(page) => {
+                                 setHistoryPage(page);
+                                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                             }}
+                             onPageSizeChange={(size) => {
+                                 historyPagination.setPageSize(size);
+                                 setHistoryPage(1);
+                             }}
+                             showPageInfo={true}
+                         />
+                     </div>
+                 )}
             </TabsContent>
         </Tabs>
       </div>

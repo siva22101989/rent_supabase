@@ -17,6 +17,8 @@ import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdo
 import { exportExpensesWithFilters } from "@/lib/export-utils-filtered";
 import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 
 interface ExpenseFilterState {
   q: string;
@@ -102,6 +104,14 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
 
         return result;
     }, [expenses, query, dateRange, selectedCategories, minAmount, maxAmount, sortBy]);
+
+    // Pagination
+    const pagination = usePagination(20);
+    const [currentPage, setCurrentPage] = useState(1);
+    const startIndex = (currentPage - 1) * pagination.pageSize;
+    const endIndex = startIndex + pagination.pageSize;
+    const paginatedExpenses = filteredExpenses.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(filteredExpenses.length / pagination.pageSize);
 
     // Prepare filter options
     const categoryOptions: MultiSelectOption[] = useMemo(() => {
@@ -201,7 +211,7 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
 
                     {/* Mobile View */}
                     <div className="md:hidden space-y-4">
-                        {filteredExpenses.map((expense) => (
+                        {paginatedExpenses.map((expense) => (
                             <MobileCard key={expense.id}>
                                 <MobileCard.Header>
                                     <div className="flex-1">
@@ -243,7 +253,7 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredExpenses.map((expense) => (
+                            {paginatedExpenses.map((expense) => (
                                 <TableRow key={expense.id}>
                                     <TableCell>{format(toDate(expense.date), 'dd MMM yyyy')}</TableCell>
                                     <TableCell>{expense.category}</TableCell>
@@ -263,6 +273,24 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
                             )}
                         </TableBody>
                     </Table>
+                    
+                    {totalPages > 1 && (
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={filteredExpenses.length}
+                            pageSize={pagination.pageSize}
+                            onPageChange={(page) => {
+                                setCurrentPage(page);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            onPageSizeChange={(size) => {
+                                pagination.setPageSize(size);
+                                setCurrentPage(1);
+                            }}
+                            showPageInfo={true}
+                        />
+                    )}
                 </CardContent>
             </Card>
         </div>

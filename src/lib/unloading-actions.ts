@@ -235,7 +235,7 @@ export async function getPlotInventory() {
     return Object.values(grouped);
 }
 
-export async function getUnloadingHistory(limit = 50) {
+export async function getUnloadingHistory(limit = 20, offset = 0) {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
 
@@ -252,7 +252,7 @@ export async function getUnloadingHistory(limit = 50) {
         `)
         .eq('warehouse_id', warehouseId)
         .order('unload_date', { ascending: false })
-        .limit(limit);
+        .range(offset, offset + limit - 1);
 
     if (error) {
         console.error('Error fetching unloading history:', error);

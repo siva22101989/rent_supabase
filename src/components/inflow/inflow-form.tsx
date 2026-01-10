@@ -25,6 +25,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 import { useCustomers } from "@/contexts/customer-context";
 import { useStaticData } from "@/hooks/use-static-data";
+import { useServerAction } from "@/hooks/use-server-action";
 
 interface InflowFormInnerProps {
     nextSerialNumber: string;
@@ -59,12 +60,8 @@ function InflowFormInner({
     const crops = propCrops.length > 0 ? propCrops : hookCrops;
     const lots = propLots.length > 0 ? propLots : hookLots;
 
+    const { runAction, isPending } = useServerAction();
     const router = useRouter();
-    const isLoading = (propCustomers.length === 0 && customersLoading) || (propCrops.length === 0 && staticLoading);
-    const lastHandledRef = useRef<any>(null);
-
-    const initialState: InflowFormState = { message: '', success: false };
-    const [state, formAction, isPending] = useActionState(addInflow, initialState);
 
     const [bags, setBags] = useState(0);
     const [rate, setRate] = useState(0);
@@ -111,49 +108,6 @@ function InflowFormInner({
         setUnloadingRecords(initialUnloadingRecords);
     }, [initialUnloadingRecords]);
 
-    // Auto-restoration from state.data on error
-    useEffect(() => {
-        if (state.data) {
-            if (state.data.customerId) setSelectedCustomerId(state.data.customerId);
-            if (state.data.inflowType) setInflowType(state.data.inflowType);
-            if (state.data.bagsStored) setBags(Number(state.data.bagsStored));
-            if (state.data.plotBags) setPlotBags(Number(state.data.plotBags));
-            if (state.data.hamaliRate) setRate(Number(state.data.hamaliRate));
-            if (state.data.hamaliPaid) setHamaliPaid(Number(state.data.hamaliPaid));
-            if (state.data.lotId) setSelectedLotId(state.data.lotId);
-            if (state.data.cropId) setSelectedCropId(state.data.cropId);
-        }
-    }, [state.data]);
-    
-    // We'll use a derived state/key for Weight default if we want to force updates, or just controlled input.
-    // Let's make Weight controlled slightly or just defaultValue logic.
-
-    useEffect(() => {
-        if (state.message && state !== lastHandledRef.current) {
-            lastHandledRef.current = state;
-            
-            Sentry.withScope((scope) => {
-                scope.setTag("form", "inflow");
-                scope.setExtra("success", state.success);
-                
-                if (state.success) {
-                    toastSuccess('Success!', state.message);
-                    const initRefresh = async () => {
-                        await Sentry.startSpan(
-                            { name: "inflow-success-refresh", op: "ui.action.refresh" },
-                            async () => {
-                                await refresh();
-                                router.refresh();
-                            }
-                        );
-                    };
-                    initRefresh();
-                } else {
-                    toastError('Error', state.message);
-                }
-            });
-        }
-    }, [state, toastSuccess, toastError, refresh, router]);
 
     useEffect(() => {
         const bagsValue = inflowType === 'transfer_in' ? plotBags : bags;
@@ -173,8 +127,8 @@ function InflowFormInner({
 
     const [error, setError] = useState<string | null>(null);
 
-    const handleValidation = (e: React.FormEvent<HTMLFormElement>) => {
-        const formData = new FormData(e.currentTarget);
+    const handleSubmit = async (formData: FormData) => {
+        // Client-side validation
         const tParams = {
             customerId: selectedCustomerId,
             lot: selectedLotId,
@@ -202,37 +156,48 @@ function InflowFormInner({
         }
 
         if (errMsg) {
-            e.preventDefault(); // Stop form submission
             setError(errMsg);
             // Scroll to top to see error
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-            setError(null);
-            if (onSuccess) {
-                startTransition(() => {
-                    onSuccess({
-                        id: 'optimistic-' + Date.now(),
-                        date: new Date(formData.get('storageStartDate') as string),
-                        customerName: selectedCustomer?.name || 'Customer',
-                        commodity: selectedCrop?.name || 'Product',
-                        bags: tParams.type === 'purchase' ? tParams.bags : tParams.plotBags
-                    });
-                });
-            }
-        }
+            return;
+        } 
+        
+        setError(null);
+        
+        await runAction(async () => {
+             const result = await addInflow({ message: '', success: false }, formData); // Pass initial state as addInflow expects previous state
+             
+             // If result is undefined/null, it means a redirect happened (success).
+             // Only throw if we have a concrete failure result.
+             if (result && !result.success) {
+                  throw new Error(result.message);
+             }
+             return result;
+        }, {
+             // blocking: false, // Reverted to local button loading per user request
+             successMessage: 'Inflow recorded successfully!',
+             onSuccess: (result) => {
+                  if (onSuccess && result.data) {
+                      onSuccess(result.data);
+                  }
+                  router.refresh();
+                  refresh();
+             }
+        });
     };
 
   return (
     <div className="flex justify-center">
-        <form action={formAction} onSubmit={handleValidation} className="w-full max-w-lg">
-            <Card>
-                <CardHeader>
-                    <CardTitle>New Storage Record Details</CardTitle>
-                    <CardDescription>
-                        Next Serial No: <span data-testid="next-serial-number" className="font-bold text-primary">Auto-Generated ({nextSerialNumber})</span>
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+        <form action={handleSubmit} className="w-full max-w-lg">
+            <fieldset disabled={isPending} className="contents">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>New Storage Record Details</CardTitle>
+                        <CardDescription>
+                            Next Serial No: <span data-testid="next-serial-number" className="font-bold text-primary">Auto-Generated ({nextSerialNumber})</span>
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                     {/* Error Alert */}
                     {error && (
                          <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-4 border border-destructive/20">
@@ -367,7 +332,6 @@ function InflowFormInner({
                                     min="1"
                                     placeholder="0" 
                                     required
-                                    defaultValue={state.data?.plotBags}
                                     onFocus={(e) => e.target.select()}
                                     onWheel={(e) => e.currentTarget.blur()}
                                     onChange={e => setPlotBags(Number(e.target.value))} 
@@ -381,7 +345,6 @@ function InflowFormInner({
                                     type="number" 
                                     min="1"
                                     placeholder="0" 
-                                    defaultValue={state.data?.loadBags}
                                     onFocus={(e) => e.target.select()}
                                     onWheel={(e) => e.currentTarget.blur()}
                                 />
@@ -446,7 +409,7 @@ function InflowFormInner({
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="lorryTractorNo">Lorry / Tractor No.</Label>
-                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" defaultValue={state.data?.lorryTractorNo} />
+                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="storageStartDate">Date <span className="text-destructive">*</span></Label>
@@ -454,7 +417,7 @@ function InflowFormInner({
                                 id="storageStartDate" 
                                 name="storageStartDate" 
                                 type="date"
-                                defaultValue={state.data?.storageStartDate || new Date().toISOString().split('T')[0]}
+                                defaultValue={new Date().toISOString().split('T')[0]}
                                 required 
                             />
                         </div>
@@ -470,7 +433,6 @@ function InflowFormInner({
                                     placeholder="0" 
                                     required 
                                     min="1"
-                                    defaultValue={state.data?.bagsStored}
                                     onFocus={(e) => e.target.select()}
                                     onWheel={(e) => e.currentTarget.blur()}
                                     onChange={e => setBags(Number(e.target.value))}
@@ -481,16 +443,16 @@ function InflowFormInner({
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliRate">Hamali Rate (per bag)</Label>
-                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.hamaliRate} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} onChange={e => setRate(Number(e.target.value))}/>
+                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} onChange={e => setRate(Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
-                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.hamaliPaid} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} onChange={e => setHamaliPaid(Number(e.target.value))}/>
+                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} onChange={e => setHamaliPaid(Number(e.target.value))}/>
                         </div>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="khataAmount">Khata Amount (Weighbridge)</Label>
-                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" defaultValue={state.data?.khataAmount} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
+                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
                     </div>
                      <Separator />
                     <div className="space-y-4">
@@ -524,6 +486,7 @@ function InflowFormInner({
                     <SubmitButton isLoading={isPending}>Create Storage Record</SubmitButton>
                 </CardFooter>
             </Card>
+            </fieldset>
             {/* Hidden Fields */}
             <input type="hidden" name="customerId" value={selectedCustomerId} />
             <input type="hidden" name="inflowType" value={inflowType} />

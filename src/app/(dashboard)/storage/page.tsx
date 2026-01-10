@@ -4,8 +4,8 @@ import { createClient } from "@/utils/supabase/server";
 import { getUserWarehouse } from "@/lib/queries/warehouses";
 import { getCurrentUserRole } from "@/lib/queries";
 
-// Revalidate every 60 seconds - storage data changes moderately
-export const revalidate = 60;
+// Revalidate every 30 seconds - storage data changes frequently
+export const revalidate = 30;
 
 export default async function StoragePage({ 
   searchParams 

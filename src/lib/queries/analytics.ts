@@ -96,7 +96,7 @@ export const getAdminDashboardStats = cache(async (): Promise<AdminDashboardStat
     };
 });
 
-export const getAllWarehousesAdmin = cache(async (): Promise<WarehouseAdminDetails[]> => {
+export const getAllWarehousesAdmin = cache(async (limit = 500, offset = 0): Promise<WarehouseAdminDetails[]> => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const { data: profile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', user?.id).single();
@@ -117,7 +117,8 @@ export const getAllWarehousesAdmin = cache(async (): Promise<WarehouseAdminDetai
             storage_records (id, bags_stored)
         `)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
     if (isOwner) {
         if (warehouseIds.length === 0) return [];
@@ -142,7 +143,7 @@ export const getAllWarehousesAdmin = cache(async (): Promise<WarehouseAdminDetai
     });
 });
 
-export const getAllUsersAdmin = cache(async () => {
+export const getAllUsersAdmin = cache(async (limit = 500, offset = 0) => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const { data: profile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', user?.id).single();
@@ -162,7 +163,8 @@ export const getAllUsersAdmin = cache(async () => {
             warehouse:warehouses (name)
         `)
         .neq('role', 'customer')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
     if (isOwner) {
         if (warehouseIds.length === 0) return [];
@@ -174,7 +176,7 @@ export const getAllUsersAdmin = cache(async () => {
     return data;
 });
 
-export const getGlobalActivityLogs = cache(async (limit = 50, offset = 0, search = '', filterAction = ''): Promise<ActivityLogEntry[]> => {
+export const getGlobalActivityLogs = cache(async (limit = 20, offset = 0, search = '', filterAction = ''): Promise<ActivityLogEntry[]> => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const { data: profile } = await supabase.from('profiles').select('role, warehouse_id').eq('id', user?.id).single();

@@ -38,33 +38,34 @@ export function WarehouseSwitcher({ warehouses, currentWarehouseId }: WarehouseS
     };
 
     return (
-        <Card>
-            <CardHeader>
+        <Card className="p-4 sm:p-6 overflow-hidden">
+            <CardHeader className="p-0 pb-4 sm:pb-6">
                 <CardTitle>Switch Warehouse</CardTitle>
                 <CardDescription>
-                    Switch between different warehouses you have access to.
+                    <span className="hidden sm:inline">Switch between different warehouses you have access to.</span>
+                    <span className="sm:hidden">Select a warehouse to switch to.</span>
                 </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-3 sm:gap-4 p-0">
                 {warehouses.map((w) => {
                     const isActive = w.id === currentWarehouseId;
                     return (
                         <div
                             key={w.id}
-                            className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                            className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border transition-colors gap-3 w-full min-w-0 ${
                                 isActive ? 'bg-primary/5 border-primary' : 'hover:bg-muted/50'
                             }`}
                         >
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-full ${isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                                <div className={`p-2 rounded-full shrink-0 ${isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                                     <WarehouseIcon className="w-5 h-5" />
                                 </div>
-                                <div>
-                                    <h4 className="font-medium">{w.name}</h4>
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <span>{w.location || 'No location'}</span>
-                                        <span>•</span>
-                                        <Badge variant="outline" className="text-xs uppercase scale-90 origin-left">
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="font-medium truncate">{w.name}</h4>
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap min-w-0">
+                                        <span className="truncate max-w-full">{w.location || 'No location'}</span>
+                                        <span className="shrink-0">•</span>
+                                        <Badge variant="outline" className="text-xs uppercase shrink-0">
                                             {w.role}
                                         </Badge>
                                     </div>
@@ -72,7 +73,7 @@ export function WarehouseSwitcher({ warehouses, currentWarehouseId }: WarehouseS
                             </div>
                             
                             {isActive ? (
-                                <Button variant="ghost" size="sm" disabled className="gap-2 text-primary">
+                                <Button variant="ghost" size="sm" disabled className="gap-2 text-primary w-full sm:w-auto shrink-0">
                                     <Check className="w-4 h-4" />
                                     Active
                                 </Button>
@@ -82,6 +83,7 @@ export function WarehouseSwitcher({ warehouses, currentWarehouseId }: WarehouseS
                                     size="sm" 
                                     onClick={() => handleSwitch(w.id)}
                                     disabled={isPending}
+                                    className="w-full sm:w-auto shrink-0"
                                 >
                                     Switch
                                 </Button>

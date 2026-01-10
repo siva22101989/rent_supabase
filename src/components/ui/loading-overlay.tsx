@@ -7,15 +7,17 @@ import * as React from 'react';
 interface LoadingOverlayProps extends React.HTMLAttributes<HTMLDivElement> {
   isLoading: boolean;
   message?: string;
+  fullScreen?: boolean;
 }
 
-export function LoadingOverlay({ isLoading, message = 'Processing...', className, ...props }: LoadingOverlayProps) {
+export function LoadingOverlay({ isLoading, message = 'Processing...', fullScreen = false, className, ...props }: LoadingOverlayProps) {
   if (!isLoading) return null;
 
   return (
     <div
       className={cn(
-        "absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200",
+        fullScreen ? "fixed inset-0 z-[100]" : "absolute inset-0 z-50",
+        "flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200",
         className
       )}
       {...props}

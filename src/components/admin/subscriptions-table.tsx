@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Table,
@@ -122,7 +123,53 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
             <div className="flex justify-end">
                 <CodeGenerator plans={plans} />
             </div>
-            <div className="rounded-md border overflow-x-auto">
+            
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+                {initialData.map((item) => (
+                    <Card key={item.warehouseId}>
+                        <CardContent className="p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-sm truncate">{item.warehouseName}</h3>
+                                    <p className="text-xs text-muted-foreground truncate">{item.location}</p>
+                                </div>
+                                <Badge variant={getStatusColor(item.subscription?.status || 'none') as any} className="shrink-0">
+                                    {item.subscription?.status || 'None'}
+                                </Badge>
+                            </div>
+                            <div className="space-y-1.5 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Plan:</span>
+                                    <span className="font-medium">{item.subscription?.plans?.name || 'No Plan'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Expires:</span>
+                                    <span className="font-medium">
+                                        {item.subscription?.current_period_end 
+                                            ? format(new Date(item.subscription.current_period_end), 'MMM d, yyyy') 
+                                            : '-'}
+                                    </span>
+                                </div>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => openEdit(item)} className="w-full">
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit Subscription
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ))}
+                {initialData.length === 0 && (
+                    <Card>
+                        <CardContent className="p-8 text-center text-muted-foreground">
+                            No warehouses found.
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -169,6 +216,7 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
                     )}
                 </TableBody>
             </Table>
+            </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
@@ -245,6 +293,7 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
                 </DialogContent>
             </Dialog>
         </div>
-    </div>
     );
+
+
 }

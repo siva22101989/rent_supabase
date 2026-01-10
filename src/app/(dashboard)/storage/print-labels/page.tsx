@@ -6,6 +6,8 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import Link from 'next/link';
 import { PrintHeader } from './print-header';
 
+export const dynamic = 'force-dynamic';
+
 // Helper to fetch multiple records
 async function getRecordsByIds(ids: string[]) {
     const supabase = await createClient();

@@ -146,8 +146,8 @@ export function ActivityLogsTable({ logs }: ActivityLogsTableProps) {
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="rounded-md border bg-card overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border bg-card overflow-x-auto">
                 <Table className="min-w-[600px] md:min-w-0">
                     <TableHeader className="bg-muted/50">
                         <TableRow>
@@ -203,6 +203,57 @@ export function ActivityLogsTable({ logs }: ActivityLogsTableProps) {
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+                {logs.length === 0 ? (
+                    <div className="rounded-md border p-8 text-center text-muted-foreground bg-card">
+                        No activity found.
+                    </div>
+                ) : (
+                    logs.map((log) => (
+                        <div key={log.id} className="rounded-lg border bg-card p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="flex flex-col min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-sm truncate">
+                                            {log.user?.full_name || 'System'}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground truncate">
+                                        {log.user?.email}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                    {getActionIcon(log.action)}
+                                    <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal uppercase">
+                                        {log.action}
+                                    </Badge>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="font-medium">{log.entity}</span>
+                                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                        {format(new Date(log.created_at), 'MMM d, h:mm a')}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                    {formatActionMessage(log)}
+                                </p>
+                            </div>
+                            
+                            {log.warehouse && (
+                                <div className="pt-2 border-t mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                                    <span>Warehouse:</span>
+                                    <span className="font-medium">{log.warehouse.name}</span>
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* Pagination Controls */}

@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { startOfDay } from 'date-fns';
 import * as Sentry from "@sentry/nextjs";
 
 import { createClient } from '@/utils/supabase/server';
@@ -77,8 +78,9 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                 return { message: 'Cannot withdraw more bags than are in storage.', success: false, data: rawData };
             }
 
-            if (new Date(withdrawalDate) < originalRecord.storageStartDate) {
-                return { message: 'Withdrawal date cannot be before storage start date.', success: false, data: rawData };
+            // Compare dates only (ignore time) to allow same-day withdrawals
+            if (startOfDay(new Date(withdrawalDate)) < startOfDay(new Date(originalRecord.storageStartDate))) {
+                 return { message: 'Withdrawal date cannot be before storage start date.', success: false, data: rawData };
             }
 
             const paymentMade = amountPaidNow || 0;
@@ -146,13 +148,12 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                 if (originalRecord.customerId) {
                      revalidatePath(`/customers/${originalRecord.customerId}`);
                 }
-                redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
             } catch (error: any) {
-                if (error.message === 'NEXT_REDIRECT') throw error;
                 Sentry.captureException(error);
                 logger.error("Failed to record outflow", { error: error.message, recordId });
                 throw error; // Or return error state
             }
+            redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
         }
     );
 }

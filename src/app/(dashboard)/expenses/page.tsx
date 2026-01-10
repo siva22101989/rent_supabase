@@ -9,7 +9,7 @@ import { ExpenseListClient } from "./expense-list-client";
 
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 60; // Revalidate every 60 seconds for moderate-frequency updates
+export const revalidate = 300; // Revalidate every 5 minutes - expenses change slowly
 
 export default async function ExpensesPage() {
   const [financials, allExpenses] = await Promise.all([

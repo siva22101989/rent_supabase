@@ -16,6 +16,8 @@ import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdo
 import { exportOutflowRecordsWithFilters } from "@/lib/export-utils-filtered";
 import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import { useWarehouses } from '@/contexts/warehouse-context';
 
 interface OutflowFilterState {
@@ -107,6 +109,14 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
 
         return result;
     }, [outflows, query, dateRange, selectedCommodities, minBags, maxBags, sortBy]);
+
+    // Pagination
+    const pagination = usePagination(20);
+    const [currentPage, setCurrentPage] = useState(1);
+    const startIndex = (currentPage - 1) * pagination.pageSize;
+    const endIndex = startIndex + pagination.pageSize;
+    const paginatedOutflows = filteredOutflows.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(filteredOutflows.length / pagination.pageSize);
 
     // Prepare filter options
     const commodityOptions: MultiSelectOption[] = useMemo(() => {
@@ -203,7 +213,7 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
 
             {/* Mobile View */}
             <div className="md:hidden space-y-4">
-                {filteredOutflows.map((record) => (
+                {paginatedOutflows.map((record) => (
                     <MobileCard key={record.id}>
                         <MobileCard.Header>
                             <div className="flex-1">
@@ -252,7 +262,7 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredOutflows.map((record) => {
+                        {paginatedOutflows.map((record) => {
                             return (
                                 <TableRow key={record.id}>
                                     <TableCell>{record.date.toLocaleDateString()}</TableCell>
@@ -303,6 +313,24 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                     </TableBody>
                 </Table>
             </div>
+            
+            {totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredOutflows.length}
+                    pageSize={pagination.pageSize}
+                    onPageChange={(page) => {
+                        setCurrentPage(page);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onPageSizeChange={(size) => {
+                        pagination.setPageSize(size);
+                        setCurrentPage(1);
+                    }}
+                    showPageInfo={true}
+                />
+            )}
         </div>
     );
 }

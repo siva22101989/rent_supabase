@@ -104,8 +104,8 @@ export function WarehouseSettingsTab({ warehouse, allWarehouses = [] }: Warehous
                                 <Input id="capacity" name="capacity" type="number" defaultValue={warehouse?.capacity_bags || ''} className="pl-9" onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
                             </div>
                         </div>
-                        <div className="md:col-span-2 flex justify-end">
-                            <SubmitButton>Save Changes</SubmitButton>
+                        <div className="md:col-span-2 flex flex-col sm:flex-row sm:justify-end">
+                            <SubmitButton className="w-full sm:w-auto">Save Changes</SubmitButton>
                         </div>
                     </form>
                 </CardContent>

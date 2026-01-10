@@ -133,17 +133,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
           const sendSms = formData.get('sendSms') === 'true';
           await checkRateLimit(customerId || 'anon', 'addInflow', { limit: 10 });
           
-          // Start: Subscription Check
-          const warehouseId = await getUserWarehouse();
-          if (warehouseId) {
-              const { checkSubscriptionLimits } = await import('@/lib/subscription-actions');
-              const check = await checkSubscriptionLimits(warehouseId, 'add_record');
-              if (!check.allowed) {
-                   return { message: check.message || 'Subscription limit reached.', success: false };
-              }
-          }
-          // End: Subscription Check
-
           const rawData = {
               customerId: formData.get('customerId'),
               commodityDescription: formData.get('commodityDescription'),
@@ -163,6 +152,17 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
               cropId: formData.get('cropId'),
               unloadingRecordId: formData.get('unloadingRecordId'),
           };
+
+          // Start: Subscription Check
+          const warehouseId = await getUserWarehouse();
+          if (warehouseId) {
+              const { checkSubscriptionLimits } = await import('@/lib/subscription-actions');
+              const check = await checkSubscriptionLimits(warehouseId, 'add_record');
+              if (!check.allowed) {
+                   return { message: check.message || 'Subscription limit reached.', success: false };
+              }
+          }
+          // End: Subscription Check
           span.setAttribute("customerId", rawData.customerId as string);
           span.setAttribute("lotId", rawData.lotId as string);
 
@@ -192,6 +192,8 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                   }
               }
           }
+
+          let savedRecordId: string | undefined;
 
           try {
               let inflowBags = 0;
@@ -296,6 +298,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
               };
 
               const savedRecord = await saveStorageRecord(newRecord);
+              savedRecordId = savedRecord.id;
 
               const { logActivity, createNotification } = await import('@/lib/logger');
               await logActivity('CREATE', 'StorageRecord', savedRecord.id, { 
@@ -311,13 +314,15 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
 
               logger.info("Inflow record created successfully", { recordId: savedRecord.id });
               revalidatePath('/storage');
-              redirect(`/inflow/receipt/${savedRecord.id}`);
           } catch (error: any) {
-              if (error.message === 'NEXT_REDIRECT') throw error;
               Sentry.captureException(error);
               logger.error('Add Inflow Error:', { error: error.message, customerId: rest.customerId });
               return { message: `Failed to create record: ${error.message || 'Unknown error'}`, success: false, data: rawData };
           }
+          if (savedRecordId) {
+              redirect(`/inflow/receipt/${savedRecordId}`);
+          }
+           return { message: "Inflow created but ID lost.", success: false }; // Should not happen
       }
   );
 }

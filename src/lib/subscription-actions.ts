@@ -90,7 +90,9 @@ export async function checkSubscriptionLimits(warehouseId: string, action: 'add_
         return { allowed: true };
     }
 
-    const { plans, status, usage } = subscription;
+    const { plans, status: rawStatus, usage } = subscription;
+    // Default to 'active' to be permissive for legacy data/undefined status
+    const status = rawStatus || 'active';
     
     if (status !== 'active' && status !== 'trialing') {
          return { allowed: false, message: `Subscription is ${status}. Please renew to continue.` };

@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
 import { addPayment, type PaymentFormState } from '@/lib/actions/payments';
+import { useServerAction } from '@/hooks/use-server-action';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -39,32 +40,14 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(autoOpen);
   const [paymentType, setPaymentType] = useState<'rent' | 'hamali'>('rent');
-  const lastHandledRef = useRef<any>(null);
   
-  const initialState: PaymentFormState = { message: '', success: false };
-  const [state, formAction] = useActionState(addPayment, initialState);
-
-  // Auto-restoration from state.data on error
-  useEffect(() => {
-    if (state.data) {
-      if (state.data.paymentType) setPaymentType(state.data.paymentType);
-    }
-  }, [state.data]);
-
-  useEffect(() => {
-    if (state.message && state !== lastHandledRef.current) {
-      lastHandledRef.current = state;
-      if (state.success) {
-        toastSuccess('Success', state.message);
-        setIsOpen(false);
-        onClose?.();
-        router.refresh();
-      } else {
-        router.refresh();
-        toastError('Error', state.message);
-      }
-    }
-  }, [state, toastSuccess, toastError, router, onClose]);
+  const { runAction, isPending } = useServerAction();
+  
+  // Handlers for closing
+  const handleClose = () => {
+      setIsOpen(false);
+      onClose?.();
+  };
   
   const recordDisplay = record.recordNumber || `REC-${record.id.substring(0, 8)}`;
   const title = paymentType === 'hamali' ? 'Add Extra Hamali Charges' : 'Record Payment';
@@ -83,7 +66,21 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-[425px]">
-        <form action={formAction}>
+        <form action={async (formData) => {
+             await runAction(async () => {
+                 const result = await addPayment({ message: '', success: false }, formData);
+                 if (!result.success) {
+                     throw new Error(result.message);
+                 }
+                 return result;
+             }, {
+                 successMessage: 'Payment recorded successfully',
+                 onSuccess: () => {
+                     handleClose();
+                     router.refresh();
+                 }
+             });
+        }}>
           <input type="hidden" name="recordId" value={record.id} />
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
@@ -92,11 +89,10 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <FormError message={!state.success ? state.message : undefined} />
             <div className="grid gap-2">
                 <Label>Type</Label>
                 <RadioGroup 
-                    defaultValue={state.data?.paymentType || "rent"}
+                    defaultValue="rent"
                     name="paymentType"
                     className="flex gap-4"
                     value={paymentType}
@@ -124,7 +120,6 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
                 min="0.01"
                 max={paymentType === 'rent' ? record.balanceDue : undefined}
                 placeholder={paymentType === 'rent' ? `Max: ${formatCurrency(record.balanceDue)}` : "Enter amount"}
-                defaultValue={state.data?.paymentAmount}
                 onFocus={(e) => e.target.select()}
                 onWheel={(e) => e.currentTarget.blur()}
                 required 
@@ -143,16 +138,16 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
                 id="paymentDate" 
                 name="paymentDate" 
                 type="date"
-                defaultValue={state.data?.paymentDate || new Date().toISOString().split('T')[0]}
+                defaultValue={new Date().toISOString().split('T')[0]}
                 required 
               />
             </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" type="button">Cancel</Button>
             </DialogClose>
-            <SubmitButton>Record Transaction</SubmitButton>
+            <SubmitButton isLoading={isPending}>Record Transaction</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>
