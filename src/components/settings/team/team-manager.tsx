@@ -75,7 +75,7 @@ export function TeamManager({ initialMembers, pendingRequests = [], currentUserR
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] lg:grid-cols-[350px_1fr] gap-0 border rounded-xl overflow-hidden shadow-sm bg-card min-h-[600px]">
+    <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] lg:grid-cols-[350px_1fr] gap-0 border rounded-xl overflow-hidden shadow-sm bg-card h-[calc(100vh-12rem)] max-h-[900px]">
       
       {/* Left Column: List */}
       <div className={`flex flex-col h-full border-r ${selectedId || isAdding ? 'hidden md:flex' : 'flex'}`}>

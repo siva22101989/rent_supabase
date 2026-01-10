@@ -29,7 +29,7 @@ export function TeamMembersList({ members, selectedId, onSelect }: TeamMembersLi
   });
 
   return (
-    <div className="h-[600px] flex flex-col border-r bg-background/50">
+    <div className="flex-1 flex flex-col border-r bg-background/50 min-h-0">
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm">Team Members</h3>

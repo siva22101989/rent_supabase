@@ -19,6 +19,33 @@ type WarehouseTabProps = {
 };
 
 export function WarehouseSettingsTab({ warehouse, allWarehouses = [] }: WarehouseTabProps) {
+    // Debug: Log warehouse data
+    console.log('[WarehouseSettingsTab] Warehouse data:', warehouse);
+    console.log('[WarehouseSettingsTab] All warehouses:', allWarehouses);
+
+    // Handle missing warehouse data
+    if (!warehouse) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Warehouse Not Found</CardTitle>
+                    <CardDescription>
+                        Unable to load warehouse details. Please try refreshing the page or contact support.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-sm text-muted-foreground">
+                        <p>Debugging information:</p>
+                        <ul className="list-disc list-inside mt-2 space-y-1">
+                            <li>Warehouse data: {warehouse ? 'Present' : 'Missing'}</li>
+                            <li>Available warehouses: {allWarehouses.length}</li>
+                        </ul>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
         <div className="grid gap-6">
             {/* Switcher at the top for easy access */}
