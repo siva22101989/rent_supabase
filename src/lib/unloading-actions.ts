@@ -12,6 +12,8 @@ export async function recordUnloading(formData: {
     lorryTractorNo?: string;
     notes?: string;
     hamaliAmount?: number;
+    destination?: 'storage' | 'plot';
+    plotLocation?: string;
 }) {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();
@@ -33,6 +35,9 @@ export async function recordUnloading(formData: {
                 lorry_tractor_no: formData.lorryTractorNo || null,
                 notes: formData.notes || null,
                 hamali_amount: formData.hamaliAmount || 0,
+                destination: formData.destination || 'storage',
+                plot_location: formData.destination === 'plot' ? formData.plotLocation : null,
+                bags_remaining_in_plot: formData.destination === 'plot' ? formData.bagsUnloaded : 0
             })
             .select()
             .single();

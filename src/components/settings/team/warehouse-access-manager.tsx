@@ -6,11 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Building2, Globe, Loader2 } from "lucide-react";
-import { toggleWarehouseAccess, getMemberAssignments } from "@/lib/staff-actions";
-import { getUserWarehouses } from "@/lib/warehouse-actions"; // Server Action
+import { toggleWarehouseAccess, getMemberAssignments, updateStaffRoleInWarehouse } from "@/lib/staff-actions";
+import { getUserWarehouses } from "@/lib/warehouse-actions"; 
 import { useToast } from "@/hooks/use-toast";
 import { Warehouse } from "@/lib/definitions";
-// UserWarehouse type is different now, using 'any' or defining a DTO type is safer
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface WarehouseAccessManagerProps {
     userId: string;
@@ -25,30 +25,55 @@ export function WarehouseAccessManager({ userId, currentUserRole }: WarehouseAcc
     const { toast } = useToast();
 
     useEffect(() => {
-        async function loadData() {
-            setLoading(true);
+        const loadData = async () => {
             try {
-                // getUserWarehouses (action) returns: { id, role, name, location }
-                // getMemberAssignments (action) returns: { warehouse_id, role }
-                const [warehouses, memberAssignments] = await Promise.all([
+                const [warehouses, userAssignments] = await Promise.all([
                     getUserWarehouses(),
                     getMemberAssignments(userId)
                 ]);
                 setAllWarehouses(warehouses);
-                setAssignments(memberAssignments);
+                setAssignments(userAssignments);
             } catch (error) {
-                console.error("Failed to load warehouse data", error);
+                console.error("Failed to load warehouse access data:", error);
+                toast({ title: "Error", description: "Failed to load data", variant: "destructive" });
             } finally {
                 setLoading(false);
             }
+        };
+        if (userId) {
+             loadData();
         }
-        loadData();
-    }, [userId]);
+    }, [userId, toast]);
 
-    const handleToggle = async (warehouseId: string) => {
+    const handleRoleChange = async (warehouseId: string, newRole: string) => {
         setProcessingId(warehouseId);
+        const previousAssignments = [...assignments];
         
         // Optimistic Update
+        setAssignments(prev => prev.map(a => 
+            a.warehouse_id === warehouseId ? { ...a, role: newRole } : a
+        ));
+
+        try {
+            const result = await updateStaffRoleInWarehouse(userId, warehouseId, newRole);
+            if (result.success) {
+                toast({ title: "Role Updated", description: result.message });
+            } else {
+                toast({ title: "Error", description: result.message, variant: "destructive" });
+                setAssignments(previousAssignments);
+            }
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to update role", variant: "destructive" });
+            setAssignments(previousAssignments);
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const handleToggle = async (warehouseId: string) => {
+        // ... existing handleToggle logic ...
+        setProcessingId(warehouseId);
+        
         const previousAssignments = [...assignments];
         const isAssigned = assignments.some(a => a.warehouse_id === warehouseId);
         
@@ -62,17 +87,13 @@ export function WarehouseAccessManager({ userId, currentUserRole }: WarehouseAcc
             const result = await toggleWarehouseAccess(userId, warehouseId);
             if (result.success) {
                 toast({ title: "Success", description: result.message });
-                // We trust the server action to have done the work. 
-                // We can optionally refresh to be 100% sure, but optimistic state is usually fine here.
-                // const updated = await getMemberAssignments(userId);
-                // setAssignments(updated);
             } else {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
-                setAssignments(previousAssignments); // Revert
+                setAssignments(previousAssignments);
             }
         } catch (error) {
             toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
-            setAssignments(previousAssignments); // Revert
+            setAssignments(previousAssignments);
         } finally {
             setProcessingId(null);
         }
@@ -91,7 +112,7 @@ export function WarehouseAccessManager({ userId, currentUserRole }: WarehouseAcc
             <CardHeader className="px-0 pt-0">
                 <CardTitle className="text-lg">Warehouse Access</CardTitle>
                 <CardDescription>
-                    Manage which warehouses this team member can access.
+                    Manage which warehouses this team member can access and their role in each.
                 </CardDescription>
             </CardHeader>
             <CardContent className="px-0 space-y-4">
@@ -100,8 +121,8 @@ export function WarehouseAccessManager({ userId, currentUserRole }: WarehouseAcc
                 ) : (
                     <div className="grid gap-4">
                         {allWarehouses.map((uw) => {
-                            // uw is { id, name, location... }
-                            const isAssigned = assignments.some(a => a.warehouse_id === uw.id);
+                            const assignment = assignments.find(a => a.warehouse_id === uw.id);
+                            const isAssigned = !!assignment;
                             const isProcessing = processingId === uw.id;
                             
                             return (
@@ -121,11 +142,23 @@ export function WarehouseAccessManager({ userId, currentUserRole }: WarehouseAcc
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-3">
                                         {isAssigned && (
-                                            <Badge variant="secondary" className="text-[10px] h-5">
-                                                {assignments.find(a => a.warehouse_id === uw.id)?.role || 'staff'}
-                                            </Badge>
+                                            <Select 
+                                                value={assignment.role} 
+                                                onValueChange={(val) => handleRoleChange(uw.id, val)}
+                                                disabled={isProcessing}
+                                            >
+                                                <SelectTrigger className="h-8 w-[100px] text-xs">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="staff">Staff</SelectItem>
+                                                        <SelectItem value="manager">Manager</SelectItem>
+                                                        <SelectItem value="admin">Admin</SelectItem>
+                                                        <SelectItem value="owner">Owner</SelectItem>
+                                                    </SelectContent>
+                                            </Select>
                                         )}
                                         <Switch 
                                             checked={isAssigned} 

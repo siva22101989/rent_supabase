@@ -118,7 +118,8 @@ export async function getMemberAssignments(userId: string) {
     const { data, error } = await supabase
         .from('warehouse_assignments')
         .select('warehouse_id, role')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .is('deleted_at', null);
     
     if (error) return [];
     return data;

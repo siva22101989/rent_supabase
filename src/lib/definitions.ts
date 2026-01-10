@@ -8,6 +8,7 @@ export type Customer = {
   village: string;
   updatedAt?: Date | string;
   linkedUserId?: string;
+  deletedAt?: Date | string | null;
 };
 
 export type CustomerWithBalance = Customer & {
@@ -85,6 +86,7 @@ export type TeamMember = {
   role: 'super_admin' | 'owner' | 'admin' | 'manager' | 'staff' | 'suspended' | 'customer';
   createdAt: Date | string;
   lastSignInAt?: Date | string;
+  deletedAt?: Date | string | null;
 };
 
 export type Warehouse = {
@@ -94,6 +96,7 @@ export type Warehouse = {
     capacity_bags: number;
     gst_number?: string;
     created_at: Date | string;
+    deleted_at?: Date | string | null;
 };
 
 export type UserWarehouse = {
@@ -182,3 +185,34 @@ export interface PlatformAnalytics {
     growthData: AnalyticsGrowthData[];
     commodityDistribution: CommodityDistribution[];
 }
+
+export type UnloadingRecord = {
+    id: string;
+    warehouse_id: string;
+    customer_id: string;
+    crop_id?: string;
+    commodity_description: string;
+    bags_unloaded: number;
+    bags_remaining: number;
+    lorry_tractor_no?: string;
+    hamali_amount?: number;
+    destination?: 'storage' | 'plot';
+    plot_location?: string;
+    bags_remaining_in_plot?: number;
+    notes?: string;
+    unload_date: Date | string;
+    created_at: Date | string;
+};
+
+export type WithdrawalTransaction = {
+    id: string;
+    warehouse_id: string;
+    storage_record_id: string;
+    bags_withdrawn: number;
+    withdrawal_date: Date | string;
+    rent_collected?: number;
+    created_at: Date | string;
+    updated_at?: Date | string;
+    deleted_at?: Date | string | null;
+    deleted_by?: string;
+};

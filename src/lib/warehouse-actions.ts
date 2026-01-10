@@ -180,10 +180,8 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     
     if (profile?.role === 'super_admin') {
-        // Fetch ALL warehouses
-        const { data, error } = await supabase
-            .from('warehouses')
-            .select('id, name, location, gst_number');
+        // Fetch ALL warehouses via Secure RPC to bypass RLS recursion
+        const { data, error } = await supabase.rpc('get_admin_warehouses');
         
         if (error) {
             console.error("Fetch all warehouses error:", error);
@@ -213,8 +211,9 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
                 gst_number
             )
         `)
-        .eq('user_id', user.id);
-
+        .eq('user_id', user.id)
+        .is('deleted_at', null);
+    
     if (error) {
         console.error("Fetch warehouses error:", error);
         return [];
