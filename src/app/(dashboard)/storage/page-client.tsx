@@ -74,6 +74,7 @@ export function StoragePageClient({
   crops: any[]
   lots: any[]
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -307,7 +308,7 @@ export function StoragePageClient({
 
   const handlePageChange = (newPage: number) => {
     setFilters(prev => ({ ...prev, page: newPage }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    containerRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const stats = useMemo(() => {
@@ -375,7 +376,7 @@ export function StoragePageClient({
       </div>
 
       {/* Detailed Stock Register */}
-      <div>
+      <div className="scroll-mt-20" ref={containerRef}>
         <div className="flex flex-col gap-4 mb-4">
           {/* Top row - Title and Search */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

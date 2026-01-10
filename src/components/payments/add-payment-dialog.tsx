@@ -57,15 +57,19 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (!open) onClose?.();
+        // Prevent closing if processing
+        if (isPending && !open) return;
+        setIsOpen(open);
+        if (!open) onClose?.();
     }}>
       {!autoOpen && (
         <DialogTrigger asChild>
           <Button size="sm">Add Payment</Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => {
+          if (isPending) e.preventDefault();
+      }}>
         <form action={async (formData) => {
              await runAction(async () => {
                  const result = await addPayment({ message: '', success: false }, formData);
@@ -81,74 +85,77 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
                  }
              });
         }}>
-          <input type="hidden" name="recordId" value={record.id} />
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>
-              {description}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-                <Label>Type</Label>
-                <RadioGroup 
-                    defaultValue="rent"
-                    name="paymentType"
-                    className="flex gap-4"
-                    value={paymentType}
-                    onValueChange={(value: 'rent' | 'hamali') => setPaymentType(value)}
-                >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="rent" id="r1" />
-                        <Label htmlFor="r1">Rent/Other</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="hamali" id="r2" />
-                        <Label htmlFor="r2">Hamali Charge</Label>
-                    </div>
-                </RadioGroup>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="paymentAmount">
-                Amount
-              </Label>
-              <Input 
-                id="paymentAmount" 
-                name="paymentAmount" 
-                type="number"
-                step="0.01"
-                min="0.01"
-                max={paymentType === 'rent' ? record.balanceDue : undefined}
-                placeholder={paymentType === 'rent' ? `Max: ${formatCurrency(record.balanceDue)}` : "Enter amount"}
-                onFocus={(e) => e.target.select()}
-                onWheel={(e) => e.currentTarget.blur()}
-                required 
-              />
-              {paymentType === 'rent' && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                      Max available: {formatCurrency(record.balanceDue)}
-                  </p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="paymentDate">
-                Date
-              </Label>
-              <Input 
-                id="paymentDate" 
-                name="paymentDate" 
-                type="date"
-                defaultValue={new Date().toISOString().split('T')[0]}
-                required 
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline" type="button">Cancel</Button>
-            </DialogClose>
-            <SubmitButton isLoading={isPending}>Record Transaction</SubmitButton>
-          </DialogFooter>
+          <fieldset disabled={isPending} className="group">
+              <input type="hidden" name="recordId" value={record.id} />
+              <DialogHeader>
+                <DialogTitle>{title}</DialogTitle>
+                <DialogDescription>
+                  {description}
+                </DialogDescription>
+              </DialogHeader>
+              <div className={`grid gap-4 py-4 transition-opacity duration-200 ${isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className="grid gap-2">
+                    <Label>Type</Label>
+                    <RadioGroup 
+                        defaultValue="rent"
+                        name="paymentType"
+                        className="flex gap-4"
+                        value={paymentType}
+                        onValueChange={(value: 'rent' | 'hamali') => setPaymentType(value)}
+                        disabled={isPending}
+                    >
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="rent" id="r1" />
+                            <Label htmlFor="r1">Rent/Other</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="hamali" id="r2" />
+                            <Label htmlFor="r2">Hamali Charge</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="paymentAmount">
+                    Amount
+                  </Label>
+                  <Input 
+                    id="paymentAmount" 
+                    name="paymentAmount" 
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={paymentType === 'rent' ? record.balanceDue : undefined}
+                    placeholder={paymentType === 'rent' ? `Max: ${formatCurrency(record.balanceDue)}` : "Enter amount"}
+                    onFocus={(e) => e.target.select()}
+                    onWheel={(e) => e.currentTarget.blur()}
+                    required 
+                  />
+                  {paymentType === 'rent' && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                          Max available: {formatCurrency(record.balanceDue)}
+                      </p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="paymentDate">
+                    Date
+                  </Label>
+                  <Input 
+                    id="paymentDate" 
+                    name="paymentDate" 
+                    type="date"
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                    required 
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" type="button" disabled={isPending}>Cancel</Button>
+                </DialogClose>
+                <SubmitButton isLoading={isPending}>Record Transaction</SubmitButton>
+              </DialogFooter>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>

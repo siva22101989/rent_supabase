@@ -1,0 +1,367 @@
+'use client';
+
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useActionState } from 'react';
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowRight, AlertCircle, Loader2, PackageMinus, Calculator } from "lucide-react";
+import { formatCurrency } from '@/lib/utils';
+import { processBulkOutflow, type BulkOutflowResult } from '@/lib/actions/storage/bulk-outflow';
+import { useUnifiedToast } from '@/components/shared/toast-provider';
+import type { Customer, StorageRecord } from '@/lib/definitions';
+import { calculateFinalRent } from '@/lib/billing';
+
+interface BulkOutflowDialogProps {
+    customer: Customer;
+    records: StorageRecord[];
+}
+
+const initialState: BulkOutflowResult = {
+    success: false,
+    message: '',
+};
+
+export function BulkOutflowDialog({ customer, records }: BulkOutflowDialogProps) {
+    const [open, setOpen] = useState(false);
+    // Removed step state
+    const { success: showSuccess, error: showError } = useUnifiedToast();
+    const router = useRouter();
+
+    // Form Stats
+    const [commodity, setCommodity] = useState<string>('');
+    const [bagsToWithdraw, setBagsToWithdraw] = useState<string>('');
+    const [rentPaidNow, setRentPaidNow] = useState<string>('');
+    const [withdrawalDate, setWithdrawalDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [sendSms, setSendSms] = useState(true);
+
+    const [excludedRecordIds, setExcludedRecordIds] = useState<Set<string>>(new Set());
+
+    useMemo(() => {
+        setExcludedRecordIds(new Set());
+    }, [commodity]);
+
+    const [state, formAction, isPending] = useActionState(processBulkOutflow, initialState);
+
+    // Derived: Available Commodities
+    const commodities = useMemo(() => {
+        const unique = new Set(records.filter(r => !r.storageEndDate && r.bagsStored > 0).map(r => r.commodityDescription));
+        return Array.from(unique);
+    }, [records]);
+
+    // Derived: Max Bags for Selected Commodity
+    const maxBags = useMemo(() => {
+        if (!commodity) return 0;
+        return records
+            .filter(r => r.commodityDescription === commodity && !r.storageEndDate)
+            .reduce((sum, r) => sum + r.bagsStored, 0);
+    }, [records, commodity]);
+
+    // Derived: Preview Logic
+    const previewPlan = useMemo(() => {
+        if (!commodity || !bagsToWithdraw) return null;
+        
+        const targetBags = parseInt(bagsToWithdraw);
+        if (isNaN(targetBags) || targetBags <= 0) return null;
+
+        const activeRecords = records
+            .filter(r => 
+                r.commodityDescription === commodity && 
+                !r.storageEndDate && 
+                r.bagsStored > 0 &&
+                !excludedRecordIds.has(r.id)
+            )
+            .sort((a, b) => new Date(a.storageStartDate).getTime() - new Date(b.storageStartDate).getTime());
+
+        let remaining = targetBags;
+        const plan = [];
+
+        for (const r of activeRecords) {
+            if (remaining <= 0) break;
+            
+            const take = Math.min(r.bagsStored, remaining);
+            const { rent } = calculateFinalRent(r, new Date(withdrawalDate), take);
+            
+            plan.push({
+                record: r,
+                take,
+                rent,
+                isClosing: take === r.bagsStored
+            });
+            remaining -= take;
+        }
+
+        return {
+            operations: plan,
+            totalRent: plan.reduce((sum, p) => sum + p.rent, 0),
+            impossible: remaining > 0,
+            activeRecordCount: activeRecords.length
+        };
+    }, [records, commodity, bagsToWithdraw, withdrawalDate, excludedRecordIds]);
+
+    const toggleRecordSelection = (recordId: string, checked: boolean) => {
+        const newSet = new Set(excludedRecordIds);
+        if (checked) {
+            newSet.delete(recordId);
+        } else {
+            newSet.add(recordId);
+        }
+        setExcludedRecordIds(newSet);
+    };
+
+    const specificRecordIdsValue = useMemo(() => {
+        if (!previewPlan) return '';
+        return previewPlan.operations.map(op => op.record.id).join(',');
+    }, [previewPlan]);
+
+
+    useEffect(() => {
+        if (state?.success && open) {
+            setOpen(false);
+            showSuccess('Bulk Outflow Complete', state.message);
+            router.refresh();
+            setBagsToWithdraw('');
+            setRentPaidNow('');
+            setExcludedRecordIds(new Set());
+        }
+    }, [state, open, showSuccess, router]);
+
+    const reset = () => {
+        setBagsToWithdraw('');
+        setRentPaidNow('');
+        setCommodity('');
+        setExcludedRecordIds(new Set());
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={(v) => { 
+            // Prevent closing if processing
+            if (isPending && !v) return;
+            setOpen(v); 
+            if(!v) reset(); 
+        }}>
+            <DialogTrigger asChild>
+                <Button variant="outline">
+                    <PackageMinus className="h-4 w-4 mr-2" />
+                    Bulk Outflow
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => {
+                if (isPending) e.preventDefault();
+            }}>
+                <form action={formAction}>
+                    <fieldset disabled={isPending} className="group">
+                        <DialogHeader>
+                            <DialogTitle>Bulk Outflow</DialogTitle>
+                            <DialogDescription>
+                                Withdraw bags from multiple records automatically (FIFO).
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {/* Hidden Inputs */}
+                        <input type="hidden" name="customerId" value={customer.id} />
+                        <input type="hidden" name="commodity" value={commodity} />
+                        <input type="hidden" name="totalBagsToWithdraw" value={bagsToWithdraw} />
+                        <input type="hidden" name="withdrawalDate" value={withdrawalDate} />
+                        <input type="hidden" name="finalRent" value={previewPlan?.totalRent || 0} />
+                        <input type="hidden" name="amountPaidNow" value={rentPaidNow} />
+                        <input type="hidden" name="sendSms" value={String(sendSms)} />
+                        <input type="hidden" name="specificRecordIds" value={specificRecordIdsValue} />
+
+                        <div className={`grid gap-4 py-4 transition-opacity duration-200 ${isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                            {/* Inputs Section */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Commodity</Label>
+                                    <Select value={commodity} onValueChange={setCommodity} disabled={isPending}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select commodity" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {commodities.map(c => (
+                                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Withdrawal Date</Label>
+                                    <Input 
+                                        type="date" 
+                                        value={withdrawalDate} 
+                                        onChange={(e) => setWithdrawalDate(e.target.value)}
+                                        max={new Date().toISOString().split('T')[0]}
+                                    />
+                                </div>
+                            </div>
+
+
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Bags to Withdraw</Label>
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            type="number" 
+                                            placeholder={commodity ? `Available: ${maxBags}` : "Enter quantity"}
+                                            value={bagsToWithdraw} 
+                                            onChange={(e) => setBagsToWithdraw(e.target.value)}
+                                            min="1"
+                                        />
+                                        <Button 
+                                            type="button" 
+                                            variant="secondary" 
+                                            onClick={() => setBagsToWithdraw(String(maxBags))}
+                                            disabled={!maxBags || isPending}
+                                        >
+                                            Max
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                    id="sms" 
+                                    checked={sendSms} 
+                                    onCheckedChange={(c) => setSendSms(!!c)} 
+                                    disabled={isPending}
+                                />
+                                <Label htmlFor="sms" className="text-sm font-normal text-muted-foreground">
+                                    Send confirmation SMS to customer
+                                </Label>
+                            </div>
+
+                            {/* Preview Section - Shows automatically when inputs valid */}
+                            <div className={`transition-all duration-300 ease-in-out ${previewPlan ? 'opacity-100 max-h-[1000px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
+                            {previewPlan && (
+                                <div className="space-y-4 pt-4 border-t">
+                                    <Alert className={previewPlan.impossible ? "border-destructive text-destructive" : "bg-primary/5 border-primary/20"}>
+                                        <Calculator className="h-4 w-4" />
+                                        <AlertTitle>Summary</AlertTitle>
+                                        <AlertDescription className="flex flex-col gap-1 mt-1">
+                                            <div className="flex justify-between font-medium">
+                                                <span>Total Bags: {bagsToWithdraw}</span>
+                                                <span>Total Rent Due: {formatCurrency(previewPlan.totalRent)}</span>
+                                            </div>
+                                            {previewPlan.impossible && (
+                                                <span className="font-bold text-destructive mt-1">
+                                                    Warning: You requested {bagsToWithdraw} bags but only {maxBags - Array.from(excludedRecordIds).reduce((sum, id) => sum + (records.find(r => r.id === id)?.bagsStored || 0), 0)} are selected!
+                                                </span>
+                                            )}
+                                        </AlertDescription>
+                                    </Alert>
+
+                                    <div className="border rounded-md max-h-[300px] overflow-y-auto overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="w-[40px]">Use</TableHead>
+                                                    <TableHead>Lot</TableHead>
+                                                    <TableHead>Record #</TableHead>
+                                                    <TableHead>Date In</TableHead>
+                                                    <TableHead className="text-right">Stock</TableHead>
+                                                    <TableHead className="text-right text-destructive font-bold">Withdraw</TableHead>
+                                                    <TableHead className="text-right">Rent</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {records
+                                                    .filter(r => r.commodityDescription === commodity && !r.storageEndDate && r.bagsStored > 0)
+                                                    .sort((a, b) => new Date(a.storageStartDate).getTime() - new Date(b.storageStartDate).getTime())
+                                                    .map((r) => {
+                                                        const inPlan = previewPlan.operations.find(op => op.record.id === r.id);
+                                                        const isExcluded = excludedRecordIds.has(r.id);
+                                                        
+                                                        return (
+                                                            <TableRow key={r.id} className={inPlan?.isClosing ? "bg-red-50/50" : (isExcluded ? "opacity-50" : "")}>
+                                                                <TableCell>
+                                                                    <Checkbox 
+                                                                        checked={!isExcluded}
+                                                                        onCheckedChange={(c) => toggleRecordSelection(r.id, !!c)}
+                                                                        disabled={isPending}
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="text-xs font-medium">{r.location || '-'}</TableCell>
+                                                                <TableCell className="font-mono text-xs">#{r.recordNumber}</TableCell>
+                                                                <TableCell className="text-xs">{new Date(r.storageStartDate).toLocaleDateString()}</TableCell>
+                                                                <TableCell className="text-right text-xs text-muted-foreground">{r.bagsStored}</TableCell>
+                                                                <TableCell className="text-right font-bold text-destructive">
+                                                                    {inPlan ? `-${inPlan.take}` : '-'}
+                                                                    {inPlan?.isClosing && <span className="ml-1 text-[10px] uppercase bg-destructive text-white px-1 rounded">Close</span>}
+                                                                </TableCell>
+                                                                <TableCell className="text-right text-xs">
+                                                                    {inPlan ? formatCurrency(inPlan.rent) : '-'}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )
+                                                    })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <Label className="mb-2 block">Rent Payment (Optional)</Label>
+                                        <div className="flex gap-4 items-center">
+                                            <Input 
+                                                type="number" 
+                                                placeholder="Enter amount to pay now" 
+                                                value={rentPaidNow} 
+                                                onChange={(e) => setRentPaidNow(e.target.value)}
+                                                className="max-w-[200px]"
+                                            />
+                                            {rentPaidNow && (
+                                                <div className="text-sm text-muted-foreground">
+                                                    Will be distributed proportionally.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            </div>
+                        </div>
+
+                        {!state?.success && state?.message && (
+                            <Alert variant="destructive" className="mt-2">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{state.message}</AlertDescription>
+                            </Alert>
+                        )}
+
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isPending || !previewPlan || previewPlan.impossible}>
+                                {isPending ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    'Confirm & Process'
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </fieldset>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}

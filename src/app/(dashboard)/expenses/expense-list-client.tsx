@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MobileCard } from "@/components/ui/mobile-card";
@@ -34,6 +34,7 @@ interface ExpenseListClientProps {
 }
 
 export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
     const [filters, setFilters] = useUrlFilters<ExpenseFilterState>({
         q: '',
         dateRange: undefined,
@@ -157,7 +158,7 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
     };
 
     return (
-        <div className="mt-6">
+        <div className="mt-6 scroll-mt-20" ref={containerRef}>
             <Card>
                 <CardHeader>
                     <CardTitle>Expense History</CardTitle>
@@ -282,7 +283,7 @@ export function ExpenseListClient({ expenses }: ExpenseListClientProps) {
                             pageSize={pagination.pageSize}
                             onPageChange={(page) => {
                                 setCurrentPage(page);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                containerRef.current?.scrollIntoView({ behavior: 'smooth' });
                             }}
                             onPageSizeChange={(size) => {
                                 pagination.setPageSize(size);

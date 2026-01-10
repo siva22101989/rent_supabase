@@ -197,7 +197,7 @@ function InflowFormInner({
                             Next Serial No: <span data-testid="next-serial-number" className="font-bold text-primary">Auto-Generated ({nextSerialNumber})</span>
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className={`space-y-4 transition-opacity duration-200 ${isPending ? 'opacity-50' : ''}`}>
                     {/* Error Alert */}
                     {error && (
                          <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-4 border border-destructive/20">

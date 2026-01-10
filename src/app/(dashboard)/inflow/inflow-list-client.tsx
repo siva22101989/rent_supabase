@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ArrowDownToDot } from "lucide-react";
@@ -33,6 +33,7 @@ interface InflowListClientProps {
 }
 
 export function InflowListClient({ inflows }: InflowListClientProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
     // URL-synchronized filter state
     const [filters, setFilters] = useUrlFilters<InflowFilterState>({
         q: '',
@@ -162,7 +163,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
     };
 
     return (
-        <div className="mt-8">
+        <div className="mt-8 scroll-mt-20" ref={containerRef}>
             <h3 className="text-lg font-medium mb-4">Recent Inflows</h3>
 
             {/* Search and Filter Controls */}
@@ -303,7 +304,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
                     pageSize={pagination.pageSize}
                     onPageChange={(page) => {
                         setCurrentPage(page);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        containerRef.current?.scrollIntoView({ behavior: 'smooth' });
                     }}
                     onPageSizeChange={(size) => {
                         pagination.setPageSize(size);

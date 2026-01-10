@@ -48,6 +48,7 @@ export function CustomersPageClient({
   // For Phase 5 completeness, we'll implement simple client-side search on the loaded 50 records,
   // but true scalability requires wiring the search input to the URL params.
   
+  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -196,7 +197,7 @@ export function CustomersPageClient({
         </div>
       </PageHeader>
       
-      <div className="mb-4">
+      <div className="mb-4 scroll-mt-20" ref={containerRef}>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -367,7 +368,7 @@ export function CustomersPageClient({
           pageSize={pagination.pageSize}
           onPageChange={(page) => {
             setCurrentPage(page);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            containerRef.current?.scrollIntoView({ behavior: 'smooth' });
           }}
           onPageSizeChange={(size) => {
             pagination.setPageSize(size);

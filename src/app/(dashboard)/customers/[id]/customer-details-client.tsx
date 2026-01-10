@@ -33,6 +33,7 @@ import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import type { Customer, StorageRecord } from '@/lib/definitions';
+import { BulkOutflowDialog } from '@/components/customers/bulk-outflow-dialog';
 
 interface CustomerDetailsClientProps {
     customer: Customer;
@@ -200,6 +201,7 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                             <PlusCircle className="mr-2 h-4 w-4" /> New Inflow
                         </Link>
                     </Button>
+                    <BulkOutflowDialog customer={customer} records={activeRecords} />
                     {activeRecords.length > 0 && totalDue > 0 && (
                         <AddPaymentDialog 
                             record={{

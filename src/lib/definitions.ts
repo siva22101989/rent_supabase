@@ -216,3 +216,13 @@ export type WithdrawalTransaction = {
     deleted_at?: Date | string | null;
     deleted_by?: string;
 };
+
+export type OutflowRecord = {
+    id: string;
+    recordNumber: string;
+    date: Date;
+    customerName: string;
+    commodity: string;
+    bags: number;
+    totalRent: number;
+};

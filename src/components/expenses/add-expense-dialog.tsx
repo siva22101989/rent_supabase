@@ -37,7 +37,7 @@ export function AddExpenseDialog() {
   const lastHandledRef = useRef<any>(null);
   
   const initialState: FormState = { message: '', success: false };
-  const [state, formAction] = useActionState(addExpense, initialState);
+  const [state, formAction, isPending] = useActionState(addExpense, initialState);
 
   useEffect(() => {
     if (state.message && state !== lastHandledRef.current) {
@@ -53,57 +53,65 @@ export function AddExpenseDialog() {
   }, [state, toastSuccess, toastError, router]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+        // Prevent closing if processing
+        if (isPending && !open) return;
+        setIsOpen(open);
+    }}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2" />
           Add Expense
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => {
+          if (isPending) e.preventDefault();
+      }}>
         <form action={formAction}>
-          <DialogHeader>
-            <DialogTitle>Add New Expense</DialogTitle>
-            <DialogDescription>
-              Enter the details for the new expense.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <FormError message={!state.success ? state.message : undefined} />
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input id="date" name="date" type="date" defaultValue={state.data?.date || new Date().toISOString().split('T')[0]} required />
+          <fieldset disabled={isPending} className="group">
+            <DialogHeader>
+                <DialogTitle>Add New Expense</DialogTitle>
+                <DialogDescription>
+                Enter the details for the new expense.
+                </DialogDescription>
+            </DialogHeader>
+            <div className={`grid gap-4 py-4 transition-opacity duration-200 ${isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                <FormError message={!state.success ? state.message : undefined} />
+                <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input id="date" name="date" type="date" defaultValue={state.data?.date || new Date().toISOString().split('T')[0]} required />
+                </div>
+                <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select name="category" required defaultValue={state.data?.category} disabled={isPending}>
+                    <SelectTrigger id="category">
+                        <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {expenseCategories.map(cat => (
+                            <SelectItem key={cat} value={cat}>
+                                {cat}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                </div>
+                <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" name="description" placeholder="e.g., Petrol for generator" required defaultValue={state.data?.description} />
+                </div>
+                <div className="space-y-2">
+                <Label htmlFor="amount">Amount</Label>
+                <Input id="amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required defaultValue={state.data?.amount} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
+                </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select name="category" required defaultValue={state.data?.category}>
-                <SelectTrigger id="category">
-                    <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                    {expenseCategories.map(cat => (
-                        <SelectItem key={cat} value={cat}>
-                            {cat}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-               <Textarea id="description" name="description" placeholder="e.g., Petrol for generator" required defaultValue={state.data?.description} />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
-               <Input id="amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required defaultValue={state.data?.amount} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <SubmitButton>Save Expense</SubmitButton>
-          </DialogFooter>
+            <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" type="button" disabled={isPending}>Cancel</Button>
+                </DialogClose>
+                <SubmitButton isLoading={isPending}>Save Expense</SubmitButton>
+            </DialogFooter>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>

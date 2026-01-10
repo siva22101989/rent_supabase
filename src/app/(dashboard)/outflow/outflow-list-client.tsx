@@ -1,25 +1,26 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ArrowUpFromDot } from "lucide-react";
+import { ArrowUpToLine, ArrowDownToDot } from "lucide-react";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { PrintButton } from "@/components/common/print-button";
-import { DeleteOutflowButton } from "@/components/outflow/delete-outflow-button";
-import { EditOutflowDialog } from "@/components/outflow/edit-outflow-dialog";
 import { SearchBar } from "@/components/ui/search-bar";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, ExportButton, type MultiSelectOption, type SortOption } from '@/components/filters';
-import { exportOutflowRecordsWithFilters } from "@/lib/export-utils-filtered";
+import { exportOutflowRecordsWithFilters } from "@/lib/export-utils-filtered"; 
 import { getAppliedFiltersSummary } from "@/lib/url-filters";
 import { useUrlFilters } from '@/hooks/use-url-filters';
 import { usePagination } from '@/hooks/use-pagination';
 import { Pagination } from '@/components/ui/pagination';
 import { useWarehouses } from '@/contexts/warehouse-context';
+import { formatCurrency } from '@/lib/utils';
+import type { OutflowRecord } from '@/lib/definitions';
 
+// Filter state interface
 interface OutflowFilterState {
   q: string;
   dateRange: DateRange | undefined;
@@ -30,10 +31,12 @@ interface OutflowFilterState {
 }
 
 interface OutflowListClientProps {
-    outflows: any[];
+    outflows: OutflowRecord[]; 
 }
 
 export function OutflowListClient({ outflows }: OutflowListClientProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    // URL-synchronized filter state
     const [filters, setFilters] = useUrlFilters<OutflowFilterState>({
         q: '',
         dateRange: undefined,
@@ -43,10 +46,9 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
         sortBy: 'date-desc'
     });
     
-    
-    // Warehouse Context
     const { currentWarehouse: warehouse } = useWarehouses();
     
+    // Extract values
     const query = filters.q;
     const dateRange = filters.dateRange;
     const selectedCommodities = filters.selectedCommodities;
@@ -60,17 +62,18 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
         // Search filter
         if (query) {
             const search = query.toLowerCase();
-            result = result.filter(o =>
-                o.customerName?.toLowerCase().includes(search) ||
-                o.invoiceNo?.toLowerCase().includes(search) ||
-                o.commodity?.toLowerCase().includes(search)
+            result = result.filter(i =>
+                i.customerName?.toLowerCase().includes(search) ||
+                i.commodity?.toLowerCase().includes(search) ||
+                i.recordNumber?.toLowerCase().includes(search) ||
+                i.id?.toLowerCase().includes(search)
             );
         }
 
         // Date filter
         if (dateRange?.from) {
-            result = result.filter(o => {
-                const date = new Date(o.date);
+            result = result.filter(i => {
+                const date = new Date(i.date);
                 return isWithinInterval(date, {
                     start: startOfDay(dateRange.from!),
                     end: dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from!)
@@ -80,12 +83,12 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
 
         // Commodity filter
         if (selectedCommodities.length > 0) {
-            result = result.filter(o => selectedCommodities.includes(o.commodity));
+            result = result.filter(i => selectedCommodities.includes(i.commodity));
         }
 
         // Bags range filter
-        if (minBags !== null) result = result.filter(o => o.bags >= minBags);
-        if (maxBags !== null) result = result.filter(o => o.bags <= maxBags);
+        if (minBags !== null) result = result.filter(i => i.bags >= minBags);
+        if (maxBags !== null) result = result.filter(i => i.bags <= maxBags);
 
         // Sort
         result.sort((a, b) => {
@@ -102,6 +105,8 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                     return (a.customerName || '').localeCompare(b.customerName || '');
                 case 'customer-desc':
                     return (b.customerName || '').localeCompare(a.customerName || '');
+                case 'rent-desc':
+                     return (b.totalRent || 0) - (a.totalRent || 0);
                 default:
                     return 0;
             }
@@ -120,7 +125,7 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
 
     // Prepare filter options
     const commodityOptions: MultiSelectOption[] = useMemo(() => {
-        const unique = Array.from(new Set(outflows.map(o => o.commodity)));
+        const unique = Array.from(new Set(outflows.map(i => i.commodity)));
         return unique.map(name => ({ label: name, value: name }));
     }, [outflows]);
 
@@ -129,6 +134,7 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
         { label: 'Oldest First', value: 'date-asc', icon: 'asc' },
         { label: 'Most Bags', value: 'bags-desc', icon: 'desc' },
         { label: 'Least Bags', value: 'bags-asc', icon: 'asc' },
+        { label: 'Highest Rent', value: 'rent-desc', icon: 'desc' },
         { label: 'Customer (A-Z)', value: 'customer-asc', icon: 'asc' },
         { label: 'Customer (Z-A)', value: 'customer-desc', icon: 'desc' },
     ];
@@ -158,19 +164,19 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
             appliedFilters: getAppliedFiltersSummary(filters),
             exportDate: new Date()
         };
-        exportOutflowRecordsWithFilters(filteredOutflows, metadata);
+        exportOutflowRecordsWithFilters(filteredOutflows as any[], metadata);
     };
 
     return (
-        <div className="mt-8">
-            <h3 className="text-lg font-medium mb-4">Recent Withdrawals</h3>
+        <div className="mt-8 scroll-mt-20" ref={containerRef}>
+            <h3 className="text-lg font-medium mb-4">Recent Outflows</h3>
 
             {/* Search and Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <SearchBar
                     value={query}
                     onChange={(value) => setFilters(prev => ({ ...prev, q: value }))}
-                    placeholder="Search by customer, invoice, or commodity..."
+                    placeholder="Search by customer or commodity..."
                     className="flex-1"
                 />
                 <DatePickerWithRange date={dateRange} setDate={(range) => setFilters(prev => ({ ...prev, dateRange: range }))} className="w-full sm:w-auto" />
@@ -219,31 +225,24 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                             <div className="flex-1">
                                 <MobileCard.Title>{record.customerName}</MobileCard.Title>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {record.date.toLocaleDateString()} • Inv #{record.invoiceNo}
+                                    {record.date.toLocaleDateString()} • {record.recordNumber || record.id.slice(0, 8)}
                                 </p>
                             </div>
                             <MobileCard.Badge variant="destructive">-{record.bags} Bags</MobileCard.Badge>
                         </MobileCard.Header>
                         <MobileCard.Content>
-                            <MobileCard.Row label="Item" value={record.commodity} />
-                        </MobileCard.Content>
-                        <MobileCard.Actions>
-                            <div className="w-full flex justify-end gap-2">
-                                <EditOutflowDialog transaction={record} />
-                                <DeleteOutflowButton
-                                    transactionId={record.id}
-                                    bags={record.bags}
-                                    rentCollected={record.rentCollected || 0}
-                                />
+                            <div className="flex justify-between items-center">
+                                <p className="text-sm">{record.commodity}</p>
+                                <p className="text-sm font-medium">{formatCurrency(record.totalRent || 0)}</p>
                             </div>
-                        </MobileCard.Actions>
+                        </MobileCard.Content>
                     </MobileCard>
                 ))}
                 {filteredOutflows.length === 0 && (
                     <EmptyState
-                        icon={ArrowUpFromDot}
-                        title={query || dateRange ? "No withdrawals found" : "No withdrawals yet"}
-                        description={query || dateRange ? "Try adjusting your search or date range." : "Your recent withdrawals will appear here once you process your first outflow using the form above."}
+                        icon={ArrowUpToLine}
+                        title={query || dateRange ? "No outflows found" : "No outflows yet"}
+                        description={query || dateRange ? "Try adjusting your search or date range." : "Your recent outflows will appear here."}
                     />
                 )}
             </div>
@@ -253,12 +252,13 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Date Out</TableHead>
-                            <TableHead>ID</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Ref</TableHead>
                             <TableHead>Customer</TableHead>
                             <TableHead>Item</TableHead>
-                            <TableHead className="text-right">Bags</TableHead>
-                            <TableHead className="w-[100px]"></TableHead>
+                            <TableHead className="text-right">Bags Out</TableHead>
+                            <TableHead className="text-right">Rent Paid</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -266,46 +266,38 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                             return (
                                 <TableRow key={record.id}>
                                     <TableCell>{record.date.toLocaleDateString()}</TableCell>
-                                    <TableCell className="font-medium font-mono">{record.invoiceNo}</TableCell>
+                                    <TableCell className="font-medium font-mono">{record.recordNumber || record.id.slice(0, 8)}</TableCell>
                                     <TableCell>{record.customerName}</TableCell>
                                     <TableCell>{record.commodity}</TableCell>
-                                    <TableCell className="text-right">{record.bags}</TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex items-center justify-end gap-1">
-                                            <PrintButton 
-                                                data={{
-                                                    ...record,
-                                                    customerName: record.customerName,
-                                                    commodityDescription: record.commodity,
-                                                    // Warehouse Info
-                                                    warehouseName: warehouse?.name,
-                                                    warehouseAddress: warehouse?.location,
-                                                    gstNo: warehouse?.gst_number,
-                                                }}
-                                                type="outflow"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-muted-foreground hover:text-blue-600"
-                                                icon={<ArrowUpFromDot className="h-4 w-4" />}
-                                            />
-                                            <EditOutflowDialog transaction={record} />
-                                            <DeleteOutflowButton
-                                                transactionId={record.id}
-                                                bags={record.bags}
-                                                rentCollected={record.rentCollected || 0}
-                                            />
-                                        </div>
+                                    <TableCell className="text-right text-destructive font-medium">-{record.bags}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(record.totalRent || 0)}</TableCell>
+                                    <TableCell>
+                                         <PrintButton 
+                                            data={{
+                                                ...record,
+                                                // Warehouse Info
+                                                warehouseName: warehouse?.name,
+                                                warehouseAddress: warehouse?.location,
+                                                gstNo: warehouse?.gst_number,
+                                            }}
+                                            type="outflow"
+                                            buttonText=""
+                                            variant="ghost" 
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            icon={<ArrowUpToLine className="h-4 w-4" />}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             );
                         })}
                         {filteredOutflows.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-48">
+                                <TableCell colSpan={7} className="h-48">
                                     <EmptyState
-                                        icon={ArrowUpFromDot}
-                                        title={query || dateRange ? "No withdrawals found" : "No withdrawals yet"}
-                                        description={query || dateRange ? "Try adjusting your search or date range." : "Your recent withdrawals will appear here once you process your first outflow using the form above."}
+                                        icon={ArrowUpToLine}
+                                        title={query || dateRange ? "No outflows found" : "No outflows yet"}
+                                        description={query || dateRange ? "Try adjusting your search or date range." : "Your recent outflows will appear here."}
                                     />
                                 </TableCell>
                             </TableRow>
@@ -322,7 +314,7 @@ export function OutflowListClient({ outflows }: OutflowListClientProps) {
                     pageSize={pagination.pageSize}
                     onPageChange={(page) => {
                         setCurrentPage(page);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        containerRef.current?.scrollIntoView({ behavior: 'smooth' });
                     }}
                     onPageSizeChange={(size) => {
                         pagination.setPageSize(size);

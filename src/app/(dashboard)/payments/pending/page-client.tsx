@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
@@ -30,6 +30,7 @@ interface PendingPaymentsClientProps {
 }
 
 export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClientProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
     const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null);
     const [loadingCustomerId, setLoadingCustomerId] = useState<string | null>(null);
     const [customerRecords, setCustomerRecords] = useState<Record<string, StorageRecord[]>>({});
@@ -206,7 +207,7 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
                 </Select>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 scroll-mt-20" ref={containerRef}>
                 {/* Mobile View */}
                 <div className="grid gap-4 md:hidden">
                     {paginatedCustomers.map((customer: any) => {
@@ -523,7 +524,7 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
                     pageSize={pagination.pageSize}
                     onPageChange={(page) => {
                         setCurrentPage(page);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        containerRef.current?.scrollIntoView({ behavior: 'smooth' });
                     }}
                     onPageSizeChange={(size) => {
                         pagination.setPageSize(size);

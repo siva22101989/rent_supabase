@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
     Table, 
@@ -50,10 +50,21 @@ export function ActivityLogsTable({ logs }: ActivityLogsTableProps) {
 
     // Local State for debouncing search
     const [searchTerm, setSearchTerm] = useState(search);
+    const tableRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setSearchTerm(search);
     }, [search]);
+
+    // Scroll to top of table on page change
+    useEffect(() => {
+        // Only scroll if page > 1 to avoid jumps on initial load, 
+        // or checking if it validates the "next" click requirement.
+        // Actually, scrolling on any page change (even back to 1) is good UX for pagination.
+        if (page > 0) {
+            tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, [page]);
 
     // Update URL on search change (debounce manual?)
     // For now, simpler: user presses Enter or handled via timeout
@@ -72,7 +83,7 @@ export function ActivityLogsTable({ logs }: ActivityLogsTableProps) {
         if (p > 1) newParams.set('page', p.toString()); else newParams.delete('page');
         if (type && type !== 'all') newParams.set('type', type); else newParams.delete('type');
         
-        router.push(`?${newParams.toString()}`);
+        router.push(`?${newParams.toString()}`, { scroll: false });
     };
 
     const handleFilterChange = (val: string) => {
@@ -87,7 +98,7 @@ export function ActivityLogsTable({ logs }: ActivityLogsTableProps) {
         if (page > 1) updateUrl(searchTerm, page - 1, filterAction);
     };
 
-     const getActionIcon = (action: string) => {
+    const getActionIcon = (action: string) => {
         switch (action?.toUpperCase()) {
             case 'CREATE': return <PlusCircle className="h-4 w-4 text-emerald-500" />;
             case 'UPDATE': return <Edit className="h-4 w-4 text-blue-500" />;
@@ -117,7 +128,7 @@ export function ActivityLogsTable({ logs }: ActivityLogsTableProps) {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4" ref={tableRef}>
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                 <div className="relative w-full sm:w-72">
