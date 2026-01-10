@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { addDays, addMonths, addYears } from 'date-fns';
+import { logError } from './error-logger';
 
 export interface GenerateCodeParams {
     planId: string;
@@ -72,7 +73,7 @@ export async function generateCodeAction({ planId, durationDays, notes, count = 
     const { error } = await supabase.from('subscription_codes').insert(codesToInsert);
 
     if (error) {
-        console.error('Error generating codes:', error);
+        logError(error, { operation: 'generateCodeAction', metadata: { planId, count } });
         throw new Error('Failed to generate codes');
     }
 
@@ -151,7 +152,7 @@ export async function redeemCodeAction(code: string, warehouseId: string) {
     if (subError) {
         // Critical: Failed to update sub after burning code.
         // In production, this needs robust logging/alerting or rollback.
-        console.error('CRITICAL: Code used but subscription update failed', subError);
+        logError(subError, { operation: 'redeemCodeAction_subUpdate', metadata: { code: cleanCode, warehouseId } });
         throw new Error('Activation failed. Please contact support with code: ' + cleanCode);
     }
 
@@ -184,7 +185,7 @@ export async function getAllSubscriptionCodes() {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching codes:', error);
+        logError(error, { operation: 'getAllSubscriptionCodes' });
         return [];
     }
 

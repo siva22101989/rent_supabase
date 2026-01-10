@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { logError } from '@/lib/error-logger';
 
 export interface NotificationPreferences {
     id: string;
@@ -34,7 +35,7 @@ export async function getNotificationPreferences(warehouseId: string): Promise<N
         .single();
 
     if (error) {
-        console.error('Failed to fetch notification preferences:', error);
+        logError(error, { operation: 'getNotificationPreferences', metadata: { warehouseId } });
         return null;
     }
 
@@ -63,7 +64,7 @@ export async function updateNotificationPreferences(
         });
 
     if (error) {
-        console.error('Failed to update preferences:', error);
+        logError(error, { operation: 'updateNotificationPreferences', metadata: { warehouseId } });
         return { error: 'Failed to update preferences' };
     }
 
@@ -85,7 +86,7 @@ export async function markNotificationsAsRead(notificationIds: string[]) {
         );
 
     if (error) {
-        console.error('Failed to mark notifications read:', error);
+        logError(error, { operation: 'markNotificationsAsRead', metadata: { count: notificationIds.length } });
         return { error: 'Failed to update status' };
     }
     
@@ -131,7 +132,7 @@ export async function markAllNotificationsAsRead() {
                 { onConflict: 'notification_id,user_id' }
             );
         
-        if (insertError) console.error('Error marking batch read:', insertError);
+        if (insertError) logError(insertError, { operation: 'markAllNotificationsAsRead_batch', metadata: { chunkIndex: i } });
     }
 
     return { success: true };

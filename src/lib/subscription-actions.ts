@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import * as Sentry from "@sentry/nextjs";
+import { logError } from './error-logger';
 
 export type SubscriptionState = {
   success: boolean;
@@ -22,7 +23,7 @@ export async function getSubscriptionAction(warehouseId: string) {
     .single();
 
   if (error && error.code !== 'PGRST116') {
-    Sentry.captureException(error);
+    logError(error, { operation: 'getSubscriptionAction', metadata: { warehouseId } });
     return null;
   }
 
@@ -157,7 +158,7 @@ export async function startSubscriptionAction(
           message: "Request logged. Please contact the Super Admin to activate this plan.", 
         };
       } catch (error: any) {
-        Sentry.captureException(error);
+        logError(error, { operation: 'startSubscriptionAction', metadata: { warehouseId, planTier } });
         return { success: false, message: error.message || "Failed to initiate subscription." };
       }
     }
@@ -199,7 +200,7 @@ export async function getAdminAllSubscriptions() {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching admin subscriptions:', error);
+        logError(error, { operation: 'getAdminAllSubscriptions' });
         return [];
     }
 
@@ -243,6 +244,7 @@ export async function updateSubscriptionAdmin(
         }, { onConflict: 'warehouse_id' });
 
     if (error) {
+        logError(error, { operation: 'updateSubscriptionAdmin', metadata: { warehouseId, planId, status } });
         return { success: false, message: error.message };
     }
 

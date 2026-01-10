@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { logError } from './error-logger';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { redirect } from 'next/navigation';
 
@@ -36,7 +37,7 @@ export async function sendPortalLoginLink(prevState: any, formData: FormData) {
         });
 
         if (error) {
-            console.error('Portal Login Error:', error);
+            logError(error, { operation: 'portalLogin' });
             return { success: false, message: error.message };
         }
 

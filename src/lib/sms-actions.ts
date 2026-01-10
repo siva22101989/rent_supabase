@@ -133,7 +133,10 @@ export async function sendPaymentReminderSMS(customerId: string, recordId?: stri
         revalidatePath('/payments/pending');
         return result;
     } catch (error) {
-        console.error('Error sending SMS:', error);
+        logError(error, { 
+            operation: 'sendPaymentReminderSMS', 
+            metadata: { customerId, recordId } 
+        });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to send SMS',

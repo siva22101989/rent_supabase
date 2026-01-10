@@ -7,8 +7,7 @@ import { getUserWarehouse } from './data';
 import { WarehouseWithRole } from './definitions';
 import { checkRateLimit } from '@/lib/rate-limit';
 import * as Sentry from "@sentry/nextjs";
-
-const { logger } = Sentry;
+import { logError, logWarning } from './error-logger';
 
 export type ActionState = {
   message: string;
@@ -28,7 +27,7 @@ export async function createWarehouse(name: string, location: string, capacity: 
             const supabase = await createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                logger.warn("Unauthorized warehouse creation attempt");
+                logWarning("Unauthorized warehouse creation attempt", { operation: 'createWarehouse' });
                 return { message: 'Unauthorized', success: false };
             }
             
@@ -64,13 +63,6 @@ export async function createWarehouse(name: string, location: string, capacity: 
             }
 
             // 2. Create Warehouse via Secure RPC (updated for GST)
-            // Note: If RPC doesn't support gst_number, we might need to update migration OR use direct insert if safer/allowed.
-            // Since we added column, we should ideally check if RPC supports it. 
-            // If create_new_warehouse is a PLPGSQL function, it needs update!
-            // Let's first check if we can just update the warehouse after creation or if we need to update RPC.
-            // RPC is usually strict. 
-            // Workaround: Create via RPC, then update.
-            
             const { data: warehouseId, error } = await supabase.rpc('create_new_warehouse', {
                 p_name: name,
                 p_location: location,
@@ -80,8 +72,7 @@ export async function createWarehouse(name: string, location: string, capacity: 
             });
 
             if (error) {
-                Sentry.captureException(error);
-                logger.error("Failed to create warehouse", { error: error.message, warehouseName: name });
+                logError(error, { operation: 'createWarehouse', metadata: { warehouseName: name } });
                 return { 
                     message: 'Failed to create warehouse: ' + error.message, 
                     success: false,
@@ -98,29 +89,28 @@ export async function createWarehouse(name: string, location: string, capacity: 
             await switchWarehouse(warehouseId);
 
             // 3. Activate Trial (if new user)
-            // We check if they have a 'selected_plan' in metadata (set during signup)
             const selectedPlan = user.user_metadata?.selected_plan;
             if (selectedPlan) {
                  try {
                      const { createTrialSubscription } = await import('@/lib/auth-actions');
-                     // We intentionally don't await this or we catch error so it doesn't block creation
-                     // Ideally we want it to succeed. 
-                     // Pass the specific warehouseId we just created.
-                     // IMPORTANT: createTrialSubscription finds warehouse by user, but we have the ID.
-                     // Let's modify createTrialSubscription to accept optional warehouseId or just let it find it (it will find the one we just made active via switchWarehouse).
-                     // Better: update createTrialSubscription in next step to accept ID. 
-                     // For now, assume it finds it or we pass it if we update it.
-                     // I will update createTrialSubscription to take warehouseId as optional arg.
-                     
-                     // For now, call it.
                      await createTrialSubscription(user.id, selectedPlan, warehouseId);
-                     logger.info("Trial activated for new warehouse", { warehouseId, plan: selectedPlan });
+                     Sentry.addBreadcrumb({
+                         category: 'subscription',
+                         message: 'Trial activated for new warehouse',
+                         data: { warehouseId, plan: selectedPlan },
+                         level: 'info'
+                     });
                  } catch (e) {
-                     logger.error("Failed to activate trial during warehouse creation", { error: e });
+                     logError(e, { operation: 'createWarehouse_trialActivation', metadata: { warehouseId, plan: selectedPlan } });
                  }
             }
 
-            logger.info("Warehouse created successfully", { warehouseId, warehouseName: name });
+            Sentry.addBreadcrumb({
+                category: 'warehouse',
+                message: 'Warehouse created successfully',
+                data: { warehouseId, warehouseName: name },
+                level: 'info'
+            });
             revalidatePath('/', 'layout');
             return { message: 'Warehouse created!', success: true, data: { id: warehouseId } };
         }
@@ -184,7 +174,7 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
         const { data, error } = await supabase.rpc('get_admin_warehouses');
         
         if (error) {
-            console.error("Fetch all warehouses error:", error);
+            logError(error, { operation: 'getUserWarehouses_superAdmin' });
             return [];
         }
 
@@ -215,7 +205,7 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
         .is('deleted_at', null);
     
     if (error) {
-        console.error("Fetch warehouses error:", error);
+        logError(error, { operation: 'getUserWarehouses', metadata: { userId: user.id } });
         return [];
     }
 
@@ -270,7 +260,7 @@ export async function joinWarehouse(token: string): Promise<ActionState> {
             const supabase = await createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                logger.warn("Unauthorized join warehouse attempt");
+                logWarning("Unauthorized join warehouse attempt", { operation: 'joinWarehouse' });
                 return { message: 'Please login to join', success: false };
             }
 
@@ -284,8 +274,7 @@ export async function joinWarehouse(token: string): Promise<ActionState> {
             });
 
             if (error) {
-                Sentry.captureException(error);
-                logger.error("Failed to join warehouse", { error: error.message, token });
+                logError(error, { operation: 'joinWarehouse', metadata: { token } });
                 return { message: error.message, success: false };
             }
 
@@ -293,7 +282,12 @@ export async function joinWarehouse(token: string): Promise<ActionState> {
             // The RPC returns warehouse_id
             await switchWarehouse(data); 
 
-            logger.info("Joined warehouse successfully", { warehouseId: data });
+            Sentry.addBreadcrumb({
+                category: 'warehouse',
+                message: 'Joined warehouse successfully',
+                data: { warehouseId: data },
+                level: 'info'
+            });
             revalidatePath('/', 'layout');
             return { message: 'Joined successfully!', success: true };
         }
@@ -331,7 +325,7 @@ export async function requestJoinWarehouse(adminEmail: string): Promise<ActionSt
             const supabase = await createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                logger.warn("Unauthorized join warehouse request");
+                logWarning("Unauthorized join warehouse request", { operation: 'requestJoinWarehouse' });
                 return { message: 'Unauthorized', success: false };
             }
 
@@ -346,7 +340,7 @@ export async function requestJoinWarehouse(adminEmail: string): Promise<ActionSt
                 .single();
             
             if (!adminProfile || !adminProfile.warehouse_id) {
-                logger.warn("Admin not found for join request", { adminEmail });
+                logWarning("Admin not found for join request", { operation: 'requestJoinWarehouse', metadata: { adminEmail } });
                 return { message: 'Admin not found or has no warehouse.', success: false };
             }
 
@@ -364,12 +358,16 @@ export async function requestJoinWarehouse(adminEmail: string): Promise<ActionSt
                 });
 
             if (error) {
-                Sentry.captureException(error);
-                logger.error("Failed to send join request", { error: error.message, adminEmail });
+                logError(error, { operation: 'requestJoinWarehouse_sendNotif', metadata: { adminEmail } });
                 return { message: 'Failed to send request: ' + error.message, success: false };
             }
 
-            logger.info("Join request sent successfully", { adminEmail, requesterId: user.id });
+            Sentry.addBreadcrumb({
+                category: 'notification',
+                message: 'Join request sent successfully',
+                data: { adminEmail, requesterId: user.id },
+                level: 'info'
+            });
             return { message: 'Request sent successfully', success: true };
         }
     );

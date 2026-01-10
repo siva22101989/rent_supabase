@@ -2,6 +2,8 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { getUserWarehouse } from '@/lib/queries';
+import { logError } from './error-logger';
+import * as Sentry from "@sentry/nextjs";
 
   export async function fetchReportData(
     reportType: string,
@@ -13,20 +15,21 @@ import { getUserWarehouse } from '@/lib/queries';
       duesType?: 'all' | 'hamali';
     }
   ) {
-    const supabase = await createClient();
-    const warehouseId = await getUserWarehouse();
+    try {
+      const supabase = await createClient();
+      const warehouseId = await getUserWarehouse();
   
-    // Dynamic import for billing utils to avoid circular dependency issues if any
-    const { calculateFinalRent } = await import('@/lib/billing');
+      // Dynamic import for billing utils to avoid circular dependency issues if any
+      const { calculateFinalRent } = await import('@/lib/billing');
   
-    if (!warehouseId) {
-      throw new Error('Unauthorized');
-    }
+      if (!warehouseId) {
+        throw new Error('Unauthorized');
+      }
   
-    // 0. Customer Dues Details (Single Customer)
-    if (reportType === 'customer-dues-details') {
+      // 0. Customer Dues Details (Single Customer)
+      if (reportType === 'customer-dues-details') {
         if (!filters?.customerId) throw new Error("Customer ID required");
-  
+
         const { data: customer } = await supabase.from('customers').select('*').eq('id', filters.customerId).single();
         if (!customer) throw new Error("Customer not found");
   
@@ -590,5 +593,9 @@ import { getUserWarehouse } from '@/lib/queries';
       return { type: 'unloading-expenses', data: expenses, period: filters };
   }
   
-  return null;
-}
+      return null;
+    } catch (error: any) {
+      logError(error, { operation: 'fetchReportData', metadata: { reportType, filters } });
+      throw error;
+    }
+  }

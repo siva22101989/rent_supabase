@@ -49,11 +49,15 @@ export async function changePassword(prevState: FormState, formData: FormData): 
             const { error } = await supabase.auth.updateUser({ password: password });
 
             if (error) {
-                logger.error("Password change failed", { error: error.message });
+                logError(error, { operation: 'changePassword' });
                 return { message: error.message, success: false };
             }
 
-            logger.info("Password updated successfully");
+            Sentry.addBreadcrumb({
+                category: 'auth',
+                message: 'Password updated successfully',
+                level: 'info'
+            });
             return { message: 'Password updated successfully', success: true };
         }
     );
@@ -143,7 +147,7 @@ export async function createTeamMember(prevState: FormState, formData: FormData)
     return { message: `User ${email} created successfully!`, success: true };
 
   } catch (err: any) {
-    console.error('Create User Error:', err);
+    logError(err, { operation: 'createTeamMember', metadata: { email, role } });
     return { message: err.message || 'Server Error', success: false };
   }
 }
@@ -287,6 +291,7 @@ export async function deactivateTeamMember(userId: string) {
         revalidatePath('/settings/team');
         return { message: "Member deactivated", success: true };
     } catch (e: any) {
+        logError(e, { operation: 'deactivateTeamMember', metadata: { userId } });
         return { message: `Deactivation failed: ${e.message}`, success: false };
     }
 }
@@ -325,7 +330,7 @@ export async function switchWarehouse(warehouseId: string) {
         .eq('id', user.id);
 
     if (error) {
-        console.error('Switch Warehouse Error:', error);
+        logError(error, { operation: 'switchWarehouse', metadata: { warehouseId } });
         return { success: false, message: 'Failed to switch warehouse.' };
     }
 

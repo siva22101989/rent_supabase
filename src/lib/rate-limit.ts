@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
+import { logError } from './error-logger';
 
 interface RateLimitOptions {
   limit?: number; // Max requests
@@ -29,7 +30,7 @@ export async function rateLimit(
     });
 
     if (error) {
-        console.error('Rate limit RPC error:', error);
+        logError(error, { operation: 'checkRateLimit_rpc', metadata: { identifier } });
         // Fail open in case of DB error to prevent blocking users during outages
         // But define this policy: strict or lenient? Lenient for now.
         return { success: true };
@@ -38,7 +39,7 @@ export async function rateLimit(
     return { success: !!success };
 
   } catch (error) {
-     console.error('Rate limit exception:', error);
+     logError(error, { operation: 'checkRateLimit_fatal', metadata: { identifier } });
      return { success: true };
   }
 }

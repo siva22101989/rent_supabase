@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { isSMSEnabled } from '@/lib/sms-settings-actions';
 import { hasSMSPermission } from '@/lib/sms-actions';
+import { logError } from '@/lib/error-logger';
 
 /**
  * Send welcome SMS when inflow is created
@@ -52,7 +53,7 @@ export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettin
             .single();
         
         if (error || !record || !record.customers) {
-            console.error('Failed to fetch record for SMS:', error);
+            logError(error || new Error('Record not found'), { operation: 'sendInflowWelcomeSMS', metadata: { storageRecordId } });
             return { success: false, error: 'Record not found' };
         }
         
@@ -95,7 +96,7 @@ export async function sendInflowWelcomeSMS(storageRecordId: string, bypassSettin
         
         return result;
     } catch (error) {
-        console.error('Error sending inflow SMS:', error);
+        logError(error, { operation: 'sendInflowWelcomeSMS', metadata: { storageRecordId } });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to send SMS',
@@ -148,7 +149,7 @@ export async function sendOutflowConfirmationSMS(transactionId: string, bypassSe
             .single();
         
         if (error || !transaction || !transaction.storage_records) {
-            console.error('Failed to fetch transaction for SMS:', error);
+            logError(error || new Error('Transaction not found'), { operation: 'sendOutflowConfirmationSMS', metadata: { transactionId } });
             return { success: false, error: 'Transaction not found' };
         }
         
@@ -184,7 +185,7 @@ export async function sendOutflowConfirmationSMS(transactionId: string, bypassSe
         
         return result;
     } catch (error) {
-        console.error('Error sending outflow SMS:', error);
+        logError(error, { operation: 'sendOutflowConfirmationSMS', metadata: { transactionId } });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to send SMS',
@@ -233,7 +234,7 @@ export async function sendPaymentConfirmationSMS(paymentId: string) {
             .single();
         
         if (error || !payment || !payment.storage_records) {
-            console.error('Failed to fetch payment for SMS:', error);
+            logError(error || new Error('Payment not found'), { operation: 'sendPaymentConfirmationSMS', metadata: { paymentId } });
             return { success: false, error: 'Payment not found' };
         }
         
@@ -264,7 +265,7 @@ export async function sendPaymentConfirmationSMS(paymentId: string) {
         
         return result;
     } catch (error) {
-        console.error('Error sending payment confirmation SMS:', error);
+        logError(error, { operation: 'sendPaymentConfirmationSMS', metadata: { paymentId } });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to send SMS',
@@ -312,7 +313,7 @@ export async function sendDryingConfirmationSMS(recordId: string, bypassSettings
             .single();
         
         if (error || !record || !record.customers) {
-            console.error('Failed to fetch record for Drying SMS:', error);
+            logError(error || new Error('Record not found'), { operation: 'sendDryingConfirmationSMS', metadata: { recordId } });
             return { success: false, error: 'Record not found' };
         }
         
@@ -344,7 +345,7 @@ export async function sendDryingConfirmationSMS(recordId: string, bypassSettings
         
         return result;
     } catch (error) {
-        console.error('Error sending drying SMS:', error);
+        logError(error, { operation: 'sendDryingConfirmationSMS', metadata: { recordId } });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to send SMS',

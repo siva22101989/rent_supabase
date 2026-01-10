@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { getUserWarehouse } from '@/lib/queries/warehouses';
 import { revalidatePath } from 'next/cache';
+import { logError } from './error-logger';
 
 export async function recordUnloading(formData: {
     customerId: string;
@@ -46,8 +47,8 @@ export async function recordUnloading(formData: {
 
         revalidatePath('/inflow');
         return { success: true, data: unloadingRecord };
-    } catch (error: unknown) {
-        console.error('Error recording unloading:', error);
+    } catch (error: any) {
+        logError(error, { operation: 'recordUnloading', metadata: { formData } });
         return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
@@ -70,7 +71,7 @@ export async function getUnloadedInventory() {
         .order('unload_date', { ascending: false });
 
     if (error) {
-        console.error('Error fetching unloaded inventory:', error);
+        logError(error, { operation: 'getUnloadedInventory', metadata: { warehouseId } });
         return [];
     }
 
@@ -179,8 +180,8 @@ export async function movePlotToStorage(formData: {
         revalidatePath('/inflow');
         revalidatePath('/storage');
         return { success: true, data: storageRecord };
-    } catch (error: unknown) {
-        console.error('Error moving plot to storage:', error);
+    } catch (error: any) {
+        logError(error, { operation: 'movePlotToStorage', metadata: { formData } });
         return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
@@ -205,7 +206,7 @@ export async function getPlotInventory() {
         .order('unload_date', { ascending: true });
 
     if (error) {
-        console.error('Error fetching plot inventory:', error);
+        logError(error, { operation: 'getPlotInventory', metadata: { warehouseId } });
         return [];
     }
 
@@ -255,7 +256,7 @@ export async function getUnloadingHistory(limit = 20, offset = 0) {
         .range(offset, offset + limit - 1);
 
     if (error) {
-        console.error('Error fetching unloading history:', error);
+        logError(error, { operation: 'getUnloadingHistory', metadata: { warehouseId, limit, offset } });
         return [];
     }
 

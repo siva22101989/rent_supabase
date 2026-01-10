@@ -8,12 +8,12 @@ import * as Sentry from "@sentry/nextjs";
 import { createClient } from '@/utils/supabase/server';
 import { getCustomers, getUserWarehouse } from '@/lib/queries';
 import { saveCustomer } from '@/lib/data';
-import { logError } from '@/lib/error-logger';
+import { logError, logWarning } from '@/lib/error-logger';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { FormState } from './common';
 import { CommonSchemas } from '../validation';
 
-const { logger } = Sentry;
+
 
 const CustomerSchema = z.object({
     name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -53,7 +53,7 @@ export async function addCustomer(prevState: FormState, formData: FormData): Pro
             if (!validatedFields.success) {
                 const error = validatedFields.error.flatten().fieldErrors;
                 const message = Object.values(error).flat().join(', ');
-                logger.warn("Customer validation failed", { errors: error });
+                logWarning("Customer validation failed", { operation: 'addCustomer', metadata: { errors: error } });
                 return { message: `Invalid data: ${message}`, success: false, data: rawData };
             }
 
@@ -82,13 +82,18 @@ export async function addCustomer(prevState: FormState, formData: FormData): Pro
 
                      if (existingUser) {
                          linkedUserId = existingUser.id;
-                         logger.info("Linked to existing phone user", { userId: linkedUserId });
+                         Sentry.addBreadcrumb({
+                             category: 'auth',
+                             message: 'Linked to existing phone user',
+                             data: { userId: linkedUserId },
+                             level: 'info'
+                         });
                      }
                      // NOTE: We do NOT create dummy users anymore. 
                      // We wait for the real user to sign up via Portal.
                      // When they sign up, the Trigger will link them (if this Customer exists).
                  } catch (e) {
-                     logger.error("Error in auto-link check", { error: e });
+                     logError(e, { operation: 'addCustomer_autoLink', metadata: { phone: rest.phone } });
                  }
             }
 
@@ -105,11 +110,15 @@ export async function addCustomer(prevState: FormState, formData: FormData): Pro
                 await saveCustomer(newCustomer);
                 revalidatePath('/customers');
                 revalidatePath('/inflow');
-                logger.info("Customer added successfully", { customerId: newCustomer.id });
+                Sentry.addBreadcrumb({
+                    category: 'customer',
+                    message: 'Customer added successfully',
+                    data: { customerId: newCustomer.id },
+                    level: 'info'
+                });
                 return { message: 'Customer added successfully.', success: true };
             } catch (error: any) {
-                Sentry.captureException(error);
-                logger.error("Failed to add customer", { error: error.message });
+                logError(error, { operation: 'addCustomer', metadata: { customerId: newCustomer.id } });
                 return { message: `Failed to add customer: ${error.message}`, success: false, data: rawData };
             }
         }

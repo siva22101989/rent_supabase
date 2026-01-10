@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { getUserWarehouse } from '@/lib/queries';
+import { logError } from './error-logger';
 
 export async function restoreFromBackup(backupData: any) {
   const supabase = await createClient();
@@ -129,7 +130,10 @@ export async function restoreFromBackup(backupData: any) {
     }
 
     if (results.errors.length > 0) {
-        console.error("Restore partial failure:", results.errors);
+        logError(new Error("Restore partial failure"), { 
+            operation: 'restoreFromBackup', 
+            metadata: { errors: results.errors, details: results } 
+        });
         return { success: false, message: `Partial Restore. Errors: ${results.errors.join(', ')}`, details: results };
     }
 
@@ -137,7 +141,7 @@ export async function restoreFromBackup(backupData: any) {
     return { success: true, message: 'Restore executed successfully.', details: results };
 
   } catch (error: any) {
-    console.error("Restore fatal error:", error);
+    logError(error, { operation: 'restoreFromBackup_fatal' });
     return { success: false, message: `Fatal Error: ${error.message}` };
   }
 }

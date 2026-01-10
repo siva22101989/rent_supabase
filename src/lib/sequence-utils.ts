@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
+import { logError } from './error-logger';
 import { getUserWarehouse } from '@/lib/data';
 
 /**
@@ -36,7 +37,7 @@ export async function getNextInvoiceNumber(type: 'inflow' | 'outflow'): Promise<
     const warehouseId = await getUserWarehouse();
 
     if (!warehouseId) {
-        console.error('getNextInvoiceNumber: No warehouse ID found');
+        logError(new Error("No warehouse assigned to user"), { operation: 'getNextInvoiceNumber' });
         throw new Error("No warehouse assigned to user");
     }
 
@@ -49,14 +50,9 @@ export async function getNextInvoiceNumber(type: 'inflow' | 'outflow'): Promise<
     });
 
     if (error) {
-        console.error('Error generating invoice number:', {
-            error: error,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-            warehouseId,
-            type
+        logError(error, {
+            operation: 'getNextInvoiceNumber',
+            metadata: { warehouseId, type }
         });
         throw new Error(`Failed to generate ${type} invoice number: ${error.message || JSON.stringify(error)}`);
     }

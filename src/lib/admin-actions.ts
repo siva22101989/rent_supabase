@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import * as Sentry from "@sentry/nextjs";
 import { getUserWarehouse } from './queries';
+import { logError } from '@/lib/error-logger';
 
 const { logger } = Sentry;
 
@@ -54,7 +55,7 @@ export async function updateUserRole(userId: string, newRole: string) {
         .eq('id', userId);
 
     if (error) {
-        Sentry.captureException(error);
+        logError(error, { operation: 'updateUserRole', metadata: { userId, newRole } });
         return { success: false, message: error.message };
     }
 
@@ -78,7 +79,7 @@ export async function bulkUpdateUserRoles(userIds: string[], newRole: string) {
     const { error } = await query;
 
     if (error) {
-        Sentry.captureException(error);
+        logError(error, { operation: 'bulkUpdateUserRoles', metadata: { count: userIds.length, newRole } });
         return { success: false, message: error.message };
     }
 
@@ -102,7 +103,7 @@ export async function bulkDeleteUsers(userIds: string[]) {
     const { error } = await query;
 
     if (error) {
-        Sentry.captureException(error);
+        logError(error, { operation: 'bulkDeleteUsers', metadata: { count: userIds.length } });
         return { success: false, message: error.message };
     }
 
@@ -126,7 +127,7 @@ export async function deleteWarehouseAction(warehouseId: string) {
         .eq('id', warehouseId);
 
     if (error) {
-        Sentry.captureException(error);
+        logError(error, { operation: 'deleteWarehouseAction', metadata: { warehouseId } });
         return { success: false, message: error.message };
     }
 
@@ -158,7 +159,7 @@ export async function updateWarehouseDetails(formData: FormData) {
         .eq('id', warehouseId);
 
     if (error) {
-        Sentry.captureException(error);
+        logError(error, { operation: 'updateWarehouseDetails', metadata: { warehouseId } });
         throw new Error(error.message);
     }
 
@@ -195,7 +196,7 @@ export async function assignWarehousePlan(warehouseId: string, planTier: string)
         }, { onConflict: 'warehouse_id' });
 
     if (subError) {
-        Sentry.captureException(subError);
+        logError(subError, { operation: 'assignWarehousePlan', metadata: { warehouseId, planTier } });
         return { success: false, message: subError.message };
     }
 
@@ -226,7 +227,7 @@ export async function addCrop(formData: FormData) {
     });
 
     if (error) {
-        Sentry.captureException(error);
+        logError(error, { operation: 'addCrop', metadata: { warehouseId, name } });
         throw new Error('Failed to add crop');
     }
 

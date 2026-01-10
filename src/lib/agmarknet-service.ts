@@ -10,6 +10,7 @@
  */
 
 import { createClient } from '@/utils/supabase/server';
+import { logError, logWarning } from './error-logger';
 
 // AGMARKNET API Configuration
 const AGMARKNET_API_BASE = 'https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070';
@@ -119,14 +120,20 @@ export async function fetchCommodityPrices(
         console.warn('[AGMARKNET] Rate limit exceeded (429). Switching to sample data.');
         return [];
       }
-      console.error('[AGMARKNET] API error:', response.status, response.statusText);
+      logError(new Error(`[AGMARKNET] API error: ${response.status}`), { 
+          operation: 'agmarknet_fetch', 
+          metadata: { status: response.status, text: response.statusText, commodity } 
+      });
       return [];
     }
 
     const data: AgmarknetAPIResponse = await response.json();
 
     if (data.status !== 'ok' || !data.target_bucket?.records) {
-      console.error('[AGMARKNET] Invalid response:', data.message);
+      logWarning('[AGMARKNET] Invalid response', { 
+          operation: 'agmarknet_fetch', 
+          metadata: { message: data.message, commodity } 
+      });
       return [];
     }
 
@@ -148,7 +155,7 @@ export async function fetchCommodityPrices(
     return prices;
 
   } catch (error) {
-    console.error('[AGMARKNET] Fetch error:', error);
+    logError(error, { operation: 'agmarknet_fetch_fatal', metadata: { commodity } });
     return [];
   }
 }
@@ -183,7 +190,7 @@ export async function getCachedPrices(
     const { data, error } = await query;
 
     if (error) {
-      console.error('[AGMARKNET] Cache fetch error:', error);
+      logError(error, { operation: 'getCachedPrices', metadata: { commodity, state } });
       // Return sample data instead of empty array
       return getSampleData(commodity);
     }
@@ -224,7 +231,7 @@ export async function getCachedPrices(
     */
 
   } catch (error) {
-    console.error('[AGMARKNET] Cache error:', error);
+    logError(error, { operation: 'getCachedPrices_fatal', metadata: { commodity, state } });
     return getSampleData(commodity);
   }
 }
@@ -321,12 +328,12 @@ export async function storePrices(prices: CommodityPrice[]): Promise<void> {
       });
 
     if (error) {
-      console.error('[AGMARKNET] Store error:', error);
+      logError(error, { operation: 'storePrices' });
     } else {
       // Stored price records in cache
     }
   } catch (error) {
-    console.error('[AGMARKNET] Store error:', error);
+    logError(error, { operation: 'storePrices_fatal' });
   }
 }
 
@@ -444,7 +451,7 @@ function convertDateFormat(dateStr: string): string {
     const [day, month, year] = dateStr.split('/');
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   } catch (error) {
-    console.error('[AGMARKNET] Date conversion error:', dateStr, error);
+    logError(error, { operation: 'convertDateFormat', metadata: { dateStr } });
     return new Date().toISOString().split('T')[0]; // Fallback to today
   }
 }
@@ -464,7 +471,7 @@ export async function getAvailableCommodities(): Promise<string[]> {
       .order('commodity');
 
     if (error) {
-      console.error('[AGMARKNET] Commodities fetch error:', error);
+      logError(error, { operation: 'getAvailableCommodities' });
       return [];
     }
 
@@ -473,7 +480,7 @@ export async function getAvailableCommodities(): Promise<string[]> {
     return uniqueCommodities;
 
   } catch (error) {
-    console.error('[AGMARKNET] Commodities error:', error);
+    logError(error, { operation: 'getAvailableCommodities_fatal' });
     return [];
   }
 }
@@ -505,7 +512,7 @@ export async function getMarketsForCommodity(
     const { data, error } = await query;
 
     if (error) {
-      console.error('[AGMARKNET] Markets fetch error:', error);
+      logError(error, { operation: 'getMarketsForCommodity', metadata: { commodity, state } });
       return [];
     }
 
@@ -521,7 +528,7 @@ export async function getMarketsForCommodity(
     return uniqueMarkets || [];
 
   } catch (error) {
-    console.error('[AGMARKNET] Markets error:', error);
+    logError(error, { operation: 'getMarketsForCommodity_fatal', metadata: { commodity, state } });
     return [];
   }
 }

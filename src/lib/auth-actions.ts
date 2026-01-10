@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { logError, logWarning } from '@/lib/error-logger';
 
 export async function createTrialSubscription(userId: string, planTier: string = 'starter', warehouseIdOverride?: string) {
   const supabase = await createClient();
@@ -27,7 +28,7 @@ export async function createTrialSubscription(userId: string, planTier: string =
   }
   
   if (!warehouseId) {
-      console.error('Failed to find warehouse for new user:', userId);
+      logWarning('Failed to find warehouse for new user', { operation: 'createTrialSubscription', metadata: { userId } });
       return { success: false, message: 'Could not find warehouse to attach subscription.' };
   }
     
@@ -39,7 +40,7 @@ export async function createTrialSubscription(userId: string, planTier: string =
     .single();
     
   if (!plan) {
-      console.error('Invalid plan tier requested:', planTier);
+      logWarning('Invalid plan tier requested', { operation: 'createTrialSubscription', metadata: { planTier } });
       return { success: false, message: 'Invalid plan selected.' };
   }
     
@@ -57,7 +58,7 @@ export async function createTrialSubscription(userId: string, planTier: string =
   }, { onConflict: 'warehouse_id' });
   
   if (error) {
-      console.error('Error creating trial subscription:', error);
+      logError(error, { operation: 'createTrialSubscription', metadata: { userId, warehouseId } });
       return { success: false, message: error.message };
   }
   
