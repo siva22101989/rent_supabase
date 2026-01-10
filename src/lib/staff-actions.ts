@@ -34,27 +34,41 @@ export async function toggleWarehouseAccess(
         }
     }
 
-    // 2. Check if access already exists
+    // 2. Check for existing assignment (including soft deleted)
     const { data: existingAccess } = await supabase
         .from('warehouse_assignments')
-        .select('id')
+        .select('id, deleted_at')
         .eq('user_id', userId)
         .eq('warehouse_id', warehouseId)
         .single();
 
-    if (existingAccess) {
-        // Revoke Access
+    if (existingAccess && !existingAccess.deleted_at) {
+        // Active assignment exists -> Revoke Access (Soft Delete)
         const { error } = await supabase
             .from('warehouse_assignments')
-            .delete()
+            .update({ deleted_at: new Date().toISOString() })
             .eq('id', existingAccess.id);
 
         if (error) return { message: 'Failed to revoke access: ' + error.message, success: false };
         
         revalidatePath('/settings/team');
         return { message: 'Access revoked successfully', success: true };
+    } else if (existingAccess && existingAccess.deleted_at) {
+        // Soft deleted assignment exists -> Restore Access
+        const { error } = await supabase
+            .from('warehouse_assignments')
+            .update({ 
+                deleted_at: null,
+                role: role // Update role just in case
+            })
+            .eq('id', existingAccess.id);
+
+        if (error) return { message: 'Failed to restore access: ' + error.message, success: false };
+
+        revalidatePath('/settings/team');
+        return { message: 'Access granted successfully', success: true };
     } else {
-        // Grant Access
+        // No assignment exists -> Grant New Access
         const { error } = await supabase
             .from('warehouse_assignments')
             .insert({

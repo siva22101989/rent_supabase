@@ -9,7 +9,7 @@ export const getDashboardMetrics = cache(async () => {
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return null;
 
-    const { data: lots } = await supabase.from('warehouse_lots').select('capacity, current_stock').eq('warehouse_id', warehouseId);
+    const { data: lots } = await supabase.from('warehouse_lots').select('capacity, current_stock').eq('warehouse_id', warehouseId).is('deleted_at', null);
     const { count: activeRecordsCount } = await supabase
         .from('storage_records')
         .select('*', { count: 'exact', head: true })

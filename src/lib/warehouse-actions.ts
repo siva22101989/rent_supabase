@@ -308,7 +308,7 @@ export async function leaveWarehouse(warehouseId: string): Promise<ActionState> 
 
      const { error } = await supabase
         .from('warehouse_assignments')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('user_id', user.id)
         .eq('warehouse_id', warehouseId);
 

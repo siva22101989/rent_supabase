@@ -66,7 +66,11 @@ export async function deleteLot(id: string) {
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) throw new Error('Unauthorized');
 
-    const { error } = await supabase.from('warehouse_lots').delete().eq('id', id).eq('warehouse_id', warehouseId);
+    const { error } = await supabase
+        .from('warehouse_lots')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('warehouse_id', warehouseId);
     if (error) throw new Error('Failed to delete lot');
     revalidatePath('/settings/lots');
 }
@@ -195,7 +199,7 @@ export async function deleteCrop(cropId: string) {
 
   const { error } = await supabase
     .from('crops')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq('id', cropId)
     .eq('warehouse_id', warehouseId);
 

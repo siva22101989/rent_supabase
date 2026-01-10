@@ -122,7 +122,7 @@ export const getAvailableLots = cache(async () => {
     const warehouseId = await getUserWarehouse();
     if (!warehouseId) return [];
 
-    const { data } = await supabase.from('warehouse_lots').select('*').eq('warehouse_id', warehouseId).order('name');
+    const { data } = await supabase.from('warehouse_lots').select('*').eq('warehouse_id', warehouseId).is('deleted_at', null).order('name');
     return data || [];
 });
 
