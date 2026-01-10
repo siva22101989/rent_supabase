@@ -7,7 +7,7 @@ import { getAuthUser } from '@/lib/queries/auth';
 
 import { createClient } from '@/utils/supabase/server'; // might be needed for Sentry context? Service handles DB.
 import { checkRateLimit } from '@/lib/rate-limit';
-import { logError } from '@/lib/error-logger';
+import { logError, logWarning } from '@/lib/error-logger';
 import { ApiResponse } from '@/lib/api-response';
 import { PaymentService } from '@/lib/services/payments';
 
@@ -50,7 +50,7 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
             if (!validatedFields.success) {
                 const error = validatedFields.error.flatten().fieldErrors;
                 const message = Object.values(error).flat().join(', ');
-                logger.warn("Payment validation failed", { errors: error });
+                logWarning("Payment validation failed", { operation: 'addPayment', metadata: { errors: error } });
                 return { message: `Invalid data: ${message}`, success: false, data: rawData };
             }
             
@@ -104,8 +104,10 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
                 
                 return { message: 'Payment recorded successfully!', success: true };
             } catch (error: any) {
-                Sentry.captureException(error);
-                logger.error("Failed to record payment", { error: error.message, recordId });
+                logError(error, {
+                    operation: 'addPayment',
+                    metadata: { recordId: rawData.recordId, amount: paymentAmount }
+                });
                 return { message: `Failed to record payment: ${error.message}`, success: false, data: rawData };
             }
         }
@@ -250,10 +252,12 @@ export async function processBulkPayment(
                     }
                 };
 
-            } catch (error) {
+            } catch (error: any) {
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                Sentry.captureException(error);
-                logger.error("Bulk payment processing failed", { error: errorMessage, customerId });
+                logError(error, {
+                    operation: 'processBulkPayment',
+                    metadata: { customerId, totalAmount }
+                });
                 return { 
                     message: `Failed to process bulk payment: ${errorMessage}`, 
                     success: false 

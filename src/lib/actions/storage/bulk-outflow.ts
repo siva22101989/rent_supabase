@@ -252,8 +252,15 @@ Thank you.`;
                 };
 
             } catch (err: any) {
-                Sentry.captureException(err);
-                logger.error("Bulk outflow failed", { error: err.message, customerId });
+                logError(err, {
+                    operation: 'processBulkOutflow',
+                    userId: 'unknown', // Server Action context usually has access to auth.uid() upstream, but here we can rely on error-logger to extract from Sentry context or pass explicit if available.
+                    metadata: {
+                         customerId,
+                         totalBagsToWithdraw,
+                         processedCount
+                    }
+                });
                 return { success: false, message: `Bulk processing failed: ${err.message}` };
             }
         }

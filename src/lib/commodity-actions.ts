@@ -16,6 +16,7 @@ import {
   getMarketsForCommodity,
   type CommodityPrice,
 } from '@/lib/agmarknet-service';
+import { logError } from '@/lib/error-logger';
 
 // Helper for error messages
 function getErrorMessage(error: unknown): string {
@@ -58,7 +59,7 @@ export async function addToWatchlist(
       });
 
     if (error) {
-      console.error('[WATCHLIST] Add error:', error);
+      logError(error, { operation: 'addToWatchlist', metadata: { warehouseId, commodity } });
       return { success: false, message: error.message };
     }
 
@@ -67,7 +68,7 @@ export async function addToWatchlist(
     
     return { success: true, message: 'Added to watchlist' };
   } catch (error: unknown) {
-    console.error('[WATCHLIST] Add error:', error);
+    logError(error, { operation: 'addToWatchlist_catch', metadata: { warehouseId, commodity } });
     return { success: false, message: getErrorMessage(error) || 'Failed to add to watchlist' };
   }
 }
@@ -92,7 +93,7 @@ export async function removeFromWatchlist(watchlistId: string) {
       .eq('id', watchlistId);
 
     if (error) {
-      console.error('[WATCHLIST] Remove error:', error);
+      logError(error, { operation: 'removeFromWatchlist', metadata: { watchlistId } });
       return { success: false, message: error.message };
     }
 
@@ -101,7 +102,7 @@ export async function removeFromWatchlist(watchlistId: string) {
     
     return { success: true, message: 'Removed from watchlist' };
   } catch (error: unknown) {
-    console.error('[WATCHLIST] Remove error:', error);
+    logError(error, { operation: 'removeFromWatchlist_catch', metadata: { watchlistId } });
     return { success: false, message: getErrorMessage(error) || 'Failed to remove from watchlist' };
   }
 }
@@ -139,7 +140,7 @@ export async function updateWatchlistItem(
       .eq('id', watchlistId);
 
     if (error) {
-      console.error('[WATCHLIST] Update error:', error);
+      logError(error, { operation: 'updateWatchlistItem', metadata: { watchlistId } });
       return { success: false, message: error.message };
     }
 
@@ -148,7 +149,7 @@ export async function updateWatchlistItem(
     
     return { success: true, message: 'Watchlist updated' };
   } catch (error: unknown) {
-    console.error('[WATCHLIST] Update error:', error);
+    logError(error, { operation: 'updateWatchlistItem_catch', metadata: { watchlistId } });
     return { success: false, message: getErrorMessage(error) || 'Failed to update watchlist' };
   }
 }
@@ -173,13 +174,13 @@ export async function getUserWatchlist(warehouseId: string) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[WATCHLIST] Fetch error:', error);
+      logError(error, { operation: 'getUserWatchlist', metadata: { warehouseId } });
       return { success: false, data: [], message: error.message };
     }
 
     return { success: true, data: data || [], message: 'Watchlist fetched' };
   } catch (error: unknown) {
-    console.error('[WATCHLIST] Fetch error:', error);
+    logError(error, { operation: 'getUserWatchlist_catch', metadata: { warehouseId } });
     return { success: false, data: [], message: getErrorMessage(error) || 'Failed to fetch watchlist' };
   }
 }
@@ -206,7 +207,7 @@ export async function getCommodityPricesWithTrend(
       message: 'Prices fetched successfully',
     };
   } catch (error: unknown) {
-    console.error('[COMMODITY] Fetch error:', error);
+    logError(error, { operation: 'getCommodityPricesWithTrend', metadata: { commodity, state } });
     return {
       success: false,
       data: { prices: [], trend: null },
@@ -280,7 +281,7 @@ export async function getRecommendation(commodity: string, state?: string) {
     };
 
   } catch (error: unknown) {
-    console.error('[RECOMMENDATION] Error:', error);
+    logError(error, { operation: 'getRecommendation', metadata: { commodity, state } });
     return {
       action: 'MONITOR' as const,
       confidence: 'LOW' as const,
@@ -315,7 +316,7 @@ export async function searchCommodities(query: string) {
       message: 'Commodities found',
     };
   } catch (error: unknown) {
-    console.error('[SEARCH] Error:', error);
+    logError(error, { operation: 'searchCommodities', metadata: { query } });
     return {
       success: false,
       data: [],
@@ -363,7 +364,7 @@ export async function getMarkets(commodity: string, state?: string) {
       message: 'Markets found',
     };
   } catch (error: unknown) {
-    console.error('[MARKETS] Error:', error);
+    logError(error, { operation: 'getMarkets', metadata: { commodity, state } });
     return {
       success: false,
       data: [],

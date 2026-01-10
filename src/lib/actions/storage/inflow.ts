@@ -12,6 +12,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { getNextInvoiceNumber } from '@/lib/sequence-utils';
 import { FormState } from '../common';
 import type { StorageRecord, Payment } from '@/lib/definitions'; // Updated import path
+import { logError, logWarning } from '@/lib/error-logger';
 
 const { logger } = Sentry;
 
@@ -21,7 +22,8 @@ const FinalizeDryingSchema = z.object({
 });
 
 export async function finalizePlotDrying(prevState: FormState, formData: FormData) {
-  const validatedFields = FinalizeDryingSchema.safeParse({
+  try {
+      const validatedFields = FinalizeDryingSchema.safeParse({
       recordId: formData.get('recordId'),
       finalBags: formData.get('finalBags'),
   });
@@ -93,6 +95,16 @@ export async function finalizePlotDrying(prevState: FormState, formData: FormDat
 
   revalidatePath('/storage');
   return { message: `Drying finalized. Stock updated to ${finalBags} bags.`, success: true, recordId };
+  } catch (error: any) {
+      logError(error, {
+          operation: 'finalizePlotDrying',
+          metadata: {
+              recordId: formData.get('recordId'),
+              finalBags: formData.get('finalBags')
+          }
+      });
+      return { message: `Failed to finalize drying: ${error.message}`, success: false };
+  }
 }
 
 const InflowSchema = z.object({
@@ -171,7 +183,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
           if (!validatedFields.success) {
               const error = validatedFields.error.flatten().fieldErrors;
               const message = Object.values(error).flat().join(', ');
-              logger.warn("Inflow validation failed", { errors: error });
+              logWarning("Inflow validation failed", { operation: 'addInflow', metadata: { errors: error, customerId } });
               return { message: `Invalid data: ${message}`, success: false, data: rawData };
           }
 
@@ -199,13 +211,13 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
               let inflowBags = 0;
               if (inflowType === 'Plot') {
                   if (!plotBags || plotBags <= 0) {
-                      logger.warn("Invalid plot bags for plot inflow", { customerId: rest.customerId });
+                      logWarning("Invalid plot bags for plot inflow", { operation: 'addInflow', metadata: { customerId: rest.customerId } });
                       return { message: "Plot Bags must be a positive number for 'Plot' inflow.", success: false };
                   }
                   inflowBags = plotBags;
               } else { // 'Direct'
                   if (!bagsStored || bagsStored <= 0) {
-                      logger.warn("Invalid bags stored for direct inflow", { customerId: rest.customerId });
+                      logWarning("Invalid bags stored for direct inflow", { operation: 'addInflow', metadata: { customerId: rest.customerId } });
                       return { message: "Number of Bags must be a positive number for 'Direct' inflow.", success: false };
                   }
                   inflowBags = bagsStored;
@@ -225,7 +237,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                       const available = capacity - current;
                       
                       if (inflowBags > available) {
-                          logger.warn("Lot capacity exceeded during inflow", { lotId: rest.lotId, requested: inflowBags, available });
+                          logWarning("Lot capacity exceeded during inflow", { operation: 'addInflow', metadata: { lotId: rest.lotId, requested: inflowBags, available } });
                           return { 
                               message: `Lot is full! Available: ${available} bags. You tried to add ${inflowBags}.`, 
                               success: false,
@@ -315,8 +327,10 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
               logger.info("Inflow record created successfully", { recordId: savedRecord.id });
               revalidatePath('/storage');
           } catch (error: any) {
-              Sentry.captureException(error);
-              logger.error('Add Inflow Error:', { error: error.message, customerId: rest.customerId });
+              logError(error, {
+                  operation: 'addInflow',
+                  metadata: { customerId: rest.customerId, commodity: rest.commodityDescription }
+              });
               return { message: `Failed to create record: ${error.message || 'Unknown error'}`, success: false, data: rawData };
           }
           if (savedRecordId) {

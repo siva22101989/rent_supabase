@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { getUserWarehouse } from "@/lib/queries";
 import { revalidatePath } from 'next/cache';
+import { logError } from '@/lib/error-logger';
 
 export async function addLot(formData: FormData) {
   const supabase = await createClient();
@@ -21,7 +22,10 @@ export async function addLot(formData: FormData) {
     status: 'Active'
   });
 
-  if (error) throw new Error('Failed to add lot');
+  if (error) {
+    logError(error, { operation: 'addLot', metadata: { warehouseId, name } });
+    throw new Error('Failed to add lot');
+  }
   revalidatePath('/settings/lots');
 }
 
@@ -54,7 +58,7 @@ export async function bulkAddLots(formData: FormData) {
     const { error } = await supabase.from('warehouse_lots').insert(lots);
   
     if (error) {
-        console.error(error);
+        logError(error, { operation: 'bulkAddLots', metadata: { warehouseId } });
         throw new Error('Failed to bulk add lots');
     }
   
@@ -71,7 +75,10 @@ export async function deleteLot(id: string) {
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
         .eq('warehouse_id', warehouseId);
-    if (error) throw new Error('Failed to delete lot');
+    if (error) {
+        logError(error, { operation: 'deleteLot', metadata: { id } });
+        throw new Error('Failed to delete lot');
+    }
     revalidatePath('/settings/lots');
 }
 
@@ -104,7 +111,7 @@ export async function addLotsFromList(formData: FormData) {
     const { error } = await supabase.from('warehouse_lots').insert(lots);
   
     if (error) {
-        console.error(error);
+        logError(error, { operation: 'addLotsFromList', metadata: { warehouseId } });
         throw new Error('Failed to add lots from list');
     }
   
@@ -134,7 +141,7 @@ export async function updateLot(lotId: string, formData: FormData) {
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error updating lot:', error);
+    logError(error, { operation: 'updateLot', metadata: { lotId } });
     throw new Error('Failed to update lot');
   }
 
@@ -169,7 +176,7 @@ export async function updateCrop(cropId: string, formData: FormData) {
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error updating crop:', error);
+    logError(error, { operation: 'updateCrop', metadata: { cropId } });
     throw new Error('Failed to update crop');
   }
 
@@ -204,7 +211,7 @@ export async function deleteCrop(cropId: string) {
     .eq('warehouse_id', warehouseId);
 
   if (error) {
-    console.error('Error deleting crop:', error);
+    logError(error, { operation: 'deleteCrop', metadata: { cropId } });
     throw new Error('Failed to delete crop');
   }
 

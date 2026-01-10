@@ -12,7 +12,7 @@ import { getStorageRecord, getCustomer } from '@/lib/queries';
 import { updateStorageRecord, addPaymentToRecord, saveWithdrawalTransaction } from '@/lib/data';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { getNextInvoiceNumber } from '@/lib/sequence-utils';
-import { logError } from '@/lib/error-logger';
+import { logError, logWarning } from '@/lib/error-logger';
 import { BillingService } from '@/lib/billing';
 import { FormState } from '../common';
 import type { StorageRecord } from '@/lib/definitions';
@@ -59,7 +59,7 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
             if (!validatedFields.success) {
                 const error = validatedFields.error.flatten().fieldErrors;
                 const message = Object.values(error).flat().join(', ');
-                logger.warn("Outflow validation failed", { errors: error });
+                logWarning("Outflow validation failed", { operation: 'addOutflow', metadata: { errors: error } });
                 return { message: `Invalid data: ${message}`, success: false, data: rawData };
             }
             
@@ -69,12 +69,12 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
             const originalRecord = await getStorageRecord(recordId);
 
             if (!originalRecord) {
-                logger.error("Storage record not found for outflow", { recordId });
+                logError(new Error("Storage record not found for outflow"), { operation: 'addOutflow', metadata: { recordId } });
                 return { message: 'Record not found.', success: false, data: rawData };
             }
 
             if (bagsToWithdraw > originalRecord.bagsStored) {
-                logger.warn("Attempted to withdraw more bags than available", { recordId, available: originalRecord.bagsStored, requested: bagsToWithdraw });
+                logWarning("Attempted to withdraw more bags than available", { operation: 'addOutflow', metadata: { recordId, available: originalRecord.bagsStored, requested: bagsToWithdraw } });
                 return { message: 'Cannot withdraw more bags than are in storage.', success: false, data: rawData };
             }
 
@@ -149,8 +149,10 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                      revalidatePath(`/customers/${originalRecord.customerId}`);
                 }
             } catch (error: any) {
-                Sentry.captureException(error);
-                logger.error("Failed to record outflow", { error: error.message, recordId });
+                logError(error, {
+                    operation: 'addOutflow',
+                    metadata: { recordId, bagsToWithdraw }
+                });
                 throw error; // Or return error state
             }
             redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
@@ -287,6 +289,10 @@ export async function updateOutflow(transactionId: string, formData: FormData) {
         return { success: true, message: 'Outflow updated successfully' };
 
     } catch (e: any) {
+         logError(e, {
+             operation: 'updateOutflow',
+             metadata: { transactionId }
+         });
          return { success: false, message: e.message };
     }
 }

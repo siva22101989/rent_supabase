@@ -44,8 +44,7 @@ export async function getAnomalyDetection() {
         logger.info("Anomaly detection completed", { count: result.anomalies.length });
         return { success: true, anomalies: result.anomalies };
       } catch (error: any) {
-        Sentry.captureException(error);
-        logger.error("Anomaly detection failed", { error: error.message });
+        logError(error, { operation: 'getAnomalyDetection' });
         return { success: false, anomalies: 'An error occurred while analyzing records.' };
       }
     }
@@ -98,7 +97,12 @@ export async function updateStorageRecordAction(recordId: string, prevState: For
         storageStartDate: new Date(validatedFields.data.storageStartDate)
     };
 
-    await updateStorageRecord(recordId, dataToUpdate);
+    try {
+        await updateStorageRecord(recordId, dataToUpdate);
+    } catch (error: any) {
+        logError(error, { operation: 'updateStorageRecordAction', metadata: { recordId } });
+        return { message: `Failed to update record: ${error.message}`, success: false, data: rawData };
+    }
 
     revalidatePath('/storage');
     revalidatePath('/payments/pending');
@@ -200,6 +204,7 @@ export async function deleteStorageRecordAction(recordId: string): Promise<FormS
     revalidatePath('/payments/pending');
     return { message: 'Record deleted successfully.', success: true };
   } catch (error: any) {
+    logError(error, { operation: 'deleteStorageRecordAction', metadata: { recordId } });
     return { message: error.message || 'Failed to delete record.', success: false };
   }
 }
@@ -212,6 +217,7 @@ export async function restoreStorageRecordAction(recordId: string): Promise<Form
     revalidatePath('/payments/pending');
     return { message: 'Record restored successfully.', success: true };
   } catch (error: any) {
+    logError(error, { operation: 'restoreStorageRecordAction', metadata: { recordId } });
     return { message: error.message || 'Failed to restore record.', success: false };
   }
 }

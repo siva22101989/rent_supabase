@@ -41,10 +41,14 @@ export async function addExpense(prevState: FormState, formData: FormData): Prom
         date: new Date(validatedFields.data.date),
     };
 
-    await saveExpense(newExpense);
-
-    revalidatePath('/expenses');
-    return { message: 'Expense added successfully.', success: true };
+    try {
+        await saveExpense(newExpense);
+        revalidatePath('/expenses');
+        return { message: 'Expense added successfully.', success: true };
+    } catch (error: any) {
+        logError(error, { operation: 'addExpense', metadata: { amount: rawData.amount } });
+        return { message: `Failed to add expense: ${error.message}`, success: false, data: rawData };
+    }
 }
 
 export async function updateExpenseAction(expenseId: string, prevState: FormState, formData: FormData): Promise<FormState> {
@@ -70,7 +74,8 @@ export async function updateExpenseAction(expenseId: string, prevState: FormStat
     await updateExpense(expenseId, dataToUpdate);
     revalidatePath('/expenses');
     return { message: 'Expense updated successfully.', success: true };
-  } catch (error) {
+  } catch (error: any) {
+    logError(error, { operation: 'updateExpenseAction', metadata: { expenseId } });
     return { message: 'Failed to update expense.', success: false };
   }
 }
@@ -156,7 +161,8 @@ export async function deleteExpenseAction(expenseId: string): Promise<FormState>
     await deleteExpense(expenseId);
     revalidatePath('/expenses');
     return { message: 'Expense deleted successfully.', success: true };
-  } catch (error) {
+  } catch (error: any) {
+    logError(error, { operation: 'deleteExpenseAction', metadata: { expenseId } });
     return { message: 'Failed to delete expense.', success: false };
   }
 }
