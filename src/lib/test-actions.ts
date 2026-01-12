@@ -14,6 +14,7 @@ export async function sendTestNotification(type: 'info' | 'warning' | 'error' | 
         '🔔 Test Notification',
         `This is a test notification to verify real-time alerts. Sent at ${new Date().toLocaleTimeString()}`,
         type,
+        'system',
         user.id,
         '/dashboard'
     );
