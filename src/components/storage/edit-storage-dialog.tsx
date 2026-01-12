@@ -223,24 +223,29 @@ export function EditStorageDialog({
                                 </div>
                             </div>
                         )}
-                        <div className="grid gap-2">
-                            <Label htmlFor="commodityDescription">Commodity Description *</Label>
-                            <Input
-                                id="commodityDescription"
-                                name="commodityDescription"
-                                defaultValue={record.commodityDescription}
-                                required
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="location">Location *</Label>
-                            <Input
-                                id="location"
-                                name="location"
-                                defaultValue={record.location}
-                                required
-                            />
-                        </div>
+                        {/* Common Fields */}
+                        {!(userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin') && (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="commodityDescription">Commodity Description *</Label>
+                                    <Input
+                                        id="commodityDescription"
+                                        name="commodityDescription"
+                                        defaultValue={record.commodityDescription}
+                                        required
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="location">Location *</Label>
+                                    <Input
+                                        id="location"
+                                        name="location"
+                                        defaultValue={record.location}
+                                        required
+                                    />
+                                </div>
+                            </>
+                        )}
                         <div className="grid gap-2">
                             <Label htmlFor="bagsStored">Number of Bags *</Label>
                             <Input

@@ -65,14 +65,20 @@ export async function finalizePlotDrying(prevState: FormState, formData: FormDat
        const lotId = record.lot_id;
        const recordBags = record.bags_stored || 0;
 
-       const { data: lot } = await supabase.from('warehouse_lots').select('current_stock').eq('id', lotId).single();
+       const { data: lot } = await supabase.from('warehouse_lots').select('capacity, current_stock, name').eq('id', lotId).single();
        if (lot) {
            const oldStock = lot.current_stock || 0;
-           // If we are correcting the count:
-           // We remove the OLD count contribution and ADD the NEW count.
-           // Assumes recordBags WAS added to stock previously.
+           const capacity = lot.capacity || 1000;
+           
            const correction = finalBags - recordBags;
            const newStock = Math.max(0, oldStock + correction);
+           
+           if (newStock > capacity) {
+                return { 
+                    message: `Cannot finalize: Lot ${lot.name} capacity exceeded! Limit: ${capacity}, Projected: ${newStock}`, 
+                    success: false 
+                };
+           }
            
            await supabase.from('warehouse_lots').update({ current_stock: newStock }).eq('id', lotId);
        }

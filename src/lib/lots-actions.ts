@@ -72,7 +72,10 @@ export async function deleteLot(id: string) {
 
     const { error } = await supabase
         .from('warehouse_lots')
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ 
+            deleted_at: new Date().toISOString(),
+            name: `${id.slice(0, 8)}_del_${Date.now()}` // Rename to free up the unique name
+        })
         .eq('id', id)
         .eq('warehouse_id', warehouseId);
     if (error) {

@@ -42,6 +42,7 @@ function mapRecords(records: any[]): StorageRecord[] {
     customerId: r.customer_id,
     customerName: r.customer?.name || 'Unknown',
     cropId: r.crop_id,
+    lotId: r.lot_id, // Added for capacity checks
     commodityDescription: r.commodity_description,
     location: r.location,
     bagsIn: r.bags_in || r.bags_stored,

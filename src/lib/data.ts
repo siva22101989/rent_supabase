@@ -200,6 +200,7 @@ export const saveCustomer = async (customer: Customer): Promise<void> => {
     // If the ID is 'CUST-...', we should probably let Supabase generate a UUID instead.
     // However, to keep compatibility with the app's expecting an ID, we'll strip it if it's a temp one
     // or we just pass the fields.
+    id: customer.id,
     name: customer.name,
     phone: customer.phone,
     email: customer.email,

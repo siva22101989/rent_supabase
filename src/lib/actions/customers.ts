@@ -99,7 +99,7 @@ export async function addCustomer(prevState: FormState, formData: FormData): Pro
 
             const newCustomer = {
                 ...rest,
-                id: `CUST-${Date.now()}`,
+                id: crypto.randomUUID(),
                 email: email ?? '',
                 fatherName: fatherName ?? '',
                 village: village ?? '',

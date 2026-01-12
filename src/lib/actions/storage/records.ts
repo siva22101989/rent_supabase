@@ -97,6 +97,41 @@ export async function updateStorageRecordAction(recordId: string, prevState: For
         storageStartDate: new Date(validatedFields.data.storageStartDate)
     };
 
+    // Capacity Check
+    if (originalRecord.lotId && bagsStored > (originalRecord.bagsStored || 0)) {
+         const supabase = await createClient();
+         const { data: lot } = await supabase
+            .from('warehouse_lots')
+            .select('capacity, current_stock, name')
+            .eq('id', originalRecord.lotId)
+            .single();
+         
+          if (lot) {
+            const capacity = lot.capacity || 1000;
+            const currentStock = lot.current_stock || 0;
+            // Balance check: We are changing bagsStored (which is bagsIn/stored). 
+            // Logic: currentStock - oldBags + newBags
+            // Note: originalRecord.bagsIn might be the reference for 'original contribution to stock'. 
+            // bagsStored is the *current* balance (after outflows).
+            // Usually Inflows add to Stock. Outflows remove.
+            // Editing a record generally updates the *Inflow* amount (bagsIn).
+            // So we should compare bagsIn.
+            // validatedFields has bagsStored which maps to bagsIn (line 95).
+            
+            const oldContribution = originalRecord.bagsIn || 0;
+            const newContribution = bagsStored;
+            const projectedStock = currentStock - oldContribution + newContribution;
+
+            if (projectedStock > capacity) {
+                 return { 
+                    message: `Lot ${lot.name} capacity exceeded! Capacity: ${capacity}, Projected: ${projectedStock}`, 
+                    success: false, 
+                    data: rawData 
+                };
+            }
+          }
+    }
+
     try {
         await updateStorageRecord(recordId, dataToUpdate);
     } catch (error: any) {
@@ -145,21 +180,82 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
     if (isNaN(startDate.getTime()) || startDate > new Date()) return { message: 'Invalid or future start date', success: false };
 
 
-    // Check if record is completed
-    const { data: record } = await supabase
+    // Check if record is completed & Get details for Capacity Check
+    const { data: record, error: fetchError } = await supabase
         .from('storage_records')
-        .select('storage_end_date, customer_id')
+        .select('storage_end_date, customer_id, lot_id, bags_stored, crop_id')
         .eq('id', recordId)
         .single();
 
-    if (record?.storage_end_date) {
+    if (fetchError || !record) return { message: 'Record not found', success: false };
+
+    if (record.storage_end_date) {
         return { message: 'Cannot edit completed records', success: false };
+    }
+
+    // Capacity Check
+    const targetLotId = formData.lotId || record.lot_id;
+    if (targetLotId) {
+        const { data: lot } = await supabase
+            .from('warehouse_lots')
+            .select('capacity, current_stock, name')
+            .eq('id', targetLotId)
+            .single();
+
+        if (lot) {
+            const capacity = lot.capacity || 1000;
+            const currentStock = lot.current_stock || 0;
+            
+            // Calculate impact
+            let projectedStock = currentStock;
+            
+            if (targetLotId === record.lot_id) {
+                // Same lot: Remove old bags, add new bags
+                projectedStock = currentStock - (record.bags_stored || 0) + formData.bagsStored;
+            } else {
+                // New lot: Just add new bags (Old lot stock will be reduced by trigger/update logic elsewhere?)
+                // Actually, if we change lots, we need to ensure the NEW lot has space.
+                // The current stock of the NEW lot includes its current records.
+                projectedStock = currentStock + formData.bagsStored;
+            }
+
+            if (projectedStock > capacity) {
+                 return { 
+                    message: `Lot ${lot.name} capacity exceeded! Capacity: ${capacity}, Projected: ${projectedStock}`, 
+                    success: false 
+                };
+            }
+        }
+    }
+
+    // Auto-populate from IDs if descriptions are missing
+    let finalCommodityDescription = formData.commodityDescription;
+    let finalLocation = formData.location;
+
+    // Fetch details if we need to fill in missing data OR for capacity check
+    const targetCropId = formData.cropId || record?.crop_id;
+    // targetLotId is already defined above at line 197, reused here.
+    
+    // Only fetch if we are actually missing data
+    const needsCropName = !finalCommodityDescription && targetCropId;
+    const needsLotName = !finalLocation && targetLotId;
+
+    if (needsCropName || needsLotName) {
+         if (needsCropName) {
+            const { data: crop } = await supabase.from('crops').select('name').eq('id', targetCropId).single();
+            if (crop) finalCommodityDescription = crop.name;
+         }
+         // Note: Lot name might be fetched below in capacity check too, optimization possible but keeping simple for now
+         if (needsLotName) {
+             const { data: lot } = await supabase.from('warehouse_lots').select('name').eq('id', targetLotId).single();
+             if (lot) finalLocation = lot.name;
+         }
     }
 
     // Transform to database column names
     const updateData: any = {
-        commodity_description: formData.commodityDescription,
-        location: formData.location,
+        commodity_description: finalCommodityDescription,
+        location: finalLocation,
         bags_stored: formData.bagsStored,
         hamali_payable: formData.hamaliPayable,
         storage_start_date: new Date(formData.storageStartDate),

@@ -24,6 +24,7 @@ export default async function LotsPage() {
     .from('warehouse_lots')
     .select('*')
     .eq('warehouse_id', warehouseId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: true });
 
   return (
