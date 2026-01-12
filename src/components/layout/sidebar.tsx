@@ -19,6 +19,7 @@ import {
     CreditCard
 } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
+import { SystemStatus } from '@/components/layout/system-status';
 import { navItems, bottomItems } from '@/config/nav';
 
 interface SidebarProps {
@@ -96,6 +97,10 @@ export function Sidebar({ collapsed, onToggle, userRole }: SidebarProps) {
       <div className="p-2 border-t space-y-1">
          {filteredBottomItems.map((item) => <NavLink key={item.href} item={item} />)}
          
+         <div className={cn("mt-2", collapsed ? "flex justify-center" : "px-2")}>
+            <SystemStatus />
+         </div>
+
          {collapsed && (
              <Button variant="ghost" size="icon" onClick={onToggle} className="w-full mt-2">
                  <ArrowRight className="h-4 w-4" />

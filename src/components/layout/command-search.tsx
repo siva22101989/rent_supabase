@@ -36,54 +36,93 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
 import { useTheme } from "next-themes";
+import { useDebounce } from '@/hooks/use-debounce';
+import { searchGlobal, type SearchResult } from '@/lib/actions/search';
 
 export function CommandSearch() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
-  const [customers, setCustomers] = React.useState<any[]>([]);
   const { setTheme } = useTheme();
+  
+  const [query, setQuery] = React.useState('');
+  const debouncedQuery = useDebounce(query, 300);
+  const [results, setResults] = React.useState<SearchResult[]>([]);
+  const [recents, setRecents] = React.useState<SearchResult[]>([]);
+  const [loading, setLoading] = React.useState(false);
 
+  // Fetch Recents on Open
   React.useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setOpen((open) => !open);
+    if (open && recents.length === 0) {
+       const fetchRecents = async () => {
+           const supabase = createClient();
+           const [
+             { data: customersData },
+             { data: recordsData },
+             { data: paymentsData }
+           ] = await Promise.all([
+              supabase.from('customers').select('id, name, phone, village').limit(5).order('name'),
+              supabase.from('storage_records').select('id, record_number, commodity_description, storage_start_date').limit(5).order('created_at', { ascending: false }),
+              supabase.from('payments').select('id, payment_number, amount, type, payment_date').limit(5).order('created_at', { ascending: false })
+           ]);
+           
+           const newRecents: SearchResult[] = [];
+           
+           if (customersData) {
+               customersData.forEach((c: any) => newRecents.push({
+                   id: c.id, type: 'customer', title: c.name, 
+                   subtitle: c.phone, url: `/customers/${c.id}`
+               }));
+           }
+           if (recordsData) {
+               recordsData.forEach((r: any) => newRecents.push({
+                   id: r.id, type: 'record', title: `Record #${r.record_number}`, 
+                   subtitle: r.commodity_description, url: `/storage?id=${r.id}`
+               }));
+           }
+            if (paymentsData) {
+               paymentsData.forEach((p: any) => newRecents.push({
+                   id: p.id, type: 'payment', title: `Receipt #${p.payment_number}`, 
+                   subtitle: `₹${p.amount}`, url: `/payments/history?id=${p.id}`
+               }));
+           }
+           setRecents(newRecents);
+       };
+       fetchRecents();
+    }
+  }, [open]);
+
+  // Search Effect
+  React.useEffect(() => {
+    const fetchResults = async () => {
+      setLoading(true);
+      try {
+          if (debouncedQuery.length >= 2) {
+              const data = await searchGlobal(debouncedQuery);
+              setResults(data);
+          } else {
+              setResults([]);
+          }
+      } catch (error) {
+          console.error("Search error:", error);
+      } finally {
+          setLoading(false);
       }
     };
 
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, []);
-
-  const [records, setRecords] = React.useState<any[]>([]);
-  const [payments, setPayments] = React.useState<any[]>([]);
-
-  React.useEffect(() => {
-      if (open) {
-          const fetchData = async () => {
-              const supabase = createClient();
-              const [
-                { data: customersData },
-                { data: recordsData },
-                { data: paymentsData }
-              ] = await Promise.all([
-                 supabase.from('customers').select('id, name, phone, village').limit(50).order('name'),
-                 supabase.from('storage_records').select('id, record_number, commodity_description').limit(20).order('record_number', { ascending: false }),
-                 supabase.from('payments').select('id, payment_number, amount, type').limit(20).order('payment_number', { ascending: false })
-              ]);
-              
-              if (customersData) setCustomers(customersData);
-              if (recordsData) setRecords(recordsData);
-              if (paymentsData) setPayments(paymentsData);
-          }
-          fetchData();
-      }
-  }, [open]);
+    if (open) {
+        fetchResults();
+    }
+  }, [debouncedQuery, open]);
 
   const runCommand = React.useCallback((command: () => unknown) => {
     setOpen(false);
     command();
   }, []);
+
+  const displayList = query.length >= 2 ? results : recents;
+  const customers = displayList.filter(r => r.type === 'customer');
+  const records = displayList.filter(r => r.type === 'record');
+  const payments = displayList.filter(r => r.type === 'payment');
 
   return (
     <>
@@ -98,84 +137,81 @@ export function CommandSearch() {
         </kbd>
       </button>
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Type a command or search customers..." />
+        <CommandInput 
+            placeholder="Type to search customers, records, or invoices..." 
+            value={query}
+            onValueChange={setQuery}
+        />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup heading="Suggestions">
-            <CommandItem onSelect={() => runCommand(() => router.push('/dashboard'))}>
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              <span>Dashboard</span>
-            </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push('/inflow'))}>
-              <ArrowDownToDot className="mr-2 h-4 w-4" />
-              <span>New Inflow</span>
-            </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push('/outflow'))}>
-                <ArrowUpFromDot className="mr-2 h-4 w-4" />
-              <span>New Outflow</span>
-            </CommandItem>
-             <CommandItem onSelect={() => runCommand(() => router.push('/storage'))}>
-              <Package className="mr-2 h-4 w-4" />
-              <span>Storage</span>
-            </CommandItem>
-             <CommandItem onSelect={() => runCommand(() => router.push('/payments/pending'))}>
-              <IndianRupee className="mr-2 h-4 w-4" />
-              <span>Pending Payments</span>
-            </CommandItem>
-             <CommandItem onSelect={() => runCommand(() => router.push('/reports'))}>
-              <FileText className="mr-2 h-4 w-4" />
-              <span>Reports</span>
-            </CommandItem>
-          </CommandGroup>
-          <CommandSeparator />
           
-          <CommandGroup heading="Customers">
-            {customers.map(c => (
-                <CommandItem key={c.id} onSelect={() => runCommand(() => router.push(`/customers/${c.id}`))}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>{c.name}</span>
-                    {c.phone && <span className="ml-2 text-xs text-muted-foreground">({c.phone})</span>}
+          {/* Navigation Suggestions (Always Visible if query is empty OR mixed in?) */}
+          {query.length === 0 && (
+             <CommandGroup heading="Suggestions">
+                <CommandItem onSelect={() => runCommand(() => router.push('/dashboard'))}>
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                <span>Dashboard</span>
                 </CommandItem>
-            ))}
-          </CommandGroup>
+                <CommandItem onSelect={() => runCommand(() => router.push('/inflow'))}>
+                <ArrowDownToDot className="mr-2 h-4 w-4" />
+                <span>New Inflow</span>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/outflow'))}>
+                    <ArrowUpFromDot className="mr-2 h-4 w-4" />
+                <span>New Outflow</span>
+                </CommandItem>
+                 <CommandItem onSelect={() => runCommand(() => router.push('/storage'))}>
+                <Package className="mr-2 h-4 w-4" />
+                <span>Storage</span>
+                </CommandItem>
+                 <CommandItem onSelect={() => runCommand(() => router.push('/payments/pending'))}>
+                <IndianRupee className="mr-2 h-4 w-4" />
+                <span>Pending Payments</span>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/settings'))}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+                </CommandItem>
+            </CommandGroup>
+          )}
 
-          <CommandSeparator />
-          <CommandGroup heading="Settings">
-            <CommandItem onSelect={() => runCommand(() => router.push('/settings'))}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-              <CommandShortcut>⌘S</CommandShortcut>
-            </CommandItem>
-             <CommandItem onSelect={() => runCommand(() => setTheme("light"))}>
-              <Sun className="mr-2 h-4 w-4" />
-              <span>Light Theme</span>
-            </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => setTheme("dark"))}>
-              <Moon className="mr-2 h-4 w-4" />
-              <span>Dark Theme</span>
-            </CommandItem>
-          </CommandGroup>
+          {loading && <div className="p-4 text-sm text-muted-foreground text-center">Searching...</div>}
           
-          <CommandSeparator />
-          <CommandGroup heading="Recent Records">
-            {records.map(r => (
-                <CommandItem key={r.id} onSelect={() => runCommand(() => router.push(`/storage?id=${r.id}`))}>
-                    <Package className="mr-2 h-4 w-4" />
-                    <span>#{r.record_number || r.id.substring(0,8)}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">({r.commodity_description})</span>
-                </CommandItem>
-            ))}
-          </CommandGroup>
+          {customers.length > 0 && (
+            <CommandGroup heading="Customers">
+                {customers.map(c => (
+                    <CommandItem key={c.id} onSelect={() => runCommand(() => router.push(c.url))}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>{c.title}</span>
+                        {c.subtitle && <span className="ml-2 text-xs text-muted-foreground">({c.subtitle})</span>}
+                    </CommandItem>
+                ))}
+            </CommandGroup>
+          )}
 
-          <CommandGroup heading="Recent Payments">
-             {payments.map(p => (
-                <CommandItem key={p.id} onSelect={() => runCommand(() => router.push(`/payments/history?id=${p.id}`))}>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    <span>RCPT #{p.payment_number}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">({p.type} - ₹{p.amount})</span>
-                </CommandItem>
-            ))}
-          </CommandGroup>
+           {records.length > 0 && (
+            <CommandGroup heading="Storage Records">
+                {records.map(r => (
+                    <CommandItem key={r.id} onSelect={() => runCommand(() => router.push(r.url))}>
+                        <Package className="mr-2 h-4 w-4" />
+                        <span>{r.title}</span>
+                        {r.subtitle && <span className="ml-2 text-xs text-muted-foreground">({r.subtitle})</span>}
+                    </CommandItem>
+                ))}
+            </CommandGroup>
+          )}
+
+           {payments.length > 0 && (
+            <CommandGroup heading="Payments">
+                {payments.map(p => (
+                    <CommandItem key={p.id} onSelect={() => runCommand(() => router.push(p.url))}>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        <span>{p.title}</span>
+                        {p.subtitle && <span className="ml-2 text-xs text-muted-foreground">({p.subtitle})</span>}
+                    </CommandItem>
+                ))}
+            </CommandGroup>
+          )}
         </CommandList>
       </CommandDialog>
     </>
