@@ -136,6 +136,7 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
                     'Outflow Recorded', 
                     `Withdrawn ${bagsToWithdraw} bags (${originalRecord.commodityDescription}) for ${customerName}`, 
                     'info',
+                    'outflow',
                     undefined, 
                     `/outflow/receipt/${recordId}`
                 );

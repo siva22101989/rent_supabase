@@ -1,4 +1,5 @@
 import { ArrowRight, BarChart3, Clock, Shield, Users, Zap } from 'lucide-react'
+import Image from 'next/image'
 
 const features = [
   {
@@ -68,11 +69,15 @@ export function Features() {
             <div className={`relative group ${feature.reverse ? 'lg:order-1' : ''}`}>
                <div className="absolute -inset-2 bg-gradient-to-r from-primary/10 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                <div className="rounded-xl border bg-card shadow-xl overflow-hidden shadow-primary/5 transition-transform duration-500 group-hover:scale-[1.02]">
-                  <img 
-                    src={feature.image} 
-                    alt={feature.title} 
-                    className="w-full h-auto"
-                  />
+                 <div className="relative aspect-video w-full">
+                    <Image 
+                      src={feature.image} 
+                      alt={feature.title} 
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                 </div>
                </div>
             </div>
           </div>

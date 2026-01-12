@@ -87,6 +87,10 @@ export type TeamMember = {
   createdAt: Date | string;
   lastSignInAt?: Date | string;
   deletedAt?: Date | string | null;
+  preferences?: {
+    tourCompleted?: boolean;
+    theme?: 'light' | 'dark' | 'system';
+  };
 };
 
 export type Warehouse = {
@@ -134,10 +138,13 @@ export interface NotificationEntry {
     title: string;
     message: string;
     type: 'info' | 'warning' | 'error' | 'success';
+    category: 'payment' | 'stock' | 'inflow' | 'outflow' | 'system';
     read: boolean;
     link?: string;
     created_at: Date | string;
 }
+
+export type NotificationCategory = NotificationEntry['category'];
 
 export interface AdminDashboardStats {
     warehouseCount: number;

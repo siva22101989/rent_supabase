@@ -88,7 +88,7 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
             try {
                 const { getAllPlans } = await import('@/lib/subscription-actions');
                 const data = await getAllPlans();
-                console.log('Loaded plans:', data); // DEBUG: See what we're getting
+
                 setPlans(data);
             } catch (err) {
                 console.error('Failed to load plans:', err);

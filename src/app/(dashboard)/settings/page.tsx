@@ -2,6 +2,11 @@ import { createClient } from '@/utils/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 300; // Revalidate every 5 minutes for slow-changing settings
+
+export const metadata = {
+  title: 'Settings',
+  description: 'Configure warehouse preferences and account settings.',
+};
 import { getUserWarehouse } from '@/lib/queries';
 import { getUserWarehouses } from '@/lib/warehouse-actions'; // Use actions to get structured data
 import Link from 'next/link';

@@ -22,7 +22,7 @@ export function TeamMembersList({ members, selectedId, onSelect }: TeamMembersLi
     const searchLower = search.toLowerCase();
     
     // Debug log to help diagnose visibility issues
-    // console.log('Filtering member:', { name, email, search: searchLower });
+
 
     return name.toLowerCase().includes(searchLower) || 
            email.toLowerCase().includes(searchLower);

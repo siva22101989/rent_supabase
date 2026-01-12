@@ -318,12 +318,31 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
               const savedRecord = await saveStorageRecord(newRecord);
               savedRecordId = savedRecord.id;
 
+              // Check Lot Capacity for Alert (Low Stock / High Utilization)
+              if (rest.lotId) {
+                  const supabase = await createClient();
+                  const { data: lot } = await supabase.from('warehouse_lots').select('capacity, current_stock, name').eq('id', rest.lotId).single();
+                  if (lot && lot.capacity > 0) {
+                      const utilization = (lot.current_stock || 0) / lot.capacity;
+                      if (utilization >= 0.9) {
+                           const { createNotification } = await import('@/lib/logger');
+                           await createNotification(
+                               'Lot Capacity Warning', 
+                               `Lot ${lot.name} is at ${Math.round(utilization * 100)}% capacity.`, 
+                               'warning', 
+                               'stock' // Maps to 'low_stock_alert' preference
+                           );
+                      }
+                  }
+              }
+
               const { logActivity, createNotification } = await import('@/lib/logger');
-              await logActivity('CREATE', 'StorageRecord', savedRecord.id, { 
-                  customerId: rest.customerId, 
-                  bags: inflowBags, 
-                  commodity: rest.commodityDescription 
-              });
+              await createNotification(
+                   `Inflow Recorded`,
+                   `Received ${inflowBags} bags (${rest.commodityDescription}) from customer`,
+                   'info',
+                   'inflow'
+               );
 
               if (sendSms) {
                   const { sendInflowWelcomeSMS } = await import('@/lib/sms-event-actions');

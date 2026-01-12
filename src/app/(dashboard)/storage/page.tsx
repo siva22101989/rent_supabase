@@ -7,6 +7,11 @@ import { getCurrentUserRole } from "@/lib/queries";
 // Revalidate every 30 seconds - storage data changes frequently
 export const revalidate = 30;
 
+export const metadata = {
+  title: 'Storage',
+  description: 'Manage warehouse inventory and storage records.',
+};
+
 export default async function StoragePage({ 
   searchParams 
 }: { 

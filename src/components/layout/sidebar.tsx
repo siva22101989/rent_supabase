@@ -43,8 +43,15 @@ export function Sidebar({ collapsed, onToggle, userRole }: SidebarProps) {
 
   const NavLink = ({ item }: { item: typeof navItems[0] }) => {
       const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
+      
+      let tourId = undefined;
+      if (item.href === '/inflow') tourId = 'tour-inflow-action';
+      if (item.href === '/storage') tourId = 'tour-storage-nav';
+      if (item.href === '/billing') tourId = 'tour-nav-billing';
+
       return (
           <Button
+            id={tourId}
             variant={isActive ? "secondary" : "ghost"}
             className={cn(
                 "w-full justify-start gap-3 mb-1",

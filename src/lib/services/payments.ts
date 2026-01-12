@@ -29,7 +29,8 @@ export class PaymentService {
         await createNotification(
           'Payment Received',
           `Payment of ₹${payment.amount} received from ${customer.name} for ${paymentTypeLabel}`,
-          'info'
+          'info',
+          'payment'
         );
       }
     } catch (e) {

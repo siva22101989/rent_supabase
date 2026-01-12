@@ -7,6 +7,11 @@ import { OutflowManager } from "./outflow-manager";
 
 export const revalidate = 30; // 30 seconds for high-frequency updates
 
+export const metadata = {
+  title: 'Outflow',
+  description: 'Process withdrawals and generate bills.',
+};
+
 export default async function OutflowPage() {
   const recentOutflows = await getRecentOutflows(100); // Fetch more for filtering
   const smsEnabled = await isSMSEnabled('outflow_confirmation');

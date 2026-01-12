@@ -13,7 +13,7 @@ export function AnalyticsProvider() {
   useEffect(() => {
     const url = pathname + searchParams.toString();
     // This is where you would log the page view to your analytics service
-    // console.log(`[Analytics] Page viewed: ${url}`);
+
     
     // Example GA integration:
     // window.gtag('config', 'G-XXXXXXXXXX', {

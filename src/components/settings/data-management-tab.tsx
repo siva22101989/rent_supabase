@@ -69,7 +69,9 @@ export function DataManagementTab({ userRole }: DataManagementTabProps) {
              { data: expenses },
              { data: crops },
              { data: lots },
-             { data: sequences }
+             { data: sequences },
+             { data: audit_logs },
+             { data: notifications }
           ] = await Promise.all([
              supabase.from('warehouses').select('*').single(),
              supabase.from('customers').select('*'),
@@ -79,12 +81,14 @@ export function DataManagementTab({ userRole }: DataManagementTabProps) {
              supabase.from('expenses').select('*'),
              supabase.from('crops').select('*'),
              supabase.from('warehouse_lots').select('*'),
-             supabase.from('sequences').select('*')
+             supabase.from('sequences').select('*'),
+             supabase.from('audit_logs').select('*').limit(1000), // Limit to avoid massive payloads
+             supabase.from('notifications').select('*').limit(1000)
           ]);
 
           const backupData = {
               timestamp: new Date().toISOString(),
-              version: '1.0',
+              version: '1.1',
               warehouse: warehouse || {},
               sequences: sequences || [],
               customers: customers || [],
@@ -93,7 +97,9 @@ export function DataManagementTab({ userRole }: DataManagementTabProps) {
               payments: payments || [],
               expenses: expenses || [],
               crops: crops || [],
-              lots: lots || []
+              lots: lots || [],
+              audit_logs: audit_logs || [],
+              notifications: notifications || []
           };
 
           // Create Blob and Download

@@ -40,7 +40,7 @@ export async function toggleWarehouseAccess(
         // 2. Check for existing assignment (including soft deleted)
         const { data: existingAccess } = await supabase
             .from('warehouse_assignments')
-            .select('id, deleted_at')
+            .select('id, deleted_at, role')
             .eq('user_id', userId)
             .eq('warehouse_id', warehouseId)
             .single();
@@ -57,6 +57,16 @@ export async function toggleWarehouseAccess(
                 return { message: 'Failed to revoke access: ' + error.message, success: false };
             }
             
+            // AUDIT LOG
+            const { logActivity } = await import('@/lib/audit-service');
+            await logActivity({
+                action: 'DELETE',
+                entity: 'USER',
+                entityId: userId,
+                warehouseId,
+                details: { role: existingAccess.role, operation: 'revoke_access' }
+            });
+
             revalidatePath('/settings/team');
             return { message: 'Access revoked successfully', success: true };
         } else if (existingAccess && existingAccess.deleted_at) {
@@ -79,6 +89,16 @@ export async function toggleWarehouseAccess(
                 logError(error, { operation: 'toggleWarehouseAccess:restore', userId, warehouseId });
                 return { message: 'Failed to restore access: ' + error.message, success: false };
             }
+
+            // AUDIT LOG
+            const { logActivity } = await import('@/lib/audit-service');
+            await logActivity({
+                action: 'CREATE',
+                entity: 'USER',
+                entityId: userId,
+                warehouseId,
+                details: { role, operation: 'restore_access' }
+            });
 
             revalidatePath('/settings/team');
             return { message: 'Access granted successfully', success: true };
@@ -103,6 +123,16 @@ export async function toggleWarehouseAccess(
                 return { message: 'Failed to grant access: ' + error.message, success: false };
             }
             
+            // AUDIT LOG
+            const { logActivity } = await import('@/lib/audit-service');
+            await logActivity({
+                action: 'CREATE',
+                entity: 'USER',
+                entityId: userId,
+                warehouseId,
+                details: { role, operation: 'grant_access' }
+            });
+
             revalidatePath('/settings/team');
             return { message: 'Access granted successfully', success: true };
         }
@@ -140,6 +170,16 @@ export async function updateStaffRoleInWarehouse(
             logError(error, { operation: 'updateStaffRoleInWarehouse', userId, warehouseId });
             return { message: 'Failed to update role: ' + error.message, success: false };
         }
+
+        // AUDIT LOG
+        const { logActivity } = await import('@/lib/audit-service');
+        await logActivity({
+            action: 'UPDATE',
+            entity: 'USER',
+            entityId: userId,
+            warehouseId,
+            details: { new_role: role }
+        });
 
         revalidatePath('/settings/team');
         return { message: 'Role updated successfully', success: true };

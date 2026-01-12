@@ -7,6 +7,11 @@ import { FileText, TrendingUp, BarChart3, DollarSign, Package } from "lucide-rea
 // Revalidate every 5 minutes - reports are less time-sensitive
 export const revalidate = 300;
 
+export const metadata = {
+  title: 'Reports',
+  description: 'Financial and operational analytics reports.',
+};
+
 export default async function ReportsPage() {
   return (
     <>

@@ -4,6 +4,11 @@ import { CustomersPageClient } from "./page-client";
 // Revalidate every 60 seconds - customer data changes moderately
 export const revalidate = 60;
 
+export const metadata = {
+  title: 'Customers',
+  description: 'Manage customer profiles and transaction history.',
+};
+
 export default async function CustomersPage({
   searchParams,
 }: {

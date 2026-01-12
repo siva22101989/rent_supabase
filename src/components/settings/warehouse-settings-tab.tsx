@@ -20,8 +20,7 @@ type WarehouseTabProps = {
 
 export function WarehouseSettingsTab({ warehouse, allWarehouses = [] }: WarehouseTabProps) {
     // Debug: Log warehouse data
-    console.log('[WarehouseSettingsTab] Warehouse data:', warehouse);
-    console.log('[WarehouseSettingsTab] All warehouses:', allWarehouses);
+
 
     // Handle missing warehouse data
     if (!warehouse) {

@@ -38,6 +38,14 @@
     {
       "path": "/api/cron/subscription-expiry",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-notifications",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/check-dues",
+      "schedule": "0 9 * * 1" 
     }
   ]
 }

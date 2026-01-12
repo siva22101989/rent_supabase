@@ -55,15 +55,28 @@ export function CommandSearch() {
     return () => document.removeEventListener('keydown', down);
   }, []);
 
-  // Fetch Customers needed for search (Increased limit)
+  const [records, setRecords] = React.useState<any[]>([]);
+  const [payments, setPayments] = React.useState<any[]>([]);
+
   React.useEffect(() => {
       if (open) {
-          const fetchCustomers = async () => {
+          const fetchData = async () => {
               const supabase = createClient();
-              const { data } = await supabase.from('customers').select('id, name, phone, village').limit(100).order('name');
-              if (data) setCustomers(data);
+              const [
+                { data: customersData },
+                { data: recordsData },
+                { data: paymentsData }
+              ] = await Promise.all([
+                 supabase.from('customers').select('id, name, phone, village').limit(50).order('name'),
+                 supabase.from('storage_records').select('id, record_number, commodity_description').limit(20).order('record_number', { ascending: false }),
+                 supabase.from('payments').select('id, payment_number, amount, type').limit(20).order('payment_number', { ascending: false })
+              ]);
+              
+              if (customersData) setCustomers(customersData);
+              if (recordsData) setRecords(recordsData);
+              if (paymentsData) setPayments(paymentsData);
           }
-          fetchCustomers();
+          fetchData();
       }
   }, [open]);
 
@@ -141,6 +154,27 @@ export function CommandSearch() {
               <Moon className="mr-2 h-4 w-4" />
               <span>Dark Theme</span>
             </CommandItem>
+          </CommandGroup>
+          
+          <CommandSeparator />
+          <CommandGroup heading="Recent Records">
+            {records.map(r => (
+                <CommandItem key={r.id} onSelect={() => runCommand(() => router.push(`/storage?id=${r.id}`))}>
+                    <Package className="mr-2 h-4 w-4" />
+                    <span>#{r.record_number || r.id.substring(0,8)}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">({r.commodity_description})</span>
+                </CommandItem>
+            ))}
+          </CommandGroup>
+
+          <CommandGroup heading="Recent Payments">
+             {payments.map(p => (
+                <CommandItem key={p.id} onSelect={() => runCommand(() => router.push(`/payments/history?id=${p.id}`))}>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    <span>RCPT #{p.payment_number}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">({p.type} - ₹{p.amount})</span>
+                </CommandItem>
+            ))}
           </CommandGroup>
         </CommandList>
       </CommandDialog>

@@ -1,12 +1,13 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Bell, CheckCheck, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import type { NotificationEntry } from '@/lib/definitions';
-import { markAllNotificationsAsRead, markNotificationsAsRead } from '@/lib/notification-actions';
+import { markAllNotificationsAsRead, markNotificationsAsRead, getNotificationPreferences, type NotificationPreferences } from '@/lib/notification-actions';
 import { Button } from '@/components/ui/button';
+import { useWarehouses } from '@/contexts/warehouse-context';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,16 +28,48 @@ export function NotificationBell() {
     const [error, setError] = useState<string | null>(null);
     const supabase = createClient();
 
+    const { currentWarehouse } = useWarehouses();
+    const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
+    const prefsRef = useRef<NotificationPreferences | null>(null);
+
     const { toast } = useToast();
 
+    // 1. Sync Prefs to Ref for Realtime Callback
+    useEffect(() => {
+        prefsRef.current = prefs;
+    }, [prefs]);
+
+    // 2. Fetch Prefs on Warehouse Change
+    useEffect(() => {
+        if (currentWarehouse) {
+            getNotificationPreferences(currentWarehouse.id).then(setPrefs);
+        }
+    }, [currentWarehouse]);
+
+    // Helper: Category Filtering Logic
+    const shouldShow = (n: NotificationEntry, preferences: NotificationPreferences | null) => {
+        if (!preferences) return true; // Default to Show if prefs missing
+        if (n.user_id) return true; // Direct messages always show
+
+        switch(n.category) {
+            case 'payment': 
+                if (n.title.toLowerCase().includes('due')) return preferences.pending_dues;
+                return preferences.payment_received;
+            case 'stock': return preferences.low_stock_alert;
+            case 'inflow': return preferences.new_inflow;
+            case 'outflow': return preferences.new_outflow;
+            default: return true;
+        }
+    };
+
+    // 3. Fetch Notifications & Subscribe
     const fetchNotes = async () => {
          try {
              setError(null);
              const { data: { user } } = await supabase.auth.getUser();
-             if (!user) return;
+             if (!user || !currentWarehouse) return;
 
-             // Fetch notifications that this user hasn't read yet
-             // Get all read notification IDs for current user first
+             // A. Get Ids of Read Notifications
              const { data: readIds } = await supabase
                 .from('notification_reads')
                 .select('notification_id')
@@ -44,14 +77,14 @@ export function NotificationBell() {
              
              const readNotificationIds = readIds?.map(r => r.notification_id) || [];
              
-             // Now fetch notifications excluding the ones already read
+             // B. Fetch Latest Notifications (Warehouse Scoped)
              let query = supabase
                 .from('notifications')
                 .select('*')
+                .eq('warehouse_id', currentWarehouse.id) // IMPORTANT: Scope to warehouse
                 .order('created_at', { ascending: false })
                 .limit(100);
              
-             // Only add the filter if there are read notifications
              if (readNotificationIds.length > 0) {
                  query = query.not('id', 'in', `(${readNotificationIds.join(',')})`);
              }
@@ -65,8 +98,11 @@ export function NotificationBell() {
              }
              
              if (data) {
-                 setNotifications(data as NotificationEntry[]);
-                 setHasUnread(data.length > 0);
+                 // Client-side filter for now (since we can't easily join prefs in simple query without extensive backend changes)
+                 // Use current prefsRef (which might be null initially, but we re-fetch when prefs change below)
+                 const validNotes = (data as NotificationEntry[]).filter(n => shouldShow(n, prefsRef.current));
+                 setNotifications(validNotes);
+                 setHasUnread(validNotes.length > 0);
              }
          } catch (err) {
              console.error('Error fetching notifications:', err);
@@ -74,10 +110,17 @@ export function NotificationBell() {
          }
     };
 
+    // Trigger fetch on mount/warehouse change AND when prefs load
     useEffect(() => {
-        fetchNotes();
-        
-        // Set up real-time subscription for new notifications
+        if (currentWarehouse) {
+            fetchNotes();
+        }
+    }, [currentWarehouse, prefs]); // Re-run fetch logic if prefs update to apply filter
+
+    // Realtime Subscription
+    useEffect(() => {
+        if (!currentWarehouse) return;
+
         const channel = supabase
             .channel('notifications-realtime')
             .on(
@@ -90,24 +133,28 @@ export function NotificationBell() {
                 async (payload) => {
                     const newNotification = payload.new as NotificationEntry;
                     
-                    // Check if this notification is for the current user
+                    // 1. Warehouse Check
+                    if (newNotification.warehouse_id !== currentWarehouse.id) return;
+
+                    // 2. User Check
                     const { data: { user } } = await supabase.auth.getUser();
                     if (!user) return;
+                    if (newNotification.user_id && newNotification.user_id !== user.id) return;
+
+                    // 3. Preference Filter (Use Ref for latest state)
+                    if (!shouldShow(newNotification, prefsRef.current)) {
+                        return; // Ignore
+                    }
+
+                    setNotifications(prev => [newNotification, ...prev]);
+                    setHasUnread(true);
                     
-                    // If notification is for specific user or for everyone (null)
-                    if (newNotification.user_id === null || newNotification.user_id === user.id) {
-                        // Add to notifications list
-                        setNotifications(prev => [newNotification, ...prev]);
-                        setHasUnread(true);
-                        
-                        // Show toast for warning/error notifications
-                        if (newNotification.type === 'warning' || newNotification.type === 'error') {
-                            toast({
-                                title: newNotification.title,
-                                description: newNotification.message,
-                                variant: newNotification.type === 'error' ? 'destructive' : 'default'
-                            });
-                        }
+                    if (newNotification.type === 'warning' || newNotification.type === 'error') {
+                        toast({
+                            title: newNotification.title,
+                            description: newNotification.message,
+                            variant: newNotification.type === 'error' ? 'destructive' : 'default'
+                        });
                     }
                 }
             )
@@ -116,11 +163,11 @@ export function NotificationBell() {
         return () => {
             channel.unsubscribe();
         };
-    }, []);
+    }, [currentWarehouse]);
 
+    // Grouping & UI Logic
     const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
     
-    // Group notifications by title + type
     const groupedNotifications = useMemo(() => {
         const groups: Record<string, NotificationEntry[]> = {};
         notifications.forEach(n => {
@@ -153,7 +200,6 @@ export function NotificationBell() {
         e.preventDefault();
         e.stopPropagation();
         
-        // Optimistic update
         setNotifications(prev => {
             const updated = prev.filter(n => !ids.includes(n.id));
             setHasUnread(updated.length > 0);
@@ -169,9 +215,6 @@ export function NotificationBell() {
             e.stopPropagation();
         }
         
-        const noteToRead = notifications.find(n => n.id === id);
-        
-        // Optimistic removal
         setNotifications(prev => {
             const updated = prev.filter(n => n.id !== id);
             setHasUnread(updated.length > 0);
@@ -186,7 +229,6 @@ export function NotificationBell() {
         e.stopPropagation();
         setLoading(true);
 
-        // Optimistic clear
         const oldNotes = [...notifications];
         setNotifications([]);
         setHasUnread(false);
@@ -343,6 +385,11 @@ export function NotificationBell() {
                         </div>
                     )}
                 </ScrollArea>
+                <div className="p-2 border-t flex justify-center bg-muted/5">
+                    <Button variant="link" size="sm" asChild className="text-xs h-8">
+                        <Link href="/notifications">View Full History</Link>
+                    </Button>
+                </div>
             </DropdownMenuContent>
         </DropdownMenu>
     );

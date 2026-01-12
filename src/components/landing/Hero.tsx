@@ -45,8 +45,14 @@ export function Hero() {
           <div className="flex items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground">
             <div className="flex -space-x-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 w-10 rounded-full border-2 border-background bg-muted flex items-center justify-center overflow-hidden">
-                   <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" />
+                <div key={i} className="h-10 w-10 rounded-full border-2 border-background bg-muted flex items-center justify-center overflow-hidden relative">
+                   <Image 
+                      src={`https://i.pravatar.cc/100?img=${i + 10}`} 
+                      alt="User" 
+                      fill
+                      className="object-cover"
+                      sizes="40px"
+                    />
                 </div>
               ))}
             </div>
@@ -57,10 +63,13 @@ export function Hero() {
         <div className="relative">
           <div className="absolute -inset-4 bg-gradient-to-tr from-primary/20 to-primary/5 blur-3xl rounded-[3rem] -z-10" />
           <div className="rounded-2xl border bg-card shadow-2xl overflow-hidden transform lg:rotate-2 hover:rotate-0 transition-transform duration-500">
-             <img 
+             <Image 
                 src="/screenshots/dashboard.png" 
                 alt="Grain Flow Dashboard" 
+                width={1200}
+                height={800}
                 className="w-full h-auto"
+                priority
              />
           </div>
           {/* Floating Card */}

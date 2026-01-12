@@ -130,6 +130,20 @@ export async function createWarehouse(name: string, location: string, capacity: 
                  }
             }
 
+            // AUDIT LOG
+            try {
+                const { logActivity } = await import('@/lib/audit-service');
+                await logActivity({
+                    action: 'CREATE',
+                    entity: 'SETTINGS', // Warehouse is a setting/config entity
+                    entityId: warehouseId,
+                    warehouseId: warehouseId,
+                    details: { name, location, capacity }
+                });
+            } catch (auditError) {
+                 // Non-blocking
+            }
+
             Sentry.addBreadcrumb({
                 category: 'warehouse',
                 message: 'Warehouse created successfully',

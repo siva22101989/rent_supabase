@@ -13,6 +13,11 @@ import { createClient } from '@/utils/supabase/server';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
+export const metadata = {
+  title: 'Billing',
+  description: 'Manage subscription and view invoices.',
+};
+
 export default async function BillingPage() {
   const currentWarehouseId = await getUserWarehouse() || '';
   

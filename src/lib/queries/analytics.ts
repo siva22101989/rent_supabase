@@ -190,7 +190,7 @@ export const getGlobalActivityLogs = cache(async (limit = 20, offset = 0, search
     }
     
     let query = supabase
-        .from('activity_logs')
+        .from('audit_logs')
         .select(`
             *,
             user:profiles (full_name, email),

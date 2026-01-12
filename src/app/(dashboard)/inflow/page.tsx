@@ -11,6 +11,11 @@ import { InflowDashboard } from "./inflow-dashboard";
 export const dynamic = 'force-dynamic';
 export const revalidate = 30; // Revalidate every 30 seconds for high-frequency updates
 
+export const metadata = {
+  title: 'Inflow',
+  description: 'Record new stock arrivals and manage gate entries.',
+};
+
 export default async function InflowPage() {
     const supabase = await createClient();
     const warehouseId = await getUserWarehouse();

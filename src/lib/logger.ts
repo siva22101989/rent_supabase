@@ -34,10 +34,11 @@ export class Logger {
         title: string,
         message: string,
         type: 'info' | 'warning' | 'success' | 'error' = 'info',
+        category: NotificationCategory = 'system',
         forUserId?: string,
         link?: string
     ) {
-        return createNotification(title, message, type, forUserId, link);
+        return createNotification(title, message, type, category, forUserId, link);
     }
 }
 
@@ -48,30 +49,31 @@ export async function logActivity(
     details?: any
 ) {
     try {
-        const supabase = await createClient();
         const warehouseId = await getUserWarehouse();
-        const { data: { user } } = await supabase.auth.getUser();
+        if (!warehouseId) return;
 
-        if (!warehouseId || !user) return;
-
-        await supabase.from('activity_logs').insert({
-            warehouse_id: warehouseId,
-            user_id: user.id,
-            action,
-            entity,
-            entity_id: entityId,
+        // Redirect to new Audit Service
+        const { logActivity: auditLog } = await import('@/lib/audit-service');
+        await auditLog({
+            action: action as any, // Cast or map if needed
+            entity: entity as any,
+            entityId,
+            warehouseId,
             details
         });
     } catch (error) {
-        logError(error, { operation: 'log_activity', metadata: { action, entity, entityId } });
-        // Don't block the main action loop
+        logError(error, { operation: 'log_activity_redirect', metadata: { action, entity, entityId } });
     }
 }
+
+import { getNotificationPreferences } from '@/lib/notification-actions';
+import type { NotificationCategory } from '@/lib/definitions';
 
 export async function createNotification(
     title: string,
     message: string,
     type: 'info' | 'warning' | 'success' | 'error' = 'info',
+    category: NotificationCategory = 'system',
     forUserId?: string, // If null, warehouse-wide
     link?: string
 ) {
@@ -81,12 +83,24 @@ export async function createNotification(
         
         if (!warehouseId) return;
 
+        // If specific user, check their preferences
+        if (forUserId) {
+            const prefs = await getNotificationPreferences(warehouseId);
+            // Note: getNotificationPreferences fetches for current auth user.
+            // If forUserId != current user, we can't easily check their prefs without a new function or admin privs.
+            // For now, let's skip preference check on creation if strictly enforcing requires extra queries.
+            // BUT, if the sender IS the recipient (e.g. action done by user), we could check.
+            // However, most notifications are "Payment Received" (created by cashier, for owner?).
+            // Let's rely on READ-SIDE filtering for robust preference support.
+        }
+
         await supabase.from('notifications').insert({
             warehouse_id: warehouseId,
             user_id: forUserId || null,
             title,
             message,
             type,
+            category,
             link
         });
     } catch (error) {

@@ -87,15 +87,17 @@ export default async function DashboardPage() {
       <DashboardShortcuts />
 
       {/* 2. Metric Cards (Enhanced) */}
-      <div className="relative">
-          <div className="absolute inset-0 flex items-center" aria-hidden="true">
-            <div className="w-full border-t border-dashed border-gray-200" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-background px-3 text-sm text-muted-foreground">Overview</span>
-          </div>
+      <div id="tour-dashboard-stats">
+        <div className="relative">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-dashed border-gray-200" />
+            </div>
+            <div className="relative flex justify-center">
+                <span className="bg-background px-3 text-sm text-muted-foreground">Overview</span>
+            </div>
+        </div>
+        <DashboardStats metrics={metrics} />
       </div>
-      <DashboardStats metrics={metrics} />
 
       {/* 3. Market Prices Widget */}
       <MarketPricesWidgetWrapper warehouseId={warehouse?.id} />

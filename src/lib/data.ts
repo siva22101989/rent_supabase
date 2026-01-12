@@ -581,6 +581,20 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
         .eq('id', id);
 
     if (error) throw error;
+
+    // AUDIT LOG
+    try {
+        const { logActivity } = await import('@/lib/audit-service');
+        await logActivity({
+            action: 'DELETE',
+            entity: 'STORAGE_RECORD',
+            entityId: id,
+            warehouseId: record.warehouse_id,
+            details: { reason: 'soft_delete_storage_record' }
+        });
+    } catch (e) {
+        // ignore audit failure
+    }
 };
 
 export const restoreStorageRecord = async (id: string): Promise<void> => {
@@ -657,5 +671,19 @@ export const saveWithdrawalTransaction = async (
         return null;
     }
     
+    // AUDIT LOG
+    try {
+        const { logActivity } = await import('@/lib/audit-service');
+        await logActivity({
+            action: 'CREATE',
+            entity: 'OUTFLOW',
+            entityId: data.id,
+            warehouseId,
+            details: { bagsWithdrawn, rentCollected, recordId }
+        });
+    } catch (e) {
+         // ignore
+    }
+
     return data.id;
 };

@@ -38,7 +38,7 @@ export default function LoginPage() {
     
     if (isMobile) {
         loginEmail = `${loginEmail}@rentapp.local`;
-        console.log("Logging in via mobile:", loginEmail);
+
     }
 
     const { error } = await supabase.auth.signInWithPassword({

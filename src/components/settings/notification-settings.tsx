@@ -127,9 +127,9 @@ export function NotificationSettings({ warehouseId }: NotificationSettingsProps)
 
                     <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
-                            <Label htmlFor="low_stock_alert">Low Stock Alerts</Label>
+                            <Label htmlFor="low_stock_alert">High Capacity Alerts</Label>
                             <p className="text-sm text-muted-foreground">
-                                Alerts when lots reach 90% capacity
+                                Get notified when a lot is 90% full
                             </p>
                         </div>
                         <Switch
