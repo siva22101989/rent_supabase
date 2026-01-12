@@ -7,7 +7,7 @@ export async function GET() {
         const supabase = await createClient();
         const warehouseId = await getUserWarehouse();
 
-        const { checkFeatureAccess } = await import('@/lib/subscription-actions');
+        const { checkFeatureAccess } = await import('@/services/subscription-service');
 
         if (!warehouseId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

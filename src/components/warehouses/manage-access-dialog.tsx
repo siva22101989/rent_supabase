@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { generateInviteLink } from '@/lib/warehouse-actions';
+import { UserRole } from '@/types/db';
+import { useUnifiedToast } from '@/components/shared/toast-provider';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,7 +15,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
 import { Check, Copy, Link as LinkIcon, Loader2, UserPlus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -25,12 +26,13 @@ import {
 } from "@/components/ui/select";
 
 export function ManageAccessDialog() {
-  const { toast } = useToast();
+  const { toast } = useUnifiedToast();
   const [isOpen, setIsOpen] = useState(false);
   
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
-  const [inviteRole, setInviteRole] = useState<'owner' | 'admin' | 'manager' | 'staff'>('staff');
+  const [error, setError] = useState('');
+  const [inviteRole, setInviteRole] = useState<UserRole>(UserRole.STAFF);
   const [copied, setCopied] = useState(false);
 
   const handleGenerateLink = async () => {

@@ -1,25 +1,9 @@
 import { createClient } from '@/utils/supabase/server';
 import { headers } from 'next/headers';
 import { logError } from './error-logger';
+import { AuditAction, AuditEntity } from '@/types/db';
 
-export type AuditAction = 
-    | 'CREATE'
-    | 'UPDATE'
-    | 'DELETE'
-    | 'LOGIN'
-    | 'LOGOUT'
-    | 'EXPORT'
-    | 'BULK_ACTION';
-
-export type AuditEntity = 
-    | 'STORAGE_RECORD'
-    | 'CUSTOMER'
-    | 'PAYMENT'
-    | 'INFLOW'
-    | 'OUTFLOW'
-    | 'USER'
-    | 'SETTINGS'
-    | 'SUBSCRIPTION';
+export { AuditAction, AuditEntity };
 
 interface AuditLogParams {
     action: AuditAction;
@@ -27,6 +11,7 @@ interface AuditLogParams {
     entityId: string;
     details?: Record<string, any>;
     warehouseId: string;
+    actorUserId?: string;
 }
 
 export async function logActivity({
@@ -34,7 +19,8 @@ export async function logActivity({
     entity,
     entityId,
     details = {},
-    warehouseId
+    warehouseId,
+    actorUserId
 }: AuditLogParams) {
     try {
         const supabase = await createClient();
@@ -43,16 +29,20 @@ export async function logActivity({
         const heads = await headers();
         const ip = heads.get('x-forwarded-for') || heads.get('x-real-ip') || 'unknown';
         
-        const { data: { user } } = await supabase.auth.getUser();
+        let userId = actorUserId;
+        if (!userId) {
+            const { data: { user } } = await supabase.auth.getUser();
+            userId = user?.id;
+        }
         
-        if (!user) {
+        if (!userId) {
             console.warn('Attempted to log activity without authenticated user');
             return;
         }
 
         const { error } = await supabase.from('audit_logs').insert({
             warehouse_id: warehouseId,
-            user_id: user.id,
+            user_id: userId,
             action,
             entity,
             entity_id: entityId,

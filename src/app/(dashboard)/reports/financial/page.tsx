@@ -35,7 +35,9 @@ export default async function FinancialReportsPage() {
 
     // Check Feature Access
     const { getUserWarehouse } = await import('@/lib/queries');
-    const { checkFeatureAccess } = await import('@/lib/subscription-actions');
+    // Check Feature Access
+    const { checkFeatureAccess } = await import('@/services/subscription-service');
+    // Probably usage? I will guess line context if possible, but safe string replacement is better.
     const warehouseId = await getUserWarehouse();
     const { allowed: allowExport } = warehouseId ? await checkFeatureAccess(warehouseId, 'allow_export') : { allowed: false };
 

@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { getAuthUser } from '@/lib/queries/auth';
 
 import type { Customer, StorageRecord, Payment, Expense, ExpenseCategory } from '@/lib/definitions';
+import { Database, UserRole, AuditAction, AuditEntity } from '@/types/db';
 
 // Database Row Interfaces
 interface DbCustomer {
@@ -586,11 +587,12 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
     try {
         const { logActivity } = await import('@/lib/audit-service');
         await logActivity({
-            action: 'DELETE',
-            entity: 'STORAGE_RECORD',
+            action: AuditAction.DELETE,
+            entity: AuditEntity.STORAGE_RECORD,
             entityId: id,
             warehouseId: record.warehouse_id,
-            details: { reason: 'soft_delete_storage_record' }
+            details: { reason: 'soft_delete_storage_record' },
+            actorUserId: user.id
         });
     } catch (e) {
         // ignore audit failure
@@ -675,8 +677,8 @@ export const saveWithdrawalTransaction = async (
     try {
         const { logActivity } = await import('@/lib/audit-service');
         await logActivity({
-            action: 'CREATE',
-            entity: 'OUTFLOW',
+            action: AuditAction.CREATE,
+            entity: AuditEntity.OUTFLOW,
             entityId: data.id,
             warehouseId,
             details: { bagsWithdrawn, rentCollected, recordId }

@@ -15,151 +15,57 @@ export type SubscriptionState = {
  * Get current subscription for a warehouse.
  */
 export async function getSubscriptionAction(warehouseId: string) {
+  // Use service directly since this is a read operation often used by components
+  // But for an action we must ensure auth if it's exposed to client
+  // Since this is just a wrapper, we can check auth.
+  const { getSubscriptionWithUsage } = await import('@/services/subscription-service');
+  // Simple auth check wrapper inline or just trust the service? Service doesn't check auth.
+  // Let's use authenticatedAction for consistency if this is called from client.
+  // Actually, this function seems to be used as a server action.
+  
+  // NOTE: authenticatedAction signature requires (user, supabase).
+  // We need to return the data.
+  // But this function return type was specific.
+  
+  // Let's keep it simple for now and just delegate to service, but adding basic auth check to match previous behavior
   const supabase = createClient();
-  const { data, error } = await (await supabase)
-    .from('subscriptions')
-    .select('*, plans(*)')
-    .eq('warehouse_id', warehouseId)
-    .single();
-
-  if (error && error.code !== 'PGRST116') {
-    logError(error, { operation: 'getSubscriptionAction', metadata: { warehouseId } });
-    return null;
+  const { data: { user } } = await (await supabase).auth.getUser();
+  if (!user) return null;
+  
+  const { subscription, usage } = await getSubscriptionWithUsage(warehouseId);
+  
+  if (!subscription) {
+      // Return Free Tier structure with actual usage
+      return {
+          status: 'active',
+          warehouse_id: warehouseId,
+          plans: {
+             name: 'free',
+             display_name: 'Free',
+             tier: 'free',
+             max_warehouses: 1,
+             max_storage_records: 50,
+             features: {}
+          },
+          usage
+      } as any; // Cast to satisfy legacy return type expected by Context
   }
 
-  // Parallelize fetches for performance
-  const [
-    { count: totalRecords },
-    { count: monthlyRecords },
-    { count: totalUsers }
-  ] = await Promise.all([
-    // 1. Total Storage Records
-    (await supabase)
-        .from('storage_records')
-        .select('*', { count: 'exact', head: true })
-        .eq('warehouse_id', warehouseId)
-        .is('deleted_at', null),
-    
-    // 2. Monthly Inflows (records created this month)
-    (await supabase)
-        .from('storage_records')
-        .select('*', { count: 'exact', head: true })
-        .eq('warehouse_id', warehouseId)
-        .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
-
-    // 3. User Count (excluding customers usually, but let's count all non-customer users or just user_warehouses)
-    /* Actually 'user_warehouses' gives us the team size */
-    (await supabase)
-        .from('user_warehouses')
-        .select('*', { count: 'exact', head: true })
-        .eq('warehouse_id', warehouseId)
-  ]);
-
   return {
-    ...data,
-    usage: {
-        total_records: totalRecords || 0,
-        monthly_records: monthlyRecords || 0,
-        total_users: totalUsers || 0
-    }
+      ...subscription,
+      usage
   };
 }
 
-/**
- * Start a subscription flow.
- */
-/**
- * Check if the warehouse is allowed to perform an action based on subscription limits.
- */
-export async function checkSubscriptionLimits(warehouseId: string, action: 'add_record' | 'add_user'): Promise<{ allowed: boolean; message?: string }> {
-    const subscription = await getSubscriptionAction(warehouseId);
-    
-    if (!subscription) {
-        // Fallback or Strict? Strict: No sub = Free Tier rules.
-        // Assuming no sub means "Free Tier" (default)
-        // We should fetch free plan limits physically or hardcode them as failsafe.
-        // For now, let's treat "no subscription record" as "Free Tier" with 50 record limit.
-        // Ideally, we fetch the "free" plan from DB.
-        
-        // Quick verify of current count
-        const supabase = await createClient();
-        const { count } = await supabase.from('storage_records').select('*', { count: 'exact', head: true }).eq('warehouse_id', warehouseId).is('deleted_at', null);
-        
-        const FREE_LIMIT = 50;
-        if ((count || 0) >= FREE_LIMIT && action === 'add_record') {
-             return { allowed: false, message: `Free Tier limit reached (${FREE_LIMIT} records). Please upgrade to add more.` };
-        }
-        return { allowed: true };
-    }
+import { authenticatedAction } from './safe-action';
+import { getSubscriptionWithUsage } from '@/services/subscription-service';
+import { SubscriptionStatus, UserRole } from '@/types/db';
 
-    const { plans, status: rawStatus, usage } = subscription;
-    // Default to 'active' to be permissive for legacy data/undefined status
-    const status = rawStatus || 'active';
-    
-    if (status !== 'active' && status !== 'trialing') {
-         return { allowed: false, message: `Subscription is ${status}. Please renew to continue.` };
-    }
-
-    // Auto-expire check: If active but past end date
-    if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
-         return { allowed: false, message: "Subscription period has ended. Please renew to continue." };
-    }
-
-    if (action === 'add_record') {
-        const limit = plans?.max_storage_records;
-        // if limit is null/undefined, assume unlimited (Enterprise)
-        if (limit && usage.total_records >= limit) {
-             return { allowed: false, message: `Plan limit reached (${limit} records). Please upgrade.` };
-        }
-    }
-    
-    return { allowed: true };
-}
-
-/**
- * Check if the warehouse has access to a specific feature.
- */
-export async function checkFeatureAccess(warehouseId: string, feature: 'allow_sms' | 'allow_export' | 'allow_multi_warehouse' | 'allow_api'): Promise<{ allowed: boolean; message?: string }> {
-    const subscription = await getSubscriptionAction(warehouseId);
-    
-    if (!subscription) {
-        // Free tier defaults
-        // Assuming free tier has NO advanced features
-        return { allowed: false, message: "Upgrade to access this feature." };
-    }
-
-    const { plans, status } = subscription;
-    
-    // Check subscription status
-    if (status !== 'active' && status !== 'trialing') {
-         return { allowed: false, message: "Subscription inactive. Please renew." };
-    }
-
-    if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
-          return { allowed: false, message: "Subscription expired. Please renew." };
-    }
-
-    // Check plan features JSON
-    const features = plans?.features as any;
-    if (!features || !features[feature]) {
-         return { allowed: false, message: `Your current plan (${plans?.name}) does not support this feature.` };
-    }
-
-    return { allowed: true };
-}
-
-/**
- * Start a subscription flow.
- */
 export async function startSubscriptionAction(
   warehouseId: string,
   planTier: string
 ): Promise<SubscriptionState> {
-  return Sentry.startSpan(
-    { op: "action", name: "startSubscriptionAction" },
-    async (span) => {
-      const supabase = await createClient();
-
+  return authenticatedAction('startSubscriptionAction', async (user, supabase) => {
       // 1. Get the plan details
       const { data: plan, error: planError } = await supabase
         .from('plans')
@@ -171,36 +77,23 @@ export async function startSubscriptionAction(
         return { success: false, message: "Invalid plan selected." };
       }
 
-      // Razorpay check skipped for manual flow
-      /*
-      if (!plan.razorpay_plan_id && planTier !== 'free') {
-          return { success: false, message: "Razorpay Plan ID not configured in database." };
-      }
-      */
+      // Create an 'incomplete' subscription
+      const { error: subError } = await supabase
+        .from('subscriptions')
+        .upsert({
+          warehouse_id: warehouseId,
+          plan_id: plan.id,
+          status: SubscriptionStatus.INCOMPLETE, // Signal for admin approval/payment
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'warehouse_id' });
+      
+      if (subError) throw subError;
 
-      try {
-        // Create an 'incomplete' subscription to signal intent to Admin
-        const { error: subError } = await supabase
-          .from('subscriptions')
-          .upsert({
-            warehouse_id: warehouseId,
-            plan_id: plan.id,
-            status: 'incomplete', // Signal for admin approval/payment
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'warehouse_id' });
-        
-        if (subError) throw subError;
-
-        return { 
-          success: true, 
-          message: "Request logged. Please contact the Super Admin to activate this plan.", 
-        };
-      } catch (error: any) {
-        logError(error, { operation: 'startSubscriptionAction', metadata: { warehouseId, planTier } });
-        return { success: false, message: error.message || "Failed to initiate subscription." };
-      }
-    }
-  );
+      return { 
+        success: true, 
+        message: "Request logged. Please contact the Super Admin to activate this plan.", 
+      };
+  });
 }
 
 // --- Admin Actions ---
@@ -211,7 +104,7 @@ export async function getAdminAllSubscriptions() {
     
     // Auth Check
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
-    if (!profile || (profile.role !== 'super_admin' && profile.role !== 'owner')) {
+    if (!profile || (profile.role !== UserRole.SUPER_ADMIN && profile.role !== UserRole.OWNER)) {
         return [];
     }
 
@@ -262,7 +155,7 @@ export async function getAllPlans() {
 export async function updateSubscriptionAdmin(
     warehouseId: string, 
     planId: string, 
-    status: 'active' | 'incomplete' | 'past_due' | 'canceled' | 'unpaid' | 'trialing' | 'grace_period' | 'expired',
+    status: SubscriptionStatus,
     endDate?: string
 ): Promise<SubscriptionState> {
     const supabase = await createClient();
@@ -278,7 +171,7 @@ export async function updateSubscriptionAdmin(
     
     // SAFEGUARD 1: If admin sets status to 'active' with a future end date, clear grace period
     // This handles manual renewals during grace period
-    if (status === 'active' && endDate) {
+    if (status === SubscriptionStatus.ACTIVE && endDate) {
         const endDateTime = new Date(endDate).getTime();
         const now = Date.now();
         
@@ -290,7 +183,7 @@ export async function updateSubscriptionAdmin(
     }
     
     // SAFEGUARD 2: If admin explicitly sets status to 'grace_period', calculate grace_period_end
-    if (status === 'grace_period' && endDate) {
+    if (status === SubscriptionStatus.GRACE_PERIOD && endDate) {
         const graceDays = 7;
         const endDateTime = new Date(endDate).getTime();
         updateData.grace_period_end = new Date(endDateTime + graceDays * 24 * 60 * 60 * 1000).toISOString();
@@ -298,7 +191,7 @@ export async function updateSubscriptionAdmin(
     }
     
     // SAFEGUARD 3: If changing from grace_period to any other active status, clear grace period
-    if (status !== 'grace_period' && status !== 'expired') {
+    if (status !== SubscriptionStatus.GRACE_PERIOD && status !== SubscriptionStatus.EXPIRED) {
         updateData.grace_period_end = null;
         updateData.grace_period_notified = false;
     }
@@ -398,7 +291,7 @@ async function sendExpiryNotifications(): Promise<void> {
           email
         )
       `)
-      .eq('status', 'grace_period')
+      .eq('status', SubscriptionStatus.GRACE_PERIOD)
       .eq('grace_period_notified', false);
     
     // Send grace period notifications
@@ -511,7 +404,7 @@ export async function manualProcessExpiries(): Promise<SubscriptionState> {
   
   // Auth check
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
-  if (!profile || profile.role !== 'super_admin') {
+  if (!profile || profile.role !== UserRole.SUPER_ADMIN) {
     return { success: false, message: 'Unauthorized: Only super admins can manually process expiries' };
   }
   

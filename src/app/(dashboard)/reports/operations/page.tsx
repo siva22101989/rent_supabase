@@ -26,7 +26,7 @@ export default async function OperationsReportsPage() {
 
     // Check Feature Access
     const { getUserWarehouse } = await import('@/lib/queries');
-    const { checkFeatureAccess } = await import('@/lib/subscription-actions');
+    const { checkFeatureAccess } = await import('@/services/subscription-service');
     const warehouseId = await getUserWarehouse();
     const { allowed: allowExport } = warehouseId ? await checkFeatureAccess(warehouseId, 'allow_export') : { allowed: false };
 

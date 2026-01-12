@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { ActionState } from './warehouse-actions';
 import { roleHierarchy } from './definitions';
+import { UserRole, AuditAction, AuditEntity } from '@/types/db';
 
 import { logError } from '@/lib/error-logger';
 
@@ -13,7 +14,7 @@ import { logError } from '@/lib/error-logger';
 export async function toggleWarehouseAccess(
     userId: string, 
     warehouseId: string, 
-    role: string = 'staff'
+    role: string = UserRole.STAFF
 ): Promise<ActionState> {
     const supabase = await createClient();
     const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -29,10 +30,10 @@ export async function toggleWarehouseAccess(
             .eq('warehouse_id', warehouseId)
             .single();
 
-        if (!currentAccess || !['owner', 'admin'].includes(currentAccess.role)) {
+        if (!currentAccess || ![UserRole.OWNER, UserRole.ADMIN].includes(currentAccess.role as UserRole)) {
             // Super admin exception
             const { data: currentProfile } = await supabase.from('profiles').select('role').eq('id', currentUser.id).single();
-            if (currentProfile?.role !== 'super_admin') {
+            if (currentProfile?.role !== UserRole.SUPER_ADMIN) {
                 return { message: 'Forbidden: You do not have permission to manage staff for this warehouse.', success: false };
             }
         }
@@ -60,18 +61,19 @@ export async function toggleWarehouseAccess(
             // AUDIT LOG
             const { logActivity } = await import('@/lib/audit-service');
             await logActivity({
-                action: 'DELETE',
-                entity: 'USER',
+                action: AuditAction.DELETE,
+                entity: AuditEntity.USER,
                 entityId: userId,
                 warehouseId,
-                details: { role: existingAccess.role, operation: 'revoke_access' }
+                details: { role: existingAccess.role, operation: 'revoke_access' },
+                actorUserId: currentUser.id
             });
 
             revalidatePath('/settings/team');
             return { message: 'Access revoked successfully', success: true };
         } else if (existingAccess && existingAccess.deleted_at) {
             // Soft deleted assignment exists -> Restore Access
-            const { checkSubscriptionLimits } = await import('@/lib/subscription-actions');
+            const { checkSubscriptionLimits } = await import('@/services/subscription-service');
             const limitCheck = await checkSubscriptionLimits(warehouseId, 'add_user');
             if (!limitCheck.allowed) {
                 return { message: limitCheck.message || 'Plan user limit reached.', success: false };
@@ -93,18 +95,19 @@ export async function toggleWarehouseAccess(
             // AUDIT LOG
             const { logActivity } = await import('@/lib/audit-service');
             await logActivity({
-                action: 'CREATE',
-                entity: 'USER',
+                action: AuditAction.CREATE,
+                entity: AuditEntity.USER,
                 entityId: userId,
                 warehouseId,
-                details: { role, operation: 'restore_access' }
+                details: { role, operation: 'restore_access' },
+                actorUserId: currentUser.id
             });
 
             revalidatePath('/settings/team');
             return { message: 'Access granted successfully', success: true };
         } else {
             // No assignment exists -> Grant New Access
-            const { checkSubscriptionLimits } = await import('@/lib/subscription-actions');
+            const { checkSubscriptionLimits } = await import('@/services/subscription-service');
             const limitCheck = await checkSubscriptionLimits(warehouseId, 'add_user');
             if (!limitCheck.allowed) {
                 return { message: limitCheck.message || 'Plan user limit reached.', success: false };
@@ -126,11 +129,12 @@ export async function toggleWarehouseAccess(
             // AUDIT LOG
             const { logActivity } = await import('@/lib/audit-service');
             await logActivity({
-                action: 'CREATE',
-                entity: 'USER',
+                action: AuditAction.CREATE,
+                entity: AuditEntity.USER,
                 entityId: userId,
                 warehouseId,
-                details: { role, operation: 'grant_access' }
+                details: { role, operation: 'grant_access' },
+                actorUserId: currentUser.id
             });
 
             revalidatePath('/settings/team');
@@ -174,11 +178,12 @@ export async function updateStaffRoleInWarehouse(
         // AUDIT LOG
         const { logActivity } = await import('@/lib/audit-service');
         await logActivity({
-            action: 'UPDATE',
-            entity: 'USER',
+            action: AuditAction.UPDATE,
+            entity: AuditEntity.USER,
             entityId: userId,
             warehouseId,
-            details: { new_role: role }
+            details: { new_role: role },
+            actorUserId: currentUser.id
         });
 
         revalidatePath('/settings/team');

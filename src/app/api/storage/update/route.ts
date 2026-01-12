@@ -4,7 +4,7 @@ import { updateStorageRecordSimple } from '@/lib/actions/storage/records';
 export async function POST(request: NextRequest) {
     try {
         const { getUserWarehouse } = await import('@/lib/queries/warehouses');
-        const { checkFeatureAccess } = await import('@/lib/subscription-actions');
+        const { checkFeatureAccess } = await import('@/services/subscription-service');
         
         const warehouseId = await getUserWarehouse();
         if (!warehouseId) {

@@ -16,7 +16,7 @@ export default async function CustomReportsPage() {
     }
 
     // Check Feature Access
-    const { checkFeatureAccess } = await import('@/lib/subscription-actions');
+    const { checkFeatureAccess } = await import('@/services/subscription-service');
     const { allowed: allowExport } = await checkFeatureAccess(warehouse.id, 'allow_export');
 
     return (

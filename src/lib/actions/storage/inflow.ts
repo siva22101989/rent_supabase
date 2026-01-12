@@ -174,7 +174,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
           // Start: Subscription Check
           const warehouseId = await getUserWarehouse();
           if (warehouseId) {
-              const { checkSubscriptionLimits } = await import('@/lib/subscription-actions');
+              const { checkSubscriptionLimits } = await import('@/services/subscription-service');
               const check = await checkSubscriptionLimits(warehouseId, 'add_record');
               if (!check.allowed) {
                    return { message: check.message || 'Subscription limit reached.', success: false };
