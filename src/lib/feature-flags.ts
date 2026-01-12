@@ -2,7 +2,11 @@ import React from 'react';
 import { useUnifiedToast } from '@/components/shared/toast-provider';
 import { useSubscription } from '@/components/providers/subscription-context';
 
-export type PlanTier = 'free' | 'starter' | 'professional' | 'enterprise';
+export type PlanTier = 
+  | 'free' 
+  | 'starter' | 'starter_monthly' | 'starter_yearly' 
+  | 'professional' | 'professional_monthly' | 'professional_yearly' 
+  | 'enterprise' | 'enterprise_monthly' | 'enterprise_yearly';
 
 export interface FeatureGate {
   id: string;
@@ -30,9 +34,15 @@ export const LIMITS: Record<string, UsageLimit> = {
         name: 'Storage Records',
         limit: {
             free: 100,
-            starter: 10000, // Unlimited effectively
+            starter: 10000,
+            starter_monthly: 10000,
+            starter_yearly: 10000,
             professional: 100000,
-            enterprise: 1000000
+            professional_monthly: 100000,
+            professional_yearly: 100000,
+            enterprise: 1000000,
+            enterprise_monthly: 1000000,
+            enterprise_yearly: 1000000
         }
     },
     USERS: {
@@ -41,8 +51,14 @@ export const LIMITS: Record<string, UsageLimit> = {
         limit: {
             free: 1,
             starter: 3,
+            starter_monthly: 3,
+            starter_yearly: 3,
             professional: 10,
-            enterprise: 50
+            professional_monthly: 10,
+            professional_yearly: 10,
+            enterprise: 50,
+            enterprise_monthly: 50,
+            enterprise_yearly: 50
         }
     }
 };
@@ -76,11 +92,17 @@ export function useFeatureGate() {
 
     // 2. Legacy Tier Priority Check (Fallback)
     const currentPlan = subscription.plan.tier;
-    const tierPriority: Record<PlanTier, number> = {
+    const tierPriority: Record<string, number> = {
       free: 0,
       starter: 1,
+      starter_monthly: 1,
+      starter_yearly: 1,
       professional: 2,
+      professional_monthly: 2,
+      professional_yearly: 2,
       enterprise: 3,
+      enterprise_monthly: 3,
+      enterprise_yearly: 3,
     };
 
     if (tierPriority[currentPlan] >= tierPriority[featureGate.tier]) {

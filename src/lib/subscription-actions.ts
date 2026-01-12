@@ -253,9 +253,8 @@ export async function getAdminAllSubscriptions() {
 }
 
 export async function getAllPlans() {
+    'use server';
     const supabase = await createClient();
-    // Use 'price' column as seen in SQL output. 
-    // If price is text/numeric, this order should work.
     const { data } = await supabase.from('plans').select('*').order('created_at', { ascending: true });
     return data || [];
 }
@@ -263,23 +262,51 @@ export async function getAllPlans() {
 export async function updateSubscriptionAdmin(
     warehouseId: string, 
     planId: string, 
-    status: 'active' | 'incomplete' | 'past_due' | 'canceled' | 'unpaid',
+    status: 'active' | 'incomplete' | 'past_due' | 'canceled' | 'unpaid' | 'trialing' | 'grace_period' | 'expired',
     endDate?: string
 ): Promise<SubscriptionState> {
     const supabase = await createClient();
     
+    // Build update object
+    const updateData: any = {
+        warehouse_id: warehouseId,
+        plan_id: planId,
+        status: status,
+        current_period_end: endDate ? new Date(endDate).toISOString() : null,
+        updated_at: new Date().toISOString()
+    };
+    
+    // SAFEGUARD 1: If admin sets status to 'active' with a future end date, clear grace period
+    // This handles manual renewals during grace period
+    if (status === 'active' && endDate) {
+        const endDateTime = new Date(endDate).getTime();
+        const now = Date.now();
+        
+        if (endDateTime > now) {
+            // Future date = renewal, clear grace period
+            updateData.grace_period_end = null;
+            updateData.grace_period_notified = false;
+        }
+    }
+    
+    // SAFEGUARD 2: If admin explicitly sets status to 'grace_period', calculate grace_period_end
+    if (status === 'grace_period' && endDate) {
+        const graceDays = 7;
+        const endDateTime = new Date(endDate).getTime();
+        updateData.grace_period_end = new Date(endDateTime + graceDays * 24 * 60 * 60 * 1000).toISOString();
+        updateData.grace_period_notified = false;
+    }
+    
+    // SAFEGUARD 3: If changing from grace_period to any other active status, clear grace period
+    if (status !== 'grace_period' && status !== 'expired') {
+        updateData.grace_period_end = null;
+        updateData.grace_period_notified = false;
+    }
+    
     // Upsert subscription
-    // If no ID exists, it creates one. If exists (by warehouse_id constraint), it updates.
-    // Ensure table has unique constraint on warehouse_id
     const { error } = await supabase
         .from('subscriptions')
-        .upsert({
-            warehouse_id: warehouseId,
-            plan_id: planId,
-            status: status,
-            current_period_end: endDate ? new Date(endDate).toISOString() : null,
-            updated_at: new Date().toISOString()
-        }, { onConflict: 'warehouse_id' });
+        .upsert(updateData, { onConflict: 'warehouse_id' });
 
     if (error) {
         logError(error, { operation: 'updateSubscriptionAdmin', metadata: { warehouseId, planId, status } });
@@ -288,4 +315,215 @@ export async function updateSubscriptionAdmin(
 
     revalidatePath('/admin');
     return { success: true, message: 'Subscription updated successfully' };
+}
+
+// --- Subscription Expiry Handling ---
+
+/**
+ * Process expired subscriptions (called by cron/edge function)
+ * Transitions: active -> grace_period -> expired -> downgrade to Free
+ */
+export async function processExpiredSubscriptions(): Promise<{
+  success: boolean;
+  processed: number;
+  gracePeriod: number;
+  expired: number;
+  downgraded: number;
+  errors: string[];
+}> {
+  const { createAdminClient } = await import('@/utils/supabase/admin');
+  const adminSupabase = createAdminClient();
+  
+  try {
+    // Call the DB function to process expiries
+    const { data, error } = await adminSupabase.rpc('auto_expire_subscriptions');
+    
+    if (error) {
+      logError(error, { operation: 'processExpiredSubscriptions' });
+      return { 
+        success: false, 
+        processed: 0, 
+        gracePeriod: 0,
+        expired: 0,
+        downgraded: 0,
+        errors: [error.message] 
+      };
+    }
+
+    const result = Array.isArray(data) ? data[0] : data;
+    const { processed_count, grace_period_count, expired_count, downgraded_count } = result || {};
+    
+    // Send notifications for subscriptions in grace period or newly expired
+    await sendExpiryNotifications();
+    
+    return { 
+      success: true,
+      processed: processed_count || 0,
+      gracePeriod: grace_period_count || 0,
+      expired: expired_count || 0,
+      downgraded: downgraded_count || 0,
+      errors: []
+    };
+  } catch (error: any) {
+    logError(error, { operation: 'processExpiredSubscriptions' });
+    return { 
+      success: false, 
+      processed: 0, 
+      gracePeriod: 0,
+      expired: 0,
+      downgraded: 0,
+      errors: [error.message] 
+    };
+  }
+}
+
+/**
+ * Send expiry notifications for subscriptions in grace period or expired
+ */
+async function sendExpiryNotifications(): Promise<void> {
+  const { createAdminClient } = await import('@/utils/supabase/admin');
+  const adminSupabase = createAdminClient();
+  
+  try {
+    // Fetch subscriptions in grace period that haven't been notified
+    const { data: gracePeriodSubs } = await adminSupabase
+      .from('subscriptions')
+      .select(`
+        id,
+        warehouse_id,
+        current_period_end,
+        grace_period_end,
+        warehouses!inner (
+          name,
+          email
+        )
+      `)
+      .eq('status', 'grace_period')
+      .eq('grace_period_notified', false);
+    
+    // Send grace period notifications
+    for (const sub of gracePeriodSubs || []) {
+      const warehouse = Array.isArray(sub.warehouses) ? sub.warehouses[0] : sub.warehouses;
+      const daysLeft = Math.ceil(
+        (new Date(sub.grace_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+      
+      await adminSupabase.from('notifications').insert({
+        warehouse_id: sub.warehouse_id,
+        title: '⚠️ Subscription in Grace Period',
+        message: `Your subscription expired on ${new Date(sub.current_period_end).toLocaleDateString()}. You have ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining to renew before your account is downgraded to the Free plan.`,
+        type: 'warning',
+        category: 'subscription'
+      });
+      
+      // Mark as notified
+      await adminSupabase
+        .from('subscriptions')
+        .update({ grace_period_notified: true })
+        .eq('id', sub.id);
+    }
+    
+    // Fetch newly expired subscriptions (just downgraded to Free)
+    const { data: expiredSubs } = await adminSupabase
+      .from('subscriptions')
+      .select(`
+        id,
+        warehouse_id,
+        warehouses!inner (
+          name,
+          email
+        ),
+        plans!inner (
+          name,
+          tier
+        )
+      `)
+      .eq('plans.tier', 'free')
+      .gte('updated_at', new Date(Date.now() - 5 * 60 * 1000).toISOString()); // Last 5 minutes
+    
+    // Send downgrade notifications
+    for (const sub of expiredSubs || []) {
+      await adminSupabase.from('notifications').insert({
+        warehouse_id: sub.warehouse_id,
+        title: '📉 Subscription Downgraded',
+        message: 'Your subscription has expired and been downgraded to the Free plan. Upgrade now to restore full access to premium features.',
+        type: 'error',
+        category: 'subscription'
+      });
+    }
+  } catch (error: any) {
+    logError(error, { operation: 'sendExpiryNotifications' });
+  }
+}
+
+/**
+ * Check upcoming expiries and send proactive warnings
+ * Should be called daily by cron job
+ */
+export async function sendExpiryWarnings(): Promise<{
+  success: boolean;
+  warningsSent: number;
+  errors: string[];
+}> {
+  const { createAdminClient } = await import('@/utils/supabase/admin');
+  const adminSupabase = createAdminClient();
+  
+  try {
+    const warningDays = [7, 3, 1]; // Days before expiry to send warnings
+    let totalWarnings = 0;
+    
+    for (const days of warningDays) {
+      const { data: expiring, error } = await adminSupabase.rpc(
+        'get_expiring_subscriptions',
+        { days_ahead: days }
+      );
+      
+      if (error) {
+        logError(error, { operation: 'sendExpiryWarnings', metadata: { days } });
+        continue;
+      }
+      
+      for (const sub of expiring || []) {
+        await adminSupabase.from('notifications').insert({
+          warehouse_id: sub.warehouse_id,
+          title: `⏰ Subscription Expiring in ${days} Day${days > 1 ? 's' : ''}`,
+          message: `Your subscription will expire on ${new Date(sub.current_period_end).toLocaleDateString()}. Renew now to avoid service interruption and maintain access to all features.`,
+          type: 'warning',
+          category: 'subscription'
+        });
+        totalWarnings++;
+      }
+    }
+    
+    return { success: true, warningsSent: totalWarnings, errors: [] };
+  } catch (error: any) {
+    logError(error, { operation: 'sendExpiryWarnings' });
+    return { success: false, warningsSent: 0, errors: [error.message] };
+  }
+}
+
+/**
+ * Manual trigger for admins to process expiries (for testing/emergency)
+ */
+export async function manualProcessExpiries(): Promise<SubscriptionState> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  // Auth check
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
+  if (!profile || profile.role !== 'super_admin') {
+    return { success: false, message: 'Unauthorized: Only super admins can manually process expiries' };
+  }
+  
+  const result = await processExpiredSubscriptions();
+  
+  if (!result.success) {
+    return { success: false, message: result.errors.join(', ') };
+  }
+  
+  return { 
+    success: true, 
+    message: `Processed ${result.processed} subscriptions: ${result.gracePeriod} moved to grace period, ${result.expired} expired, ${result.downgraded} downgraded to Free.`,
+    data: result
+  };
 }

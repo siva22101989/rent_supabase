@@ -6,6 +6,7 @@ import Link from "next/link";
 // Revalidate every 30 seconds for fresh dashboard data
 export const revalidate = 30;
 import { getDashboardMetrics, getAvailableLots, getWarehouseDetails, getRecentInflows, getRecentOutflows } from "@/lib/queries";
+import { getSubscriptionAction } from "@/lib/subscription-actions";
 import { Progress } from "@/components/ui/progress";
 // import { DashboardCharts } from "@/components/dashboard/dashboard-charts"; // Replaced by new Stats
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
@@ -17,6 +18,7 @@ import { createClient } from '@/utils/supabase/server';
 import { DashboardShortcuts } from "@/components/dashboard/dashboard-shortcuts"; 
 import { JoinWarehouseForm } from '@/components/onboarding/join-warehouse-form';
 import { MarketPricesWidgetWrapper } from '@/components/market-prices/price-widget-wrapper';
+import { SubscriptionAlert } from '@/components/dashboard/subscription-alert';
 
 export default async function DashboardPage() {
   const [metrics, warehouse, recentInflows, recentOutflows] = await Promise.all([
@@ -25,6 +27,10 @@ export default async function DashboardPage() {
     getRecentInflows(5),
     getRecentOutflows(5)
   ]);
+
+  // Fetch subscription status for alerts
+  const subscription = warehouse?.id ? await getSubscriptionAction(warehouse.id) : null;
+
 
   // Merge and sort activities
   const activities = [
@@ -67,6 +73,9 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
+      {/* Subscription Status Alert */}
+      <SubscriptionAlert subscription={subscription} />
+
       {/* 1. Hero Section */}
       <DashboardHero 
         warehouseName={warehouse?.name || 'My Warehouse'} 

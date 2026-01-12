@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
     Table,
     TableBody,
@@ -25,7 +25,8 @@ import {
     ExternalLink,
     Search,
     Download,
-    Zap
+    Zap,
+    AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 import { exportToExcel } from "@/lib/export-utils";
@@ -53,6 +54,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PlanTier } from '@/lib/feature-flags';
 
 interface AdminWarehousesTableProps {
@@ -66,6 +68,7 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
     const [selectedWarehouse, setSelectedWarehouse] = useState<{id: string, name: string, tier?: string} | null>(null);
     const [newTier, setNewTier] = useState<string>("");
     const [isUpdating, setIsUpdating] = useState(false);
+    const [plans, setPlans] = useState<any[]>([]);
     
     // Debounce search query to reduce filtering operations
     const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
@@ -78,6 +81,21 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
             (w.email && w.email.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
         );
     }, [warehouses, debouncedSearchQuery]);
+
+    // Fetch plans on component mount
+    useEffect(() => {
+        async function fetchPlans() {
+            try {
+                const { getAllPlans } = await import('@/lib/subscription-actions');
+                const data = await getAllPlans();
+                console.log('Loaded plans:', data); // DEBUG: See what we're getting
+                setPlans(data);
+            } catch (err) {
+                console.error('Failed to load plans:', err);
+            }
+        }
+        fetchPlans();
+    }, []);
 
     // Memoize delete handler to prevent recreation on every render
     const handleDelete = useCallback(async (id: string, name: string) => {
@@ -334,18 +352,87 @@ function AdminWarehousesTableComponent({ warehouses }: AdminWarehousesTableProps
                         Manually change the plan tier for <strong>{selectedWarehouse?.name}</strong>.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
-                    <Select value={newTier} onValueChange={setNewTier}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a plan tier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="free">Free Tier</SelectItem>
-                            <SelectItem value="starter">Starter Plan</SelectItem>
-                            <SelectItem value="professional">Professional Plan</SelectItem>
-                            <SelectItem value="enterprise">Enterprise Plan</SelectItem>
-                        </SelectContent>
-                    </Select>
+                
+                {/* Grace Period Warning */}
+                {(selectedWarehouse as any)?.subscription?.status === 'grace_period' && (
+                    <Alert variant="destructive" className="border-orange-500 bg-orange-50 dark:bg-orange-950/20">
+                        <AlertTriangle className="h-4 w-4 text-orange-600" />
+                        <AlertTitle className="text-orange-900 dark:text-orange-100">Grace Period Active</AlertTitle>
+                        <AlertDescription className="text-orange-800 dark:text-orange-200">
+                            This subscription is in grace period until{' '}
+                            {(selectedWarehouse as any)?.subscription?.grace_period_end && 
+                                new Date((selectedWarehouse as any).subscription.grace_period_end).toLocaleDateString()}.
+                            Updating to an active plan will clear the grace period.
+                        </AlertDescription>
+                    </Alert>
+                )}
+                
+                <div className="space-y-4 py-4">
+                    <div>
+                        <label className="text-sm font-medium mb-2 block">Select Plan</label>
+                        <Select value={newTier} onValueChange={setNewTier}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a plan tier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {plans.length === 0 ? (
+                                    <>
+                                        <SelectItem value="free">Free Tier</SelectItem>
+                                        <SelectItem value="starter">Starter Plan</SelectItem>
+                                        <SelectItem value="professional">Professional Plan</SelectItem>
+                                        <SelectItem value="enterprise">Enterprise Plan</SelectItem>
+                                    </>
+                                ) : (
+                                    plans.map(plan => {
+                                        const durationLabel = 
+                                            plan.duration_days === 0 || !plan.duration_days 
+                                                ? 'No expiry' 
+                                                : plan.duration_days === 30 
+                                                ? 'Monthly' 
+                                                : plan.duration_days === 365 
+                                                ? 'Yearly'
+                                                : `${plan.duration_days} days`;
+                                        
+                                        // Only show the label if it's not already part of the name
+                                        const nameHasDuration = plan.name.toLowerCase().includes(durationLabel.toLowerCase());
+
+                                        return (
+                                            <SelectItem key={plan.tier} value={plan.tier}>
+                                                <div className="flex items-center justify-between w-full">
+                                                    <span>{plan.name}</span>
+                                                    {!nameHasDuration && (
+                                                        <span className="text-xs text-muted-foreground ml-4">
+                                                            {durationLabel}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </SelectItem>
+                                        );
+                                    })
+                                )}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    {newTier && plans.find(p => p.tier === newTier) && (
+                        <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                            <p className="font-medium mb-1">Plan Details:</p>
+                            <p>
+                                Duration: <strong>
+                                    {(() => {
+                                        const selectedPlan = plans.find(p => p.tier === newTier);
+                                        if (!selectedPlan?.duration_days || selectedPlan.duration_days === 0) return 'Unlimited (No expiry)';
+                                        if (selectedPlan.duration_days === 30) return '30 days (Monthly)';
+                                        if (selectedPlan.duration_days === 365) return '365 days (Yearly)';
+                                        return `${selectedPlan.duration_days} days`;
+                                    })()}
+                                </strong>
+                            </p>
+                            <p className="text-xs mt-1">
+                                {newTier !== 'free' && 'Subscription will expire on: ' + new Date(Date.now() + (plans.find(p => p.tier === newTier)?.duration_days || 0) * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                            </p>
+                        </div>
+                    )}
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsPlanModalOpen(false)}>Cancel</Button>

@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import * as Sentry from "@sentry/nextjs";
 import { getUserWarehouse } from './queries';
@@ -117,22 +118,82 @@ export async function deleteWarehouseAction(warehouseId: string) {
         return { success: false, message: 'Unauthorized: Only super admins can delete warehouses' };
     }
 
-    const supabase = await createClient();
+    const adminSupabase = createAdminClient(); // Use admin client for core deletion logic
+    const supabase = await createClient(); // Keep standard client for revalidatePath etc. if needed
     
-    // Potentially complex if there are constraints. 
-    // In a real app, we'd probably soft delete or check for dependencies.
-    const { error } = await supabase
-        .from('warehouses')
-        .delete()
-        .eq('id', warehouseId);
+    try {
+        // 1. Broad cleanup across all tables using warehouse_id
+        // This handles tables that are NOT partitioned and have a direct warehouse_id
+        const tablesByWarehouseId = [
+            'stock_movements',
+            'warehouse_lots',
+            'sms_settings',
+            'sequences',
+            'user_commodity_watchlist',
+            'unloading_records',
+            'expenses',
+            'customers',
+            'crops',
+            'warehouse_invitations',
+            'activity_logs',
+            'notifications',
+            'warehouse_assignments',
+            'user_warehouses',
+            'warehouse_settings'
+        ];
 
-    if (error) {
-        logError(error, { operation: 'deleteWarehouseAction', metadata: { warehouseId } });
+        for (const table of tablesByWarehouseId) {
+            await adminSupabase.from(table).delete().eq('warehouse_id', warehouseId);
+        }
+
+        // 2. Surgical cleanup for storage-linked data
+        // Fetch storage records to get their IDs for cascading manual deletes
+        const { data: records, error: fetchRecordsError } = await adminSupabase
+            .from('storage_records')
+            .select('id')
+            .eq('warehouse_id', warehouseId);
+        
+        if (fetchRecordsError) throw fetchRecordsError;
+
+        if (records && records.length > 0) {
+            const recordIds = records.map(r => r.id);
+            
+            // Delete payments and withdrawals tied to these storage records
+            await adminSupabase.from('payments').delete().in('storage_record_id', recordIds);
+            await adminSupabase.from('withdrawal_transactions').delete().in('storage_record_id', recordIds);
+            
+            // Final check: Some stock_movements might still exist if delete by warehouse_id failed (partitions)
+            await adminSupabase.from('stock_movements').delete().in('storage_record_id', recordIds);
+            
+            // Now safe to delete storage records
+            const { error: srErr } = await adminSupabase.from('storage_records').delete().in('id', recordIds);
+            if (srErr) throw srErr;
+        }
+
+        // 3. Subscription cleanup
+        const { data: sub } = await adminSupabase.from('subscriptions').select('id').eq('warehouse_id', warehouseId).single();
+        if (sub) {
+            await adminSupabase.from('subscription_payments').delete().eq('subscription_id', sub.id);
+            await adminSupabase.from('subscriptions').delete().eq('id', sub.id);
+        }
+
+        // 4. Profiles: Unlink users
+        await adminSupabase.from('profiles').update({ warehouse_id: null }).eq('warehouse_id', warehouseId);
+
+        // 5. Final Delete: The Warehouse itself
+        const { error } = await adminSupabase
+            .from('warehouses')
+            .delete()
+            .eq('id', warehouseId);
+
+        if (error) throw error;
+
+        revalidatePath('/admin');
+        return { success: true, message: 'Warehouse and all its data deleted permanently' };
+    } catch (error: any) {
+        logError(error, { operation: 'deleteWarehouseAction (Hard Delete)', metadata: { warehouseId } });
         return { success: false, message: error.message };
     }
-
-    revalidatePath('/admin');
-    return { success: true, message: 'Warehouse deleted successfully' };
 }
 
 export async function updateWarehouseDetails(formData: FormData) {
@@ -174,10 +235,10 @@ export async function assignWarehousePlan(warehouseId: string, planTier: string)
 
     const supabase = await createClient();
 
-    // 1. Get the plan details by tier
+    // 1. Get the plan details by tier (including duration_days)
     const { data: plan, error: planError } = await supabase
         .from('plans')
-        .select('id')
+        .select('id, duration_days')
         .eq('tier', planTier)
         .single();
 
@@ -185,13 +246,24 @@ export async function assignWarehousePlan(warehouseId: string, planTier: string)
         return { success: false, message: 'Invalid plan tier' };
     }
 
-    // 2. Upsert the subscription
+    // 2. Calculate expiry date based on plan duration
+    // Free plan (duration_days = 0 or null) has no expiry
+    // Paid plans use their duration_days (e.g., 30 for monthly, 365 for yearly)
+    const currentPeriodEnd = !plan.duration_days || plan.duration_days === 0
+        ? null 
+        : new Date(Date.now() + plan.duration_days * 24 * 60 * 60 * 1000).toISOString();
+
+    // 3. Upsert the subscription
     const { error: subError } = await supabase
         .from('subscriptions')
         .upsert({
             warehouse_id: warehouseId,
             plan_id: plan.id,
             status: 'active',
+            current_period_start: new Date().toISOString(),
+            current_period_end: currentPeriodEnd,
+            grace_period_end: null,           // Clear grace period
+            grace_period_notified: false,     // Reset notification
             updated_at: new Date().toISOString()
         }, { onConflict: 'warehouse_id' });
 

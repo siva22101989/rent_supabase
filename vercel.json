@@ -33,5 +33,11 @@
       "source": "/api/:path*",
       "destination": "/api/:path*"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/subscription-expiry",
+      "schedule": "0 0 * * *"
+    }
   ]
 }
