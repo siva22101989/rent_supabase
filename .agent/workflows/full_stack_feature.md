@@ -16,8 +16,13 @@ Define the data structure and security.
    - _Simple Data_ (e.g., Settings, Flags) → **Extend Existing Table**
 
 2. **Implementation**:
+
    ```sql
    -- supabase/migrations/YYYYMMDD_feature.sql
+   -- NOTE: If this modifies core schema, consider if it should be part of the monolithic
+   -- 'supabase/migrations/20260115000013_single_truth.sql' baseline or a new migration.
+   -- For most new features, a new migration file is appropriate.
+
    CREATE TABLE feature_name (...);
    ALTER TABLE feature_name ENABLE ROW LEVEL SECURITY;
    CREATE POLICY "..." ON feature_name FOR SELECT USING (...);

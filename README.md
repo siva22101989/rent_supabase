@@ -89,7 +89,7 @@ For detailed architecture, database rules, and coding standards, please refer to
 ### 1. Installation
 
 ```bash
-git clone https://github.com/siva22101989/rent_supabase.git
+git clone https://github.com/siva22101989/grainflow.git
 cd rent_supabase
 npm install
 ```
@@ -149,6 +149,8 @@ While the application is production-ready, these features are continuously evolv
 - [x] **Smart Payment UX**: Expandable record selection with readable IDs and per-record balance display.
 - [x] **Professional Landing Page**: Modern, adaptive landing page with contact integration.
 - [x] **Multi-Channel Contact**: Integrated phone and WhatsApp contact options via dialog interface.
+- [x] **Subscription Expiry**: Automated handling of subscription lifecycle with grace periods and auto-downgrades.
+- [x] **Flexible Plans**: Support for Monthly, Yearly, and No-Expiry plans with unique tiered features.
 - [ ] **WhatsApp Integration**: Automated payment reminders via WhatsApp Business API.
 - [ ] **Digital Payments**: Razorpay integration for UPI/Card payments with auto-reconciliation.
 - [ ] **Customer Self-Service**: OTP login portal for customers to view statements and upload payment proofs.
