@@ -55,11 +55,11 @@ function buildExpensesQuery(
   }
 
   if (dateFrom) {
-    query = query.gte('date', dateFrom.toISOString());
+    query = query.gte('expense_date', dateFrom.toISOString());
   }
 
   if (dateTo) {
-    query = query.lte('date', dateTo.toISOString());
+    query = query.lte('expense_date', dateTo.toISOString());
   }
 
   if (minAmount !== undefined) {
@@ -80,7 +80,7 @@ export const getExpenses = cache(async (limit = 20, offset = 0): Promise<Expense
   if (!warehouseId) return [];
 
   const { data, error } = await buildExpensesQuery(supabase, warehouseId)
-    .order('date', { ascending: false })
+    .order('expense_date', { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (error) {
@@ -90,7 +90,7 @@ export const getExpenses = cache(async (limit = 20, offset = 0): Promise<Expense
 
   return (data as any[]).map((e) => ({
     id: e.id,
-    date: e.date,
+    date: e.expense_date,
     category: e.category,
     description: e.description,
     amount: e.amount,

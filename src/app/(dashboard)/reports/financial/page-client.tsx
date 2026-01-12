@@ -45,6 +45,7 @@ interface Props {
     unloadingRecords: any[];
     unloadingExpenses: any[];
     rentPendingBreakdown: any[];
+    allowExport: boolean;
 }
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
@@ -58,7 +59,8 @@ export function FinancialDashboardClient({
     hamaliRecords,
     unloadingRecords,
     unloadingExpenses,
-    rentPendingBreakdown
+    rentPendingBreakdown,
+    allowExport
 }: Props) {
     // Format monthly trends for charts
     const chartData = monthlyTrends.map(m => ({
@@ -121,8 +123,16 @@ export function FinancialDashboardClient({
                 description="Comprehensive revenue tracking and financial insights"
                 backHref="/reports"
             >
-                <div></div>
-                {/* Export handled per tab or generic */}
+                {allowExport ? (
+                    <Button onClick={handleExportExcel} size="sm" className="gap-2">
+                        <Download className="h-4 w-4" />
+                        Export Data
+                    </Button>
+                ) : (
+                    <div className="hidden md:block text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                        Export unavailable on current plan
+                    </div>
+                )}
             </PageHeader>
 
             <Tabs defaultValue="overview" className="space-y-4" onValueChange={setActiveTab}>

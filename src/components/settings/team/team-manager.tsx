@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { TeamMember } from "@/lib/definitions";
 import { TeamMembersList } from "./team-members-list";
 import { TeamMemberDetails } from "./team-member-details";
+import { InviteLinkGenerator } from "./invite-link-generator";
 import { AddTeamMemberForm } from "./add-team-member-form";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
@@ -141,6 +142,10 @@ export function TeamManager({ initialMembers, pendingRequests = [], currentUserR
                      setIsAdding(false);
                      await refreshMembers();
                  }} />
+                 
+                 <div className="mt-8 border-t pt-8">
+                    <InviteLinkGenerator />
+                 </div>
             </div>
         ) : selectedMember ? (
             <TeamMemberDetails member={selectedMember} currentUserRole={currentUserRole} />

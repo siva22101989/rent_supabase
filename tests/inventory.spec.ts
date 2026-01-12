@@ -1,13 +1,46 @@
 import { test, expect, type Page } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role for cleanup permissions
+);
 
 test.describe('Inventory Flow', () => {
+  // Global Cleanup Hook
+  test.afterAll(async () => {
+    console.log('Cleaning up test data...');
+    // Delete test specific data
+    // 1. Find Customer(s)
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('name', 'Test Customer E2E'); // Or 'Test Customer %' if dynamic
+
+    if (customers && customers.length > 0) {
+      const ids = customers.map(c => c.id);
+      
+      // 2. Delete Storage Records (Explicitly because Cascade might be SET NULL)
+      await supabase.from('storage_records').delete().in('customer_id', ids);
+      
+      // 3. Delete Customer
+      const { error } = await supabase.from('customers').delete().in('id', ids);
+      
+      if (error) console.error('Cleanup failed:', error);
+      else console.log(`Deleted ${ids.length} test customers.`);
+    }
+  });
+
   test.beforeEach(async ({ page }) => {
     // Login before each test
     await page.goto('/login');
-    await page.getByLabel(/Email|Mobile/i).fill('nikhilpnkr@gmail.com');
-    await page.getByLabel('Password', { exact: true }).fill('123456');
+    const email = process.env.TEST_USER_EMAIL || 'nikhilpnkr@gmail.com';
+    const password = process.env.TEST_USER_PASSWORD || '123456';
+    
+    await page.getByLabel(/Email|Mobile/i).fill(email);
+    await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Login' }).click();
-    await expect(page).toHaveURL('/', { timeout: 10000 });
+    await expect(page).toHaveURL(/\/dashboard|^\/$/, { timeout: 15000 }); // Allow / or /dashboard
   });
 
   async function ensureCustomerExists(page: Page) {

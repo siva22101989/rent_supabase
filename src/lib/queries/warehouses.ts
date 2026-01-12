@@ -3,6 +3,7 @@ import { cache } from 'react';
 import type { UserWarehouse } from '@/lib/definitions';
 import { getAuthUser } from './auth';
 import { Database } from '@/types/supabase';
+import { logError } from '@/lib/error-logger';
 
 type Profiles = Database['public']['Tables']['profiles']['Row'];
 type WarehouseAssignments = Database['public']['Tables']['warehouse_assignments']['Row'];
@@ -156,46 +157,47 @@ export const getTeamMembers = cache(async () => {
 
     if (!warehouseId) return [];
 
-    const { data, error } = await supabase
+    // 1. Get assignments first
+    const { data: assignments, error: assignmentError } = await supabase
         .from('warehouse_assignments')
-        .select(`
-            role,
-            profiles (
-                id,
-                email,
-                full_name,
-                role,
-                created_at
-            )
-        `)
+        .select('user_id, role, created_at')
         .eq('warehouse_id', warehouseId);
 
-    if (error) {
-        console.error('[getTeamMembers] Error:', error);
+    if (assignmentError) {
+        logError(assignmentError, { operation: 'getTeamMembers_assignments' });
         return [];
     }
 
-    // console.log('[getTeamMembers] Raw data count:', data?.length);
-    
-    const members = data
-        .map((item: any) => {
-             const p = item.profiles;
-             if (!p) return null;
-             
-             // Filter out customers from team list (if they somehow got assigned)
-             if (p.role === 'customer') return null;
+    if (!assignments || assignments.length === 0) return [];
 
-             return {
-                id: p.id,
-                email: p.email,
-                fullName: p.full_name,
-                role: item.role || p.role, // Use assignment role preferred
-                createdAt: new Date(p.created_at),
-             };
-        })
-        .filter(Boolean); // Remove nulls
+    const userIds = assignments.map(a => a.user_id);
 
-    // Debug logging removed for production
+    // 2. Get profiles for these users
+    const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, role, created_at')
+        .in('id', userIds);
+
+    if (profileError) {
+         logError(profileError, { operation: 'getTeamMembers_profiles' });
+         return [];
+    }
+
+    // 3. Merge data
+    const members = assignments.map((assignment: any) => {
+        const profile = profiles?.find(p => p.id === assignment.user_id);
+        
+        if (!profile) return null; // Should not happen if data is consistent
+        if (profile.role === 'customer') return null; // Filter customers
+
+        return {
+            id: profile.id,
+            email: profile.email,
+            fullName: profile.full_name,
+            role: assignment.role || profile.role, // Prioritize assignment role
+            createdAt: new Date(assignment.created_at || profile.created_at), // Use assignment time if available
+        };
+    }).filter(Boolean);
 
     // Sort by newest first
     return members.sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());

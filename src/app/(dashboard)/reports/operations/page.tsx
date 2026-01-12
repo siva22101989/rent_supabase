@@ -24,6 +24,12 @@ export default async function OperationsReportsPage() {
         getCustomerBehavior()
     ]);
 
+    // Check Feature Access
+    const { getUserWarehouse } = await import('@/lib/queries');
+    const { checkFeatureAccess } = await import('@/lib/subscription-actions');
+    const warehouseId = await getUserWarehouse();
+    const { allowed: allowExport } = warehouseId ? await checkFeatureAccess(warehouseId, 'allow_export') : { allowed: false };
+
     return (
         <OperationsDashboardClient
             capacityMetrics={capacityMetrics}
@@ -31,6 +37,7 @@ export default async function OperationsReportsPage() {
             turnoverMetrics={turnoverMetrics}
             commodityMetrics={commodityMetrics}
             customerBehavior={customerBehavior}
+            allowExport={allowExport}
         />
     );
 }

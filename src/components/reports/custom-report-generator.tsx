@@ -16,9 +16,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface CustomReportGeneratorProps {
     warehouseName: string;
+    allowExport: boolean;
 }
 
-export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorProps) {
+export function CustomReportGenerator({ warehouseName, allowExport }: CustomReportGeneratorProps) {
     const [reportType, setReportType] = useState('all-customers');
     const [format, setFormat] = useState('pdf');
     const [startDate, setStartDate] = useState<string>('');
@@ -40,6 +41,15 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
     const isCustomerRequired = reportType === 'customer-dues-details';
 
     const handleGenerate = async () => {
+        if (!allowExport) {
+            toast({
+                title: "Upgrade Required",
+                description: "Custom reports are available on higher tier plans.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         if (isDateRangeRequired && (!startDate || !endDate)) {
             toast({
                 title: "Dates Required",
@@ -112,7 +122,12 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {!allowExport && (
+                   <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md p-4 text-sm mb-4">
+                        Custom Reports are locked. Please upgrade your plan to generate detailed reports.
+                   </div>
+                )}
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${!allowExport ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="space-y-2 col-span-2 md:col-span-2">
                         <Label>Report Type</Label>
                         <Select value={reportType} onValueChange={setReportType}>
@@ -226,7 +241,7 @@ export function CustomReportGenerator({ warehouseName }: CustomReportGeneratorPr
                 <div className="pt-4 flex justify-end">
                     <Button 
                         onClick={handleGenerate} 
-                        disabled={isLoading}
+                        disabled={isLoading || !allowExport}
                         className="w-full md:w-auto min-w-[200px]"
                     >
                         {isLoading ? (

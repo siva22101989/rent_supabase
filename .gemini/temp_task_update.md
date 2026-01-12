@@ -1,0 +1,1 @@
+- [ ] (Database) Add CHECK (current_stock >= 0) constraint to Postgres (Priority 1).

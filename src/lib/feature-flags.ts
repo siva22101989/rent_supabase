@@ -67,9 +67,14 @@ export function useFeatureGate() {
   const checkFeature = (featureGate: FeatureGate): boolean => {
     if (loading || !subscription) return false;
     
-    // Admin override (optional)
-    // if (user.role === 'super_admin') return true;
+    // 1. Dynamic DB Check (Preferred)
+    // We expect 'features' to be a JSON object in the plan
+    const dbFeatures = subscription.plan.features as Record<string, boolean> | undefined;
+    if (dbFeatures && typeof dbFeatures[featureGate.id] !== 'undefined') {
+        return dbFeatures[featureGate.id] === true && ['active', 'trailing_trial'].includes(subscription.status);
+    }
 
+    // 2. Legacy Tier Priority Check (Fallback)
     const currentPlan = subscription.plan.tier;
     const tierPriority: Record<PlanTier, number> = {
       free: 0,
@@ -88,12 +93,23 @@ export function useFeatureGate() {
   const checkLimit = (limitId: string, additionalAmount = 0): boolean => {
       if (loading || !subscription) return false;
       
-      const limitConfig = Object.values(LIMITS).find(l => l.id === limitId);
-      if (!limitConfig) return true; // Limit not defined, allow
-
-      const currentPlan = subscription.plan.tier;
-      const maxLimit = limitConfig.limit[currentPlan];
       const usage = currentUsage[limitId] || 0;
+      let maxLimit = 0;
+
+      // 1. Dynamic DB Limits (Preferred)
+      // Check known limits mapped to DB columns
+      if (limitId === 'storage_records' && typeof subscription.plan.max_storage_records === 'number') {
+          maxLimit = subscription.plan.max_storage_records;
+      } else if (limitId === 'users' && typeof subscription.plan.max_users === 'number') {
+          maxLimit = subscription.plan.max_users;
+      } else {
+          // 2. Fallback to Hardcoded Limits
+          const limitConfig = Object.values(LIMITS).find(l => l.id === limitId);
+          if (!limitConfig) return true; // Limit not defined, allow
+          
+          const currentPlan = subscription.plan.tier;
+          maxLimit = limitConfig.limit[currentPlan];
+      }
 
       return (usage + additionalAmount) <= maxLimit;
   };

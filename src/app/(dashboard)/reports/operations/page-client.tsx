@@ -17,6 +17,7 @@ import type {
     CommodityMetrics,
     CustomerBehavior
 } from "@/lib/operations-analytics";
+import { Button } from "@/components/ui/button";
 
 interface Props {
     capacityMetrics: CapacityMetrics;
@@ -24,6 +25,7 @@ interface Props {
     turnoverMetrics: TurnoverMetrics;
     commodityMetrics: CommodityMetrics[];
     customerBehavior: CustomerBehavior;
+    allowExport: boolean;
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -33,7 +35,8 @@ export function OperationsDashboardClient({
     lotUtilization,
     turnoverMetrics,
     commodityMetrics,
-    customerBehavior
+    customerBehavior,
+    allowExport
 }: Props) {
     // Format lot utilization for bar chart
     const lotChartData = lotUtilization.map(lot => ({
@@ -56,7 +59,18 @@ export function OperationsDashboardClient({
                 title="Operational Analytics"
                 description="Warehouse efficiency and utilization insights"
                 backHref="/reports"
-            />
+            >
+               {allowExport ? (
+                    <Button variant="outline" size="sm" className="gap-2" disabled title="Export coming soon">
+                        <Package className="h-4 w-4" />
+                        Export Data
+                    </Button>
+                ) : (
+                    <div className="hidden md:block text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                        Export unavailable
+                    </div>
+                )}
+            </PageHeader>
 
             {/* Key Metrics */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">

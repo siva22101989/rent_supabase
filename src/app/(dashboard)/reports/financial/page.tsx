@@ -33,6 +33,12 @@ export default async function FinancialReportsPage() {
         fetchReportData('rent-pending-breakdown')
     ]);
 
+    // Check Feature Access
+    const { getUserWarehouse } = await import('@/lib/queries');
+    const { checkFeatureAccess } = await import('@/lib/subscription-actions');
+    const warehouseId = await getUserWarehouse();
+    const { allowed: allowExport } = warehouseId ? await checkFeatureAccess(warehouseId, 'allow_export') : { allowed: false };
+
     return (
         <FinancialDashboardClient
             revenueMetrics={revenueMetrics}
@@ -44,6 +50,7 @@ export default async function FinancialReportsPage() {
             unloadingRecords={unloadingRegisterRaw?.data || []}
             unloadingExpenses={unloadingExpensesRaw?.data || []}
             rentPendingBreakdown={rentPendingRaw?.data || []}
+            allowExport={allowExport}
         />
     );
 }

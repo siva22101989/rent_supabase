@@ -30,8 +30,7 @@ export async function runBulkVerification() {
         // Actually, let's insert a dummy customer for safety.
         const { error: custError } = await supabase.from('customers').upsert({
             id: VERIFY_CUSTOMER_ID,
-            first_name: 'Verify',
-            last_name: 'Bot',
+            name: 'Verify Bot',
             phone: '9999999999',
             village: 'Test Village'
         });

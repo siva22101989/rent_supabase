@@ -1,9 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { checkRateLimit } from './rate-limit'
 
+// Mock Supabase
+const mockSupabase = {
+  rpc: vi.fn(),
+};
+
+// Mock createClient
+vi.mock('@/utils/supabase/server', () => ({
+  createClient: () => Promise.resolve(mockSupabase),
+}));
+
 describe('checkRateLimit', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+    // Default success response
+    mockSupabase.rpc.mockResolvedValue({ data: true, error: null });
   })
 
   it('should allow requests within limit', async () => {
@@ -19,7 +32,8 @@ describe('checkRateLimit', () => {
     const identifier = 'test-user-2'
     const action = 'test-action'
     
-    await checkRateLimit(identifier, action, { limit: 1 })
+    // Mock RPC returning false (limit exceeded)
+    mockSupabase.rpc.mockResolvedValueOnce({ data: false, error: null })
     
     await expect(checkRateLimit(identifier, action, { limit: 1 }))
       .rejects.toThrow('Too many requests. Please try again later.')
@@ -44,6 +58,15 @@ describe('checkRateLimit', () => {
     const identifier2 = 'user-b'
     const action = 'login'
     
+    // Sequence: 
+    // 1. identifier1 first call -> true
+    // 2. identifier2 first call -> true
+    // 3. identifier1 second call -> false (exceeded)
+    mockSupabase.rpc
+        .mockResolvedValueOnce({ data: true, error: null })
+        .mockResolvedValueOnce({ data: true, error: null })
+        .mockResolvedValueOnce({ data: false, error: null });
+
     await checkRateLimit(identifier1, action, { limit: 1 })
     
     // Identifier 2 should still be allowed

@@ -94,9 +94,9 @@ describe('toggleWarehouseAccess', () => {
             })
         });
 
-        // 4. Mock Delete
+        // 4. Mock Soft Delete (Update)
         mockSupabase.from.mockReturnValueOnce({
-            delete: () => ({
+            update: () => ({
                 eq: () => Promise.resolve({ error: null })
             })
         });

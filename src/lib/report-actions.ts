@@ -580,13 +580,13 @@ import * as Sentry from "@sentry/nextjs";
           .eq('warehouse_id', warehouseId)
           .eq('category', 'Hamali')
           .is('deleted_at', null)
-          .order('date', { ascending: false });
+          .order('expense_date', { ascending: false });
       
-      if (filters?.startDate) query = query.gte('date', filters.startDate);
+      if (filters?.startDate) query = query.gte('expense_date', filters.startDate);
       if (filters?.endDate) {
           const nextDay = new Date(filters.endDate);
           nextDay.setDate(nextDay.getDate() + 1);
-          query = query.lt('date', nextDay.toISOString());
+          query = query.lt('expense_date', nextDay.toISOString());
       }
       
       const { data: expenses } = await query;

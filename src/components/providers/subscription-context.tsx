@@ -11,6 +11,9 @@ interface Subscription {
     display_name: string;
     tier: PlanTier;
     features: any;
+    max_storage_records?: number;
+    max_users?: number;
+    max_warehouses?: number;
   };
   status: string;
   warehouse_id: string;

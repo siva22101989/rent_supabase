@@ -61,6 +61,12 @@ export async function toggleWarehouseAccess(
             return { message: 'Access revoked successfully', success: true };
         } else if (existingAccess && existingAccess.deleted_at) {
             // Soft deleted assignment exists -> Restore Access
+            const { checkSubscriptionLimits } = await import('@/lib/subscription-actions');
+            const limitCheck = await checkSubscriptionLimits(warehouseId, 'add_user');
+            if (!limitCheck.allowed) {
+                return { message: limitCheck.message || 'Plan user limit reached.', success: false };
+            }
+
             const { error } = await supabase
                 .from('warehouse_assignments')
                 .update({ 
@@ -78,6 +84,12 @@ export async function toggleWarehouseAccess(
             return { message: 'Access granted successfully', success: true };
         } else {
             // No assignment exists -> Grant New Access
+            const { checkSubscriptionLimits } = await import('@/lib/subscription-actions');
+            const limitCheck = await checkSubscriptionLimits(warehouseId, 'add_user');
+            if (!limitCheck.allowed) {
+                return { message: limitCheck.message || 'Plan user limit reached.', success: false };
+            }
+
             const { error } = await supabase
                 .from('warehouse_assignments')
                 .insert({

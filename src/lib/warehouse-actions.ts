@@ -39,27 +39,52 @@ export async function createWarehouse(name: string, location: string, capacity: 
 
             span.setAttribute("warehouseName", name);
 
-            // 1. Plan Verification (Multi-Warehouse check)
+            // 1. Plan Verification (Dynamic Max Warehouses check)
+            const { count: warehouseCount, error: countError } = await supabase
+                .from('warehouse_assignments')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('role', 'owner'); // Only count owned warehouses
+
+            if (countError) {
+                 logError(countError, { operation: 'createWarehouse_checkLimit' });
+                 return { message: 'Failed to verify plan limits', success: false };
+            }
+
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('warehouse_id')
                 .eq('id', user.id)
                 .single();
 
-            if (profile?.warehouse_id) {
-                const { data: sub } = await supabase
-                    .from('subscriptions')
-                    .select('*, plans(*)')
-                    .eq('warehouse_id', profile.warehouse_id)
-                    .single();
-                
-                const tier = sub?.plans?.tier || 'free';
-                if (tier === 'free' || tier === 'starter') {
-                    return { 
-                        message: 'Upgrade Required: Multi-warehouse support is available on the Professional plan and above.', 
-                        success: false 
-                    };
-                }
+            // Check subscription of the *current* warehouse context (or user's first warehouse if available)
+            // If user has NO warehouses, they are creating their first one (Limit check pass if max >= 1)
+            // But if they have one, we check that one's subscription to see if they can add more.
+            // Edge Case: If they have 0 warehouses, they are technically on 'Free' or 'Trial' implied? 
+            // Usually Plans are attached to Warehouses in this DB schema (subscriptions.warehouse_id).
+            // So if I have 0 warehouses, I have 0 subscriptions? 
+            // If I am a new user, I allow creating the FIRST warehouse.
+            
+            if ((warehouseCount || 0) > 0) {
+                 // User already has warehouses. Check if their plan allows *more*.
+                 // We check the subscription of their *active* warehouse (profile.warehouse_id)
+                 // or just pick any? Let's use active.
+                 if (profile?.warehouse_id) {
+                    const { data: sub } = await supabase
+                        .from('subscriptions')
+                        .select('*, plans(*)')
+                        .eq('warehouse_id', profile.warehouse_id)
+                        .single();
+                    
+                    const maxWarehouses = sub?.plans?.max_warehouses || 1; // Default to 1 (Free)
+                    
+                    if ((warehouseCount || 0) >= maxWarehouses) {
+                        return { 
+                            message: `Upgrade Required: Your current plan (${sub?.plans?.name || 'Free'}) allows ${maxWarehouses} warehouse(s).`, 
+                            success: false 
+                        };
+                    }
+                 }
             }
 
             // 2. Create Warehouse via Secure RPC (updated for GST)
@@ -232,6 +257,13 @@ export async function generateInviteLink(role: 'owner' | 'admin' | 'manager' | '
 
     // Check Permissions (Owner/Admin only) - Enforced by RLS, but safe check here
     // ...
+
+    // Check Subscription Limits for adding a user
+    const { checkSubscriptionLimits } = await import('@/lib/subscription-actions');
+    const limitCheck = await checkSubscriptionLimits(warehouseId, 'add_user');
+    if (!limitCheck.allowed) {
+        return { message: limitCheck.message || 'Plan user limit reached.', success: false };
+    }
 
     const { data, error } = await supabase
         .from('warehouse_invitations')

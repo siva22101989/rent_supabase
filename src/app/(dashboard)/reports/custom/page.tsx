@@ -15,6 +15,10 @@ export default async function CustomReportsPage() {
         redirect('/login');
     }
 
+    // Check Feature Access
+    const { checkFeatureAccess } = await import('@/lib/subscription-actions');
+    const { allowed: allowExport } = await checkFeatureAccess(warehouse.id, 'allow_export');
+
     return (
         <>
             <div className="space-y-6">
@@ -32,7 +36,7 @@ export default async function CustomReportsPage() {
                 </div>
 
                 <div className="mt-8">
-                    <CustomReportGenerator warehouseName={warehouse.name} />
+                    <CustomReportGenerator warehouseName={warehouse.name} allowExport={allowExport} />
                 </div>
             </div>
         </>

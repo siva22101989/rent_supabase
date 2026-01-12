@@ -29,10 +29,10 @@ export async function hasSMSPermission(): Promise<boolean> {
     const allowedUsers = process.env.SMS_ALLOWED_USERS?.split(',').map(id => id.trim()) || [];
     const allowedWarehouses = process.env.SMS_ALLOWED_WAREHOUSES?.split(',').map(id => id.trim()) || [];
     
-    // Check if user is in whitelist
+    // Check if user is in whitelist (Env Override)
     if (allowedUsers.includes(user.id)) return true;
     
-    // Check if user's warehouse is in whitelist
+    // Check if user's warehouse is in whitelist (Env Override)
     const { data: profile } = await supabase
         .from('profiles')
         .select('warehouse_id')
@@ -41,6 +41,21 @@ export async function hasSMSPermission(): Promise<boolean> {
     
     if (profile?.warehouse_id && allowedWarehouses.includes(profile.warehouse_id)) {
         return true;
+    }
+
+    // Dynamic Plan Check
+    if (profile?.warehouse_id) {
+        const { data: sub } = await supabase
+            .from('subscriptions')
+            .select('*, plans(features)')
+            .eq('warehouse_id', profile.warehouse_id)
+            .single();
+        
+        // Cast features to any or interface
+        const features = sub?.plans?.features as Record<string, any> | null;
+        if (features && features['allow_sms'] === true) {
+            return true;
+        }
     }
     
     return false;

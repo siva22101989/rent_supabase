@@ -37,7 +37,8 @@ export async function getSubscriptionAction(warehouseId: string) {
     (await supabase)
         .from('storage_records')
         .select('*', { count: 'exact', head: true })
-        .eq('warehouse_id', warehouseId),
+        .eq('warehouse_id', warehouseId)
+        .is('deleted_at', null),
     
     // 2. Monthly Inflows (records created this month)
     (await supabase)
@@ -99,14 +100,51 @@ export async function checkSubscriptionLimits(warehouseId: string, action: 'add_
          return { allowed: false, message: `Subscription is ${status}. Please renew to continue.` };
     }
 
+    // Auto-expire check: If active but past end date
+    if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
+         return { allowed: false, message: "Subscription period has ended. Please renew to continue." };
+    }
+
     if (action === 'add_record') {
-        const limit = plans?.features?.max_records;
+        const limit = plans?.max_storage_records;
         // if limit is null/undefined, assume unlimited (Enterprise)
         if (limit && usage.total_records >= limit) {
              return { allowed: false, message: `Plan limit reached (${limit} records). Please upgrade.` };
         }
     }
     
+    return { allowed: true };
+}
+
+/**
+ * Check if the warehouse has access to a specific feature.
+ */
+export async function checkFeatureAccess(warehouseId: string, feature: 'allow_sms' | 'allow_export' | 'allow_multi_warehouse' | 'allow_api'): Promise<{ allowed: boolean; message?: string }> {
+    const subscription = await getSubscriptionAction(warehouseId);
+    
+    if (!subscription) {
+        // Free tier defaults
+        // Assuming free tier has NO advanced features
+        return { allowed: false, message: "Upgrade to access this feature." };
+    }
+
+    const { plans, status } = subscription;
+    
+    // Check subscription status
+    if (status !== 'active' && status !== 'trialing') {
+         return { allowed: false, message: "Subscription inactive. Please renew." };
+    }
+
+    if (subscription.current_period_end && new Date(subscription.current_period_end) < new Date()) {
+          return { allowed: false, message: "Subscription expired. Please renew." };
+    }
+
+    // Check plan features JSON
+    const features = plans?.features as any;
+    if (!features || !features[feature]) {
+         return { allowed: false, message: `Your current plan (${plans?.name}) does not support this feature.` };
+    }
+
     return { allowed: true };
 }
 
