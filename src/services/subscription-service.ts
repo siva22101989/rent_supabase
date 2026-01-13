@@ -6,7 +6,37 @@ type Subscription = Database['public']['Tables']['subscriptions']['Row'] & {
     plans: Database['public']['Tables']['plans']['Row'] | null;
 };
 
+// Basic TTL Cache for Plan Data
+class PlanCache {
+    private cache: Map<string, { data: Subscription | null, expiry: number }> = new Map();
+    private TTL = 1000 * 60 * 5; // 5 minutes
+
+    get(key: string) {
+        const item = this.cache.get(key);
+        if (!item) return undefined;
+        if (Date.now() > item.expiry) {
+            this.cache.delete(key);
+            return undefined;
+        }
+        return item.data;
+    }
+
+    set(key: string, data: Subscription | null) {
+        this.cache.set(key, { data, expiry: Date.now() + this.TTL });
+    }
+    
+    ignore(key: string) {
+        this.cache.delete(key);
+    }
+}
+
+export const planCache = new PlanCache();
+
 export async function getSubscription(warehouseId: string) {
+  // Check memory cache first
+  const cached = planCache.get(warehouseId);
+  if (cached !== undefined) return cached;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('subscriptions')
@@ -19,11 +49,22 @@ export async function getSubscription(warehouseId: string) {
     return null;
   }
   
-  // Cast to correct type if needed (Supabase types usually match, but joins can be tricky)
-  return data as unknown as Subscription | null;
+  const result = data as unknown as Subscription | null;
+  
+  // Update cache
+  planCache.set(warehouseId, result);
+  
+  return result;
 }
 
+import { cache } from 'react';
+
 export async function getSubscriptionWithUsage(warehouseId: string) {
+  return _getSubscriptionWithUsageImpl(warehouseId);
+}
+
+// Internal implementation wrapped with cache for request-scoped deduplication
+const _getSubscriptionWithUsageImpl = cache(async (warehouseId: string) => {
   const subscription = await getSubscription(warehouseId);
   
   // If no subscription, we might want to return usage only or null?
@@ -33,44 +74,28 @@ export async function getSubscriptionWithUsage(warehouseId: string) {
   const supabase = await createClient();
 
   // Parallelize fetches for performance
-  const [
-    { count: totalRecords },
-    { count: monthlyRecords },
-    { count: totalUsers }
-  ] = await Promise.all([
-    // 1. Total Storage Records
-    supabase
-        .from('storage_records')
-        .select('*', { count: 'exact', head: true })
-        .eq('warehouse_id', warehouseId)
-        .is('deleted_at', null),
-    
-    // 2. Monthly Inflows (records created this month)
-    supabase
-        .from('storage_records')
-        .select('*', { count: 'exact', head: true })
-        .eq('warehouse_id', warehouseId)
-        .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
-
-    // 3. Team Size
-    supabase
-        .from('warehouse_assignments')
-        .select('*', { count: 'exact', head: true })
-        .eq('warehouse_id', warehouseId)
-        .is('deleted_at', null)
-  ]);
+  // Use RPC for optimized batch fetching
+  const { data: stats, error } = await supabase.rpc('get_warehouse_usage_stats', { 
+    p_warehouse_id: warehouseId, 
+    p_month_start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString() 
+  });
+  
+  if (error) {
+     logError(error, { operation: 'getSubscriptionWithUsage:RPC', metadata: { warehouseId } });
+     // Fallback to manual if RPC fails (optional, or just return zeros)
+  }
 
   const usage = {
-        total_records: totalRecords || 0,
-        monthly_records: monthlyRecords || 0,
-        total_users: totalUsers || 0
+        total_records: stats?.[0]?.total_records || 0,
+        monthly_records: stats?.[0]?.monthly_records || 0,
+        total_users: stats?.[0]?.total_users || 0
   };
 
   return {
     subscription,
     usage
   };
-}
+});
 
 export async function checkSubscriptionLimits(warehouseId: string, action: 'add_record' | 'add_user'): Promise<{ allowed: boolean; message?: string }> {
     // We strictly need usage data for limits

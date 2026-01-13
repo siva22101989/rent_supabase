@@ -65,7 +65,7 @@ export async function startSubscriptionAction(
   warehouseId: string,
   planTier: string
 ): Promise<SubscriptionState> {
-  return authenticatedAction('startSubscriptionAction', async (user, supabase) => {
+  return authenticatedAction('startSubscriptionAction', async (user, supabase, userRole) => {
       // 1. Get the plan details
       const { data: plan, error: planError } = await supabase
         .from('plans')

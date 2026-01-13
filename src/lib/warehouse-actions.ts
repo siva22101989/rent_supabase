@@ -16,7 +16,7 @@ export type { ActionState };
 // --- Warehouse Management ---
 
 export async function createWarehouse(name: string, location: string, capacity: number, email?: string, phone?: string, gstNumber?: string): Promise<ActionState> {
-    return authenticatedAction('createWarehouse', async (user, supabase) => {
+    return authenticatedAction('createWarehouse', async (user, supabase, userRole) => {
         try {
             await checkRateLimit(user.id, 'createWarehouse', { limit: 3, windowMs: 3600000 }); // 3 per hour
         } catch (e: any) {
@@ -84,10 +84,9 @@ export async function createWarehouse(name: string, location: string, capacity: 
 }
 
 export async function switchWarehouse(warehouseId: string): Promise<ActionState> {
-    return authenticatedAction('switchWarehouse', async (user, supabase) => {
-        // Check user profile for super_admin
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        const isSuperAdmin = profile?.role === UserRole.SUPER_ADMIN;
+    return authenticatedAction('switchWarehouse', async (user, supabase, userRole) => {
+        // userRole already provided by authenticatedAction
+        const isSuperAdmin = userRole === UserRole.SUPER_ADMIN;
 
         let role = UserRole.STAFF; // Default fallback
 
@@ -193,7 +192,7 @@ export async function getActiveWarehouseId() {
 // --- Invitations (Magic Links) ---
 
 export async function generateInviteLink(role: UserRole = UserRole.STAFF): Promise<ActionState> {
-    return authenticatedAction('generateInviteLink', async (user, supabase) => {
+    return authenticatedAction('generateInviteLink', async (user, supabase, userRole) => {
         const warehouseId = await getUserWarehouse();
         if (!warehouseId) return { message: 'No active warehouse', success: false };
 
@@ -218,7 +217,7 @@ export async function generateInviteLink(role: UserRole = UserRole.STAFF): Promi
 }
 
 export async function joinWarehouse(token: string): Promise<ActionState> {
-    return authenticatedAction('joinWarehouse', async (user, supabase) => {
+    return authenticatedAction('joinWarehouse', async (user, supabase, userRole) => {
         Sentry.setTag("token", token);
 
         const { data, error } = await supabase.rpc('claim_warehouse_invite', {
@@ -236,7 +235,7 @@ export async function joinWarehouse(token: string): Promise<ActionState> {
 }
 
 export async function leaveWarehouse(warehouseId: string): Promise<ActionState> {
-     return authenticatedAction('leaveWarehouse', async (user, supabase) => {
+     return authenticatedAction('leaveWarehouse', async (user, supabase, userRole) => {
         const { error } = await supabase
             .from('warehouse_assignments')
             .update({ deleted_at: new Date().toISOString() })
@@ -254,7 +253,7 @@ export async function leaveWarehouse(warehouseId: string): Promise<ActionState> 
 
 // Request Access Flow
 export async function requestJoinWarehouse(adminEmail: string): Promise<ActionState> {
-    return authenticatedAction('requestJoinWarehouse', async (user, supabase) => {
+    return authenticatedAction('requestJoinWarehouse', async (user, supabase, userRole) => {
         Sentry.setTag("adminEmail", adminEmail);
 
         const { data: adminProfile } = await supabase
@@ -288,7 +287,7 @@ export async function requestJoinWarehouse(adminEmail: string): Promise<ActionSt
 }
 
 export async function approveJoinRequest(notificationId: string, requesterId: string): Promise<ActionState> {
-    return authenticatedAction('approveJoinRequest', async (user, supabase) => {
+    return authenticatedAction('approveJoinRequest', async (user, supabase, userRole) => {
         const { data: notification } = await supabase
             .from('notifications')
             .select('*')
@@ -323,7 +322,7 @@ export async function approveJoinRequest(notificationId: string, requesterId: st
 }
 
 export async function rejectJoinRequest(notificationId: string): Promise<ActionState> {
-    return authenticatedAction('rejectJoinRequest', async (user, supabase) => {
+    return authenticatedAction('rejectJoinRequest', async (user, supabase, userRole) => {
         const { error } = await supabase
             .from('notifications')
             .delete()
