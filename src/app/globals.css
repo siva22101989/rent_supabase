@@ -15,14 +15,15 @@ body {
     --card-foreground: 210 25% 7.8431%;
     --popover: 0 0% 100%;
     --popover-foreground: 210 25% 7.8431%;
-    --primary: 203.8863 88.2845% 53.1373%;
+    /* Darker Blue for A11y (4.5:1 contrast against white) */
+    --primary: 203.9 88.3% 40%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 25% 7.8431%;
     --secondary-foreground: 0 0% 100%;
     --muted: 240 1.9608% 90%;
     --muted-foreground: 210 25% 7.8431%;
     --accent: 211.5789 51.3514% 92.7451%;
-    --accent-foreground: 203.8863 88.2845% 53.1373%;
+    --accent-foreground: 203.9 88.3% 40%;
     --destructive: 356.3033 90.5579% 54.3137%;
     --destructive-foreground: 0 0% 100%;
     --border: 201.4286 30.4348% 90.9804%;
@@ -37,10 +38,10 @@ body {
     /* Sidebar */
     --sidebar-background: 180 6.6667% 97.0588%;
     --sidebar-foreground: 210 25% 7.8431%;
-    --sidebar-primary: 203.8863 88.2845% 53.1373%;
+    --sidebar-primary: 203.9 88.3% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 211.5789 51.3514% 92.7451%;
-    --sidebar-accent-foreground: 203.8863 88.2845% 53.1373%;
+    --sidebar-accent-foreground: 203.9 88.3% 40%;
     --sidebar-border: 205 25% 90.5882%;
     --sidebar-ring: 202.8169 89.1213% 53.1373%;
 
@@ -56,7 +57,7 @@ body {
     --card-foreground: 0 0% 85.098%;
     --popover: 0 0% 0%;
     --popover-foreground: 200 6.6667% 91.1765%;
-    --primary: 203.7736 87.6033% 52.549%;
+    --primary: 203.8 87.6% 40%;
     --primary-foreground: 0 0% 100%;
     --secondary: 195 15.3846% 94.902%;
     --secondary-foreground: 210 25% 7.8431%;

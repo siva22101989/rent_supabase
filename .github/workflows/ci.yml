@@ -44,8 +44,8 @@ jobs:
         # Setting NEXT_TELEMETRY_DISABLED just in case.
         NEXT_TELEMETRY_DISABLED: 1
         # Mock env vars needed for build (even if not real) to prevent crash on 'missing content'
-        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co' }}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock-key' }}
+        NEXT_PUBLIC_SUPABASE_URL: "${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co' }}"
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock-key' }}"
 
   test-e2e:
     timeout-minutes: 60
@@ -68,10 +68,10 @@ jobs:
         run: npx playwright test
         env:
           # Use secrets for real E2E against Supabase
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"
+          SUPABASE_SERVICE_ROLE_KEY: "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+          TEST_USER_PASSWORD: "${{ secrets.TEST_USER_PASSWORD }}"
           # Ensure CI mode
           CI: true
 
