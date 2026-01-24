@@ -9,34 +9,51 @@ import { getMonth, format } from 'date-fns';
  * Full coverage requires integration tests with database mocking.
  */
 
+interface MockPayment {
+  amount: number;
+  payment_date: string;
+}
+
+interface MockExpense {
+  amount: number;
+  expense_date: string;
+}
+
+interface MonthlyDataItem {
+  name: string;
+  revenue: number;
+  expense: number;
+  profit: number;
+}
+
 describe('AnalyticsService - Aggregation Logic', () => {
   describe('Monthly Financial Aggregation', () => {
     it('should aggregate payments by month correctly', () => {
-      const payments = [
+      const payments: MockPayment[] = [
         { amount: 1000, payment_date: '2024-01-15' },
         { amount: 500, payment_date: '2024-01-20' },
         { amount: 2000, payment_date: '2024-02-10' },
         { amount: 750, payment_date: '2024-03-05' }
       ];
 
-      const monthlyData = new Array(12).fill(0).map((_, i) => ({
+      const monthlyData: MonthlyDataItem[] = new Array(12).fill(0).map((_, i) => ({
         name: format(new Date(2024, i, 1), 'MMM'),
         revenue: 0,
         expense: 0,
         profit: 0
       }));
 
-      payments.forEach((p: any) => {
+      payments.forEach((p) => {
         const month = getMonth(new Date(p.payment_date));
         if (month >= 0 && month < 12) {
-          monthlyData[month].revenue += p.amount;
+          monthlyData[month]!.revenue += p.amount;
         }
       });
 
-      expect(monthlyData[0].revenue).toBe(1500); // Jan: 1000 + 500
-      expect(monthlyData[1].revenue).toBe(2000); // Feb: 2000
-      expect(monthlyData[2].revenue).toBe(750);  // Mar: 750
-      expect(monthlyData[3].revenue).toBe(0);    // Apr: 0
+      expect(monthlyData[0]!.revenue).toBe(1500); // Jan: 1000 + 500
+      expect(monthlyData[1]!.revenue).toBe(2000); // Feb: 2000
+      expect(monthlyData[2]!.revenue).toBe(750);  // Mar: 750
+      expect(monthlyData[3]!.revenue).toBe(0);    // Apr: 0
     });
 
     it('should aggregate expenses by month correctly', () => {
@@ -53,19 +70,19 @@ describe('AnalyticsService - Aggregation Logic', () => {
         profit: 0
       }));
 
-      expenses.forEach((e: any) => {
+      expenses.forEach((e) => {
         const month = getMonth(new Date(e.expense_date));
         if (month >= 0 && month < 12) {
-          monthlyData[month].expense += e.amount;
+          monthlyData[month]!.expense += e.amount;
         }
       });
 
-      expect(monthlyData[0].expense).toBe(500); // Jan: 300 + 200
-      expect(monthlyData[1].expense).toBe(500); // Feb: 500
+      expect(monthlyData[0]!.expense).toBe(500); // Jan: 300 + 200
+      expect(monthlyData[1]!.expense).toBe(500); // Feb: 500
     });
 
     it('should calculate profit correctly', () => {
-      const monthlyData = [
+      const monthlyData: MonthlyDataItem[] = [
         { name: 'Jan', revenue: 5000, expense: 2000, profit: 0 },
         { name: 'Feb', revenue: 3000, expense: 3500, profit: 0 },
         { name: 'Mar', revenue: 0, expense: 0, profit: 0 }
@@ -75,33 +92,33 @@ describe('AnalyticsService - Aggregation Logic', () => {
         m.profit = m.revenue - m.expense;
       });
 
-      expect(monthlyData[0].profit).toBe(3000);   // Profit
-      expect(monthlyData[1].profit).toBe(-500);   // Loss
-      expect(monthlyData[2].profit).toBe(0);      // Break-even
+      expect(monthlyData[0]!.profit).toBe(3000);   // Profit
+      expect(monthlyData[1]!.profit).toBe(-500);   // Loss
+      expect(monthlyData[2]!.profit).toBe(0);      // Break-even
     });
 
     it('should handle empty data gracefully', () => {
-      const payments: any[] = [];
-      const expenses: any[] = [];
+      const payments: MockPayment[] = [];
+      const expenses: MockExpense[] = [];
 
-      const monthlyData = new Array(12).fill(0).map((_, i) => ({
+      const monthlyData: MonthlyDataItem[] = new Array(12).fill(0).map((_, i) => ({
         name: format(new Date(2024, i, 1), 'MMM'),
         revenue: 0,
         expense: 0,
         profit: 0
       }));
 
-      payments.forEach((p: any) => {
+      payments.forEach((p) => {
         const month = getMonth(new Date(p.payment_date));
         if (month >= 0 && month < 12) {
-          monthlyData[month].revenue += p.amount;
+          monthlyData[month]!.revenue += p.amount;
         }
       });
 
-      expenses.forEach((e: any) => {
+      expenses.forEach((e) => {
         const month = getMonth(new Date(e.expense_date));
         if (month >= 0 && month < 12) {
-          monthlyData[month].expense += e.amount;
+          monthlyData[month]!.expense += e.amount;
         }
       });
 
@@ -131,11 +148,11 @@ describe('AnalyticsService - Aggregation Logic', () => {
 
       inflows.forEach((r: any) => {
         const month = getMonth(new Date(r.storage_start_date));
-        if (month >= 0 && month < 12) monthlyData[month].inflow += (r.bags_in || 0);
+        if (month >= 0 && month < 12) monthlyData[month]!.inflow += (r.bags_in || 0);
       });
 
-      expect(monthlyData[0].inflow).toBe(150); // Jan: 100 + 50
-      expect(monthlyData[1].inflow).toBe(200); // Feb: 200
+      expect(monthlyData[0]!.inflow).toBe(150); // Jan: 100 + 50
+      expect(monthlyData[1]!.inflow).toBe(200); // Feb: 200
     });
 
     it('should aggregate outflows by month correctly', () => {
@@ -153,11 +170,11 @@ describe('AnalyticsService - Aggregation Logic', () => {
 
       outflows.forEach((t: any) => {
         const month = getMonth(new Date(t.withdrawal_date));
-        if (month >= 0 && month < 12) monthlyData[month].outflow += (t.bags_withdrawn || 0);
+        if (month >= 0 && month < 12) monthlyData[month]!.outflow += (t.bags_withdrawn || 0);
       });
 
-      expect(monthlyData[0].outflow).toBe(50);  // Jan: 30 + 20
-      expect(monthlyData[1].outflow).toBe(100); // Feb: 100
+      expect(monthlyData[0]!.outflow).toBe(50);  // Jan: 30 + 20
+      expect(monthlyData[1]!.outflow).toBe(100); // Feb: 100
     });
 
     it('should handle null bags_in values', () => {
@@ -174,10 +191,10 @@ describe('AnalyticsService - Aggregation Logic', () => {
 
       inflows.forEach((r: any) => {
         const month = getMonth(new Date(r.storage_start_date));
-        if (month >= 0 && month < 12) monthlyData[month].inflow += (r.bags_in || 0);
+        if (month >= 0 && month < 12) monthlyData[month]!.inflow += (r.bags_in || 0);
       });
 
-      expect(monthlyData[0].inflow).toBe(50); // Only counts the non-null value
+      expect(monthlyData[0]!.inflow).toBe(50); // Only counts the non-null value
     });
   });
 
@@ -291,7 +308,7 @@ describe('AnalyticsService - Aggregation Logic', () => {
       // Simulate a check for out-of-bounds month
       const testMonth = 15; // Invalid
       if (testMonth >= 0 && testMonth < 12) {
-        monthlyData[testMonth].value += 100;
+        monthlyData[testMonth]!.value += 100;
       }
 
       expect(monthlyData.every(m => m.value === 0)).toBe(true);

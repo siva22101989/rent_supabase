@@ -7,7 +7,6 @@ import {
     Edit, 
     Trash2, 
     ArrowUpCircle, 
-    ArrowDownCircle, 
     User, 
     Building,
     ExternalLink

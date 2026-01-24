@@ -2,22 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Building2, Globe, Loader2 } from "lucide-react";
 import { toggleWarehouseAccess, getMemberAssignments, updateStaffRoleInWarehouse } from "@/lib/staff-actions";
 import { getUserWarehouses } from "@/lib/warehouse-actions"; 
 import { useToast } from "@/hooks/use-toast";
-import { Warehouse } from "@/lib/definitions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface WarehouseAccessManagerProps {
     userId: string;
-    currentUserRole?: string;
 }
 
-export function WarehouseAccessManager({ userId, currentUserRole }: WarehouseAccessManagerProps) {
+export function WarehouseAccessManager({ userId }: WarehouseAccessManagerProps) {
     const [allWarehouses, setAllWarehouses] = useState<any[]>([]);
     const [assignments, setAssignments] = useState<{warehouse_id: string, role: string}[]>([]);
     const [loading, setLoading] = useState(true);

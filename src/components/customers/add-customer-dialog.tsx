@@ -3,8 +3,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
 import { type FormState } from '@/lib/actions/common';
 import { addCustomer } from '@/lib/actions/customers';

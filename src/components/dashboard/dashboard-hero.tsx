@@ -1,7 +1,6 @@
 'use client';
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Warehouse, Package, BadgeIndianRupee, Activity, TrendingUp } from "lucide-react";
+import { Warehouse, Activity, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 

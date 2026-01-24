@@ -3,7 +3,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { getUserWarehouse } from '@/lib/queries';
 import { logError } from './error-logger';
-import * as Sentry from "@sentry/nextjs";
 
   export async function fetchReportData(
     reportType: string,

@@ -81,7 +81,7 @@ export function PlatformAnalyticsCharts({ data }: PlatformAnalyticsChartsProps) 
                                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                 />
                                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={32}>
-                                    {distributionData.map((entry: any, index: number) => (
+                                    {distributionData.map((_entry: any, index: number) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Bar>

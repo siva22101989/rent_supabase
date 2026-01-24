@@ -16,12 +16,14 @@ export function generateWarehouseCode(name: string): string {
     
     if (words.length === 0) return 'WH';
 
-    if (words.length === 1) {
+    if (words.length === 1 && words[0]) {
         return words[0].substring(0, 4);
     }
     
     // Take first 2 letters of first 2 words
-    return (words[0].substring(0, 2) + words[1].substring(0, 2));
+    const first = words[0] || 'WH';
+    const second = words[1] || '';
+    return (first.substring(0, 2) + second.substring(0, 2));
 }
 
 export function formatInvoiceNumber(prefix: string, type: 'inflow' | 'outflow', value: number): string {

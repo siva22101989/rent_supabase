@@ -1,49 +1,36 @@
 'use client';
 
-import { useActionState, useEffect, useState, useRef, startTransition } from 'react';
-import { useFormStatus } from 'react-dom';
-import { useRouter } from 'next/navigation';
-import * as Sentry from "@sentry/nextjs";
+import {  useEffect, useState, startTransition } from 'react';
 import { SubmitButton } from "@/components/ui/submit-button";
-import { addOutflow, type OutflowFormState } from '@/lib/actions/storage/outflow';
+import { addOutflow } from '@/lib/actions/storage/outflow';
 // ...
 import { getStorageRecordAction } from '@/lib/actions/storage/records';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer, StorageRecord } from '@/lib/definitions';
+import type { StorageRecord } from '@/lib/definitions';
 import { useUnifiedToast } from '@/components/shared/toast-provider';
-import { FormError } from '../shared/form-error';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
-import { useCustomers } from '@/contexts/customer-context';
 import { useStaticData } from '@/hooks/use-static-data';
 import { useServerAction } from '@/hooks/use-server-action';
-
 import { AsyncRecordSelector } from './async-record-selector';
 
-
 export function OutflowForm({ 
-    records = [],
     onSuccess,
     smsEnabledDefault
 }: { 
-    records?: StorageRecord[],
     onSuccess?: (outflow: any) => void,
     smsEnabledDefault: boolean
 }) {
-    const { success: toastSuccess, error: toastError } = useUnifiedToast();
+    const { success: _toastSuccess, error: toastError } = useUnifiedToast();
     
     // Hooks for data
-    const { customers, isLoading: customersLoading } = useCustomers();
-    const { crops, loading: cropsLoading, refresh } = useStaticData(); 
-    const router = useRouter();
-    const lastHandledRef = useRef<any>(null);
+    // const { customers, isLoading: customersLoading } = useCustomers();
+    const { crops } = useStaticData(); 
     const { runAction, isPending } = useServerAction();
     
     const [selectedRecordId, setSelectedRecordId] = useState<string>('');
@@ -53,10 +40,9 @@ export function OutflowForm({
     
     const [finalRent, setFinalRent] = useState(0);
     const [storageMonths, setStorageMonths] = useState(0);
-    const [rentPerBag, setRentPerBag] = useState({ rentPerBag: 0 });
     const [hamaliPending, setHamaliPending] = useState(0);
     const [isLoadingRecord, setIsLoadingRecord] = useState(false);
-    const [sendSms, setSendSms] = useState(smsEnabledDefault);
+    const [sendSms] = useState(smsEnabledDefault);
 
     // Filtered logic removed in favor of Async Search
     const totalPayable = finalRent + hamaliPending;
@@ -105,19 +91,16 @@ export function OutflowForm({
             }
 
             if (bagsToWithdraw > 0) {
-                const { rent, monthsStored, rentPerBag: rentPerBagCalc } = calculateFinalRent(safeRecord, withdrawalDate, bagsToWithdraw, pricing);
+                const { rent, monthsStored } = calculateFinalRent(safeRecord, withdrawalDate, bagsToWithdraw, pricing);
                 setFinalRent(rent);
                 setStorageMonths(monthsStored);
-                setRentPerBag({ rentPerBag: rentPerBagCalc });
             } else {
                 setFinalRent(0);
                 setStorageMonths(0);
-                setRentPerBag({ rentPerBag: 0 });
             }
         } else {
             setFinalRent(0);
             setStorageMonths(0);
-            setRentPerBag({ rentPerBag: 0 });
             setHamaliPending(0);
         }
     }, [selectedRecord, bagsToWithdraw, withdrawalDate, crops]);
@@ -156,7 +139,7 @@ export function OutflowForm({
              return result;
         }, {
              // blocking: false, // Reverted to local button loading per user request
-             onSuccess: (result) => {
+             onSuccess: () => {
                   if (onSuccess && selectedRecord) {
                     startTransition(() => {
                         onSuccess({

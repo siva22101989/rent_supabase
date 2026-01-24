@@ -2,7 +2,6 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import * as Sentry from "@sentry/nextjs";
 import { logError } from './error-logger';
 
 export type SubscriptionState = {
@@ -58,14 +57,13 @@ export async function getSubscriptionAction(warehouseId: string) {
 }
 
 import { authenticatedAction } from './safe-action';
-import { getSubscriptionWithUsage } from '@/services/subscription-service';
 import { SubscriptionStatus, UserRole } from '@/types/db';
 
 export async function startSubscriptionAction(
   warehouseId: string,
   planTier: string
 ): Promise<SubscriptionState> {
-  return authenticatedAction('startSubscriptionAction', async (user, supabase, userRole) => {
+  return authenticatedAction('startSubscriptionAction', async (_user, supabase, _userRole) => {
       // 1. Get the plan details
       const { data: plan, error: planError } = await supabase
         .from('plans')
@@ -296,7 +294,6 @@ async function sendExpiryNotifications(): Promise<void> {
     
     // Send grace period notifications
     for (const sub of gracePeriodSubs || []) {
-      const warehouse = Array.isArray(sub.warehouses) ? sub.warehouses[0] : sub.warehouses;
       const daysLeft = Math.ceil(
         (new Date(sub.grace_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
       );

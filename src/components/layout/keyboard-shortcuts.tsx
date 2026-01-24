@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { Search, LayoutDashboard, Database, Users, Settings, FileText, Moon, Sun, Laptop } from 'lucide-react';
+import { LayoutDashboard, Database, Users, Settings, FileText, Moon, Sun, Laptop } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 export function KeyboardShortcuts() {

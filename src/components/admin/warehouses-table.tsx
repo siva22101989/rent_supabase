@@ -55,7 +55,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PlanTier } from '@/lib/feature-flags';
 
 interface AdminWarehousesTableProps {
     warehouses: any[];

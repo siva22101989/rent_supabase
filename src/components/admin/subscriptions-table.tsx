@@ -21,7 +21,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import {
     Select,
@@ -83,7 +82,14 @@ export function SubscriptionsTable({ initialData, plans }: SubscriptionsTablePro
         setSelectedItem(item);
         setEditPlanId(item.subscription?.plan_id || plans[0]?.id || '');
         setEditStatus(item.subscription?.status || 'active');
-        setEditEndDate(item.subscription?.current_period_end ? new Date(item.subscription.current_period_end).toISOString().split('T')[0] : '');
+        
+        const endDate = item.subscription?.current_period_end;
+        if (endDate) {
+            setEditEndDate(new Date(endDate).toISOString().split('T')[0] || '');
+        } else {
+            setEditEndDate('');
+        }
+        
         setIsDialogOpen(true);
     };
 

@@ -12,12 +12,12 @@ import {
     exportUnloadingExpensesToExcel
 } from "@/lib/export-utils";
 import { 
-    LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+    LineChart, Line, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
 import { 
-    TrendingUp, TrendingDown, DollarSign, Users, 
-    Clock, Target, AlertCircle, Download
+    TrendingUp, DollarSign, 
+    Clock, AlertCircle, Download
 } from "lucide-react";
 import Link from "next/link";
 import type { 

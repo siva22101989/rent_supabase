@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { startOfDay } from 'date-fns';
+
 import * as Sentry from "@sentry/nextjs";
 
 import { createClient } from '@/utils/supabase/server';
@@ -38,13 +38,13 @@ export type BulkOutflowResult = {
     transactionIds?: string[];
 };
 
-export async function processBulkOutflow(prevState: any, formData: FormData): Promise<BulkOutflowResult> {
+export async function processBulkOutflow(_prevState: any, formData: FormData): Promise<BulkOutflowResult> {
     return Sentry.startSpan(
         {
             op: "function",
             name: "processBulkOutflow",
         },
-        async (span) => {
+        async (_span) => {
             const rawData = {
                 customerId: formData.get('customerId'),
                 commodity: formData.get('commodity'),

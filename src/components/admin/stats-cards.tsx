@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, Wheat, Database, Activity } from "lucide-react";
+import { Building2, Users, Wheat, Activity } from "lucide-react";
 
 interface AdminStatsCardsProps {
     stats: {

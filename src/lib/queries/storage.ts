@@ -186,7 +186,7 @@ export const getStorageRecord = cache(async (id: string): Promise<StorageRecord 
   if (error || !r) return null;
 
   // Use shared mapping helper
-  return mapRecords([r])[0];
+  return mapRecords([r])[0] || null;
 });
 
 export async function getCustomerRecords(customerId: string, limit = 200, offset = 0): Promise<StorageRecord[]> {

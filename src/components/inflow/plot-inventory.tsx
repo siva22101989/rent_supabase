@@ -48,6 +48,7 @@ export function PlotInventory({ plotData, lots }: PlotInventoryProps) {
 
         // Use first record's details for the storage record
         const firstRecord = currentPlot.records[0];
+        if (!firstRecord) return;
 
         const result = await movePlotToStorage({
             plotLocation: selectedPlot!,

@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { type FormState } from '@/lib/actions/common';
+
 import { deleteExpenseAction } from '@/lib/actions/expenses';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';

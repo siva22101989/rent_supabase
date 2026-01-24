@@ -3,7 +3,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { ActionState } from './warehouse-actions';
-import { roleHierarchy } from './definitions';
 import { UserRole, AuditAction, AuditEntity } from '@/types/db';
 
 import { logError } from '@/lib/error-logger';

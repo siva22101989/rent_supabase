@@ -105,7 +105,10 @@ export function useFeatureGate() {
       enterprise_yearly: 3,
     };
 
-    if (tierPriority[currentPlan] >= tierPriority[featureGate.tier]) {
+    const currentPriority = tierPriority[currentPlan] ?? 0;
+    const requiredPriority = tierPriority[featureGate.tier] ?? 0;
+
+    if (currentPriority >= requiredPriority) {
       return ['active', 'trailing_trial'].includes(subscription.status);
     }
 
@@ -130,7 +133,7 @@ export function useFeatureGate() {
           if (!limitConfig) return true; // Limit not defined, allow
           
           const currentPlan = subscription.plan.tier;
-          maxLimit = limitConfig.limit[currentPlan];
+          maxLimit = (limitConfig.limit as any)[currentPlan] || 0;
       }
 
       return (usage + additionalAmount) <= maxLimit;

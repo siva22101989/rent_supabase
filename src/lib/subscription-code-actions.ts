@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { addDays, addMonths, addYears } from 'date-fns';
+import { addDays } from 'date-fns';
 import { logError } from './error-logger';
 
 export interface GenerateCodeParams {

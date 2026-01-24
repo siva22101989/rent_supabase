@@ -12,9 +12,6 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import {
   getCachedPrices,
   getPriceTrend,
-  getAvailableCommodities,
-  getMarketsForCommodity,
-  type CommodityPrice,
 } from '@/lib/agmarknet-service';
 import { logError } from '@/lib/error-logger';
 
@@ -328,7 +325,7 @@ export async function searchCommodities(query: string) {
 /**
  * Get markets for a commodity (for market selection)
  */
-export async function getMarkets(commodity: string, state?: string) {
+export async function getMarkets(_commodity: string, state?: string) {
   try {
     // Return sample markets based on state
     const sampleMarkets: Record<string, Array<{ market: string; state: string; district: string | null }>> = {
@@ -364,7 +361,7 @@ export async function getMarkets(commodity: string, state?: string) {
       message: 'Markets found',
     };
   } catch (error: unknown) {
-    logError(error, { operation: 'getMarkets', metadata: { commodity, state } });
+    logError(error, { operation: 'getMarkets', metadata: { _commodity, state } });
     return {
       success: false,
       data: [],

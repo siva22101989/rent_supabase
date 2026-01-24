@@ -1,11 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { fetchCustomers } from '@/lib/actions/customers';
+import React, { createContext, useContext, useCallback } from 'react';
 import { type Customer } from '@/lib/definitions';
-import { toast } from '@/hooks/use-toast';
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { createClient } from '@/utils/supabase/client';
 
 import { useStaticData } from '@/hooks/use-static-data';
 

@@ -38,7 +38,7 @@ export function PrintableLabelSheet({ records, warehouseName }: PrintableLabelSh
       `}</style>
 
       <div className="print-container grid grid-cols-2 gap-4 p-4 print:p-0">
-        {records.map((record, index) => (
+        {records.map((record) => (
           <div 
             key={record.id} 
             className="border-2 border-black p-4 flex flex-col justify-between h-[95mm] break-inside-avoid"

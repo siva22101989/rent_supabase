@@ -38,15 +38,17 @@ export class AnalyticsService {
 
         payments?.forEach((p: any) => {
             const month = getMonth(new Date(p.payment_date));
-            if (month >= 0 && month < 12) {
-                monthlyData[month].revenue += p.amount;
+            const target = monthlyData[month];
+            if (target) {
+                target.revenue += p.amount;
             }
         });
 
         expenses?.forEach((e: any) => {
             const month = getMonth(new Date(e.expense_date));
-            if (month >= 0 && month < 12) {
-                monthlyData[month].expense += e.amount;
+            const target = monthlyData[month];
+            if (target) {
+                target.expense += e.amount;
             }
         });
 
@@ -89,12 +91,14 @@ export class AnalyticsService {
 
         inflows?.forEach((r: any) => {
             const month = getMonth(new Date(r.storage_start_date));
-            if (month >= 0 && month < 12) monthlyData[month].inflow += (r.bags_in || 0);
+            const target = monthlyData[month];
+            if (target) target.inflow += (r.bags_in || 0);
         });
 
         outflows?.forEach((t: any) => {
             const month = getMonth(new Date(t.withdrawal_date));
-            if (month >= 0 && month < 12) monthlyData[month].outflow += (t.bags_withdrawn || 0);
+            const target = monthlyData[month];
+            if (target) target.outflow += (t.bags_withdrawn || 0);
         });
 
         return monthlyData;

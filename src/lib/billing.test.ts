@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { calculateFinalRent } from './billing'
-import { addMonths, subDays } from 'date-fns'
+import { addMonths } from 'date-fns'
 import type { StorageRecord } from '@/lib/definitions'
 
 const mockRecord = (startDate: Date): StorageRecord => ({

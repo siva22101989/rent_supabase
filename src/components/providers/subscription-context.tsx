@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import { PlanTier } from '@/lib/feature-flags';
 import { getSubscriptionAction } from '@/lib/subscription-actions';
 

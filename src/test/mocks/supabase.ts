@@ -19,30 +19,28 @@ export function createMockSupabaseClient() {
 
   const createQueryBuilder = (table: string) => {
     let filters: any = {};
-    let selectFields = '*';
-
     const builder = {
-      select: (fields = '*') => {
-        selectFields = fields;
+      select: (_fields = '*') => {
         return builder;
       },
       insert: (data: any) => {
         const record = Array.isArray(data) ? data : [data];
         record.forEach(r => {
           const id = r.id || `mock-${Date.now()}-${Math.random()}`;
-          mockData[table].push({ ...r, id });
+          if (!mockData[table]) mockData[table] = [];
+          mockData[table]!.push({ ...r, id });
         });
         return builder;
       },
       update: (data: any) => {
-        mockData[table] = mockData[table].map(record => {
+        mockData[table] = (mockData[table] || []).map(record => {
           const matches = Object.entries(filters).every(([key, value]) => record[key] === value);
           return matches ? { ...record, ...data } : record;
         });
         return builder;
       },
       delete: () => {
-        mockData[table] = mockData[table].filter(record => {
+        mockData[table] = (mockData[table] || []).filter(record => {
           return !Object.entries(filters).every(([key, value]) => record[key] === value);
         });
         return builder;
@@ -67,11 +65,11 @@ export function createMockSupabaseClient() {
         filters[`${column}_is`] = value;
         return builder;
       },
-      order: (column: string, options?: any) => {
+      order: (_column: string, _options?: any) => {
         return builder;
       },
       single: () => {
-        const results = mockData[table].filter(record => {
+        const results = (mockData[table] || []).filter(record => {
           return Object.entries(filters).every(([key, value]) => {
             if (key.endsWith('_in')) {
               const col = key.replace('_in', '');
@@ -83,7 +81,7 @@ export function createMockSupabaseClient() {
         return { data: results[0] || null, error: null };
       },
       then: (resolve: any) => {
-        const results = mockData[table].filter(record => {
+        const results = (mockData[table] || []).filter(record => {
           return Object.entries(filters).every(([key, value]) => {
             if (key.endsWith('_in')) {
               const col = key.replace('_in', '');
@@ -105,7 +103,7 @@ export function createMockSupabaseClient() {
 
   return {
     from: (table: string) => createQueryBuilder(table),
-    rpc: (functionName: string, params: any) => {
+    rpc: (_functionName: string, _params: any) => {
       // Mock RPC calls
       return Promise.resolve({ data: { success: true }, error: null });
     },

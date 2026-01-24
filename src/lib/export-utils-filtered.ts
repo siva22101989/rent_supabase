@@ -1,4 +1,3 @@
-import { FilterState } from './url-filters';
 import { StorageRecord } from './definitions';
 
 export interface ExportMetadata {

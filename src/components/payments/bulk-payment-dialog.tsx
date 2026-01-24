@@ -19,7 +19,7 @@ import { processBulkPayment, type BulkPaymentFormState } from '@/lib/actions/pay
 import { formatCurrency } from '@/lib/utils';
 import { useUnifiedToast } from '@/components/shared/toast-provider';
 import { useRouter } from 'next/navigation';
-import { Loader2, ArrowRight, Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';

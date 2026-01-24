@@ -1,13 +1,10 @@
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
-import { addPayment, type PaymentFormState } from '@/lib/actions/payments';
+import { addPayment } from '@/lib/actions/payments';
 import { useServerAction } from '@/hooks/use-server-action';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,10 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useUnifiedToast } from '@/components/shared/toast-provider';
-import { FormError } from '../shared/form-error';
 import type { StorageRecord } from '@/lib/definitions';
-import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
@@ -38,7 +32,6 @@ export function AddPaymentDialog({ record, onClose, autoOpen = false }: {
   onClose?: () => void;
   autoOpen?: boolean;
 }) {
-  const { success: toastSuccess, error: toastError } = useUnifiedToast();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(autoOpen);
   const [paymentType, setPaymentType] = useState<'rent' | 'hamali'>('rent');

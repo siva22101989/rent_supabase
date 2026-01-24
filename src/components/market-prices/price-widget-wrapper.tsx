@@ -1,5 +1,5 @@
 import { MarketPricesWidget } from '@/components/market-prices/price-widget';
-import { getUserWatchlist, getCommodityPricesWithTrend } from '@/lib/commodity-actions';
+import { getUserWatchlist } from '@/lib/commodity-actions';
 import { getPriceTrend } from '@/lib/agmarknet-service';
 
 interface MarketPricesWidgetWrapperProps {
@@ -29,7 +29,7 @@ export async function MarketPricesWidgetWrapper({ warehouseId }: MarketPricesWid
     return {
       commodity: item.commodity,
       modal_price: trend.current,
-      price_date: new Date().toISOString().split('T')[0],
+      price_date: new Date().toISOString().split('T')[0] ?? '',
       market: item.preferred_market || 'Various Markets',
       state: item.preferred_state || 'All India',
       change_percent: trend.change_percent,

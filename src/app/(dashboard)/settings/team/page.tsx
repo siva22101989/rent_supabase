@@ -44,7 +44,7 @@ export default async function TeamSettingsPage() {
       />
       
       <div className="max-w-6xl mx-auto">
-         <TeamManager initialMembers={[]} pendingRequests={pendingRequests} currentUserRole={currentUserRole} />
+         <TeamManager pendingRequests={pendingRequests} currentUserRole={currentUserRole} />
       </div>
     </>
   );

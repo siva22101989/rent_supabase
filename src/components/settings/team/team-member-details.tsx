@@ -2,11 +2,10 @@
 
 import { TeamMember } from "@/lib/definitions";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Calendar, Shield, UserX, PenBox } from "lucide-react";
 import { format } from "date-fns";
-import { useFormState } from "react-dom";
 import { deactivateTeamMember, updateTeamMember } from "@/lib/actions/auth";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -115,7 +114,7 @@ export function TeamMemberDetails({ member, currentUserRole = 'staff' }: TeamMem
             {/* Warehouse Access Management */}
             {(currentUserRole === 'owner' || currentUserRole === 'super_admin') && (
                 <div className="pt-6 border-t">
-                    <WarehouseAccessManager userId={member.id} currentUserRole={currentUserRole} />
+                    <WarehouseAccessManager userId={member.id} />
                 </div>
             )}
 

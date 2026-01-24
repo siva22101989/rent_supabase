@@ -1,17 +1,8 @@
 
 'use server';
 
-import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
-import { getStorageRecords, getCustomers, getStorageRecord, getCustomer, getUserWarehouse, getAvailableCrops, getAvailableLots, getTeamMembers, getDashboardMetrics, searchActiveStorageRecords } from '@/lib/queries';
-import { saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, deleteStorageRecord, saveExpense, updateExpense, deleteExpense } from '@/lib/data';
-import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
-import type { StorageRecord, Payment } from './definitions';
-import { expenseCategories } from './definitions';
-import { getNextInvoiceNumber } from '@/lib/sequence-utils';
-import * as Sentry from "@sentry/nextjs";
 import { logError } from '@/lib/error-logger';
 import { isSMSEnabled } from '@/lib/sms-settings-actions';
 import { textBeeService } from '@/lib/textbee';
@@ -131,18 +122,14 @@ export async function sendPaymentReminderSMS(customerId: string, recordId?: stri
         
         // Log SMS in database (optional - create sms_logs table if needed)
         if (result.success) {
-            const { error: logError } = await supabase.from('sms_logs').insert({
+            await supabase.from('sms_logs').insert({
                 customer_id: customerId,
                 phone: customer.phone,
                 message_type: 'payment_reminder',
                 message_id: result.messageId,
                 status: 'sent',
             });
-            
             // Ignore if table doesn't exist
-            if (logError) {
-                // SMS sent but not logged (sms_logs table may not exist)
-            }
         }
         
         revalidatePath('/payments/pending');

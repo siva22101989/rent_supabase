@@ -14,8 +14,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { getNextInvoiceNumber } from '@/lib/sequence-utils';
 import { logError, logWarning } from '@/lib/error-logger';
 import { BillingService } from '@/lib/billing';
-import { FormState } from '../common';
-import type { StorageRecord } from '@/lib/definitions';
+
 
 const { logger } = Sentry;
 
@@ -36,7 +35,7 @@ export type OutflowFormState = {
     data?: Record<string, any>;
 };
 
-export async function addOutflow(prevState: OutflowFormState, formData: FormData): Promise<OutflowFormState> {
+export async function addOutflow(_prevState: OutflowFormState, formData: FormData): Promise<OutflowFormState> {
     return Sentry.startSpan(
         {
             op: "function",
@@ -178,7 +177,7 @@ export async function deleteOutflow(transactionId: string) {
         return { success: false, message: 'Transaction not found' };
     }
 
-    const recordId = transaction.record_id; // assuming column is record_id
+
     // If not, use storage_record if joined. But we want fresh CamelCase.
     // Let's assume record_id is on transaction table. (Check step 2374: select * includes record_id?)
     // data.ts: saveWithdrawalTransaction uses .insert({ storage_record_id: recordId ... })

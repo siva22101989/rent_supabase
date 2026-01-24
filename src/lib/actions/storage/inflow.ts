@@ -21,7 +21,7 @@ const FinalizeDryingSchema = z.object({
   finalBags: z.coerce.number().positive(),
 });
 
-export async function finalizePlotDrying(prevState: FormState, formData: FormData) {
+export async function finalizePlotDrying(_prevState: FormState, formData: FormData) {
   try {
       const validatedFields = FinalizeDryingSchema.safeParse({
       recordId: formData.get('recordId'),
@@ -140,7 +140,7 @@ export type InflowFormState = {
   data?: Record<string, any>;
 };
 
-export async function addInflow(prevState: InflowFormState, formData: FormData): Promise<InflowFormState> {
+export async function addInflow(_prevState: InflowFormState, formData: FormData): Promise<InflowFormState> {
   return Sentry.startSpan(
       {
           op: "function",
@@ -336,7 +336,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData):
                   }
               }
 
-              const { logActivity, createNotification } = await import('@/lib/logger');
+              const { createNotification } = await import('@/lib/logger');
               await createNotification(
                    `Inflow Recorded`,
                    `Received ${inflowBags} bags (${rest.commodityDescription}) from customer`,

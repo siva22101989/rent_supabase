@@ -1,6 +1,10 @@
 
 import type {Metadata} from 'next';
-import { Inter } from 'next/font/google';
+// Self-hosted Inter font - eliminates Google Fonts API calls and timeout warnings
+import '@fontsource/inter/400.css'; // Regular
+import '@fontsource/inter/500.css'; // Medium
+import '@fontsource/inter/600.css'; // SemiBold
+import '@fontsource/inter/700.css'; // Bold
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/providers/theme-provider"
@@ -8,8 +12,6 @@ import NextTopLoader from 'nextjs-toploader';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/react';
 import { KeyboardShortcuts } from "@/components/layout/keyboard-shortcuts";
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
@@ -28,13 +30,10 @@ export const viewport = {
   userScalable: false, // Prevents zooming on inputs, common for "app-like" feel
 };
 
-import { WarehouseProvider } from '@/contexts/warehouse-context';
-import { CustomerProvider } from '@/contexts/customer-context';
-import { StaticDataProvider } from '@/hooks/use-static-data';
-import { AuthListener } from '@/components/auth/auth-listener';
 import { OfflineIndicator } from '@/components/shared/offline-indicator';
 import { AnalyticsProvider } from '@/components/shared/analytics-provider';
 import { LoadingProvider } from '@/components/providers/loading-provider';
+import { QueryProvider } from '@/providers/query-provider';
 
 import { Suspense } from 'react';
 
@@ -45,20 +44,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} font-body antialiased bg-background`}>
+      <body className="font-sans font-body antialiased bg-background">
         <ThemeProvider>
-          <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
-          <LoadingProvider>
-            {children}
-            <Toaster />
-            <SpeedInsights />
-            <Analytics />
-            <Suspense fallback={null}>
-              <AnalyticsProvider />
-            </Suspense>
-            <KeyboardShortcuts />
-            <OfflineIndicator />
-          </LoadingProvider>
+          <QueryProvider>
+            <NextTopLoader color="#1DA1F2" showSpinner={false} height={3} />
+            <LoadingProvider>
+              {children}
+              <Toaster />
+              <SpeedInsights />
+              <Analytics />
+              <Suspense fallback={null}>
+                <AnalyticsProvider />
+              </Suspense>
+              <KeyboardShortcuts />
+              <OfflineIndicator />
+            </LoadingProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,5 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sidebar } from "lucide-react"; // Just importing an icon to mimic logo if needed, or just plain divs
 
 export default function Loading() {
   return (

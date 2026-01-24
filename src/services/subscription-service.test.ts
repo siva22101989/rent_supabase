@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { checkSubscriptionLimits, checkFeatureAccess, planCache } from '@/services/subscription-service';
+import { checkSubscriptionLimits, checkFeatureAccess } from '@/services/subscription-service';
 import { SubscriptionStatus } from '@/types/db';
 
 // Mock Supabase Client

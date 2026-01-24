@@ -3,9 +3,9 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+
 import { useRouter } from 'next/navigation';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
 import { type FormState } from '@/lib/actions/common';
 import { addExpense } from '@/lib/actions/expenses';

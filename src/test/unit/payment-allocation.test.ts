@@ -69,10 +69,10 @@ describe('FIFO Payment Allocation', () => {
 
       const result = allocateFIFO(records, 1500);
 
-      expect(result[0].amount).toBe(1000); // First record fully paid
-      expect(result[0].remaining).toBe(0);
-      expect(result[1].amount).toBe(500);  // Second record partially paid
-      expect(result[1].remaining).toBe(1500);
+      expect(result[0]!.amount).toBe(1000); // First record fully paid
+      expect(result[0]!.remaining).toBe(0);
+      expect(result[1]!.amount).toBe(500);  // Second record partially paid
+      expect(result[1]!.remaining).toBe(1500);
     });
 
     it('handles exact payment amount', () => {
@@ -87,8 +87,8 @@ describe('FIFO Payment Allocation', () => {
 
       const result = allocateFIFO(records, 1000);
 
-      expect(result[0].amount).toBe(1000);
-      expect(result[0].remaining).toBe(0);
+      expect(result[0]!.amount).toBe(1000);
+      expect(result[0]!.remaining).toBe(0);
     });
 
     it('handles payment exceeding total dues', () => {
@@ -103,8 +103,8 @@ describe('FIFO Payment Allocation', () => {
 
       const result = allocateFIFO(records, 1000);
 
-      expect(result[0].amount).toBe(500); // Only allocate what's due
-      expect(result[0].remaining).toBe(0);
+      expect(result[0]!.amount).toBe(500); // Only allocate what's due
+      expect(result[0]!.remaining).toBe(0);
     });
 
     it('distributes across multiple records', () => {
@@ -116,12 +116,12 @@ describe('FIFO Payment Allocation', () => {
 
       const result = allocateFIFO(records, 2500);
 
-      expect(result[0].amount).toBe(1000);
-      expect(result[0].remaining).toBe(0);
-      expect(result[1].amount).toBe(1000);
-      expect(result[1].remaining).toBe(0);
-      expect(result[2].amount).toBe(500);
-      expect(result[2].remaining).toBe(500);
+      expect(result[0]!.amount).toBe(1000);
+      expect(result[0]!.remaining).toBe(0);
+      expect(result[1]!.amount).toBe(1000);
+      expect(result[1]!.remaining).toBe(0);
+      expect(result[2]!.amount).toBe(500);
+      expect(result[2]!.remaining).toBe(500);
     });
 
     it('handles zero payment amount', () => {
@@ -136,8 +136,8 @@ describe('FIFO Payment Allocation', () => {
 
       const result = allocateFIFO(records, 0);
 
-      expect(result[0].amount).toBe(0);
-      expect(result[0].remaining).toBe(1000);
+      expect(result[0]!.amount).toBe(0);
+      expect(result[0]!.remaining).toBe(1000);
     });
 
     it('handles empty records array', () => {

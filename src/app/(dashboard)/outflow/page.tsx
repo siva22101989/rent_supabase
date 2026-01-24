@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/shared/page-header";
-import { OutflowForm } from "@/components/outflow/outflow-form";
+
 import { getRecentOutflows } from "@/lib/queries";
 import { isSMSEnabled } from "@/lib/sms-settings-actions";
 import { OutflowManager } from "./outflow-manager";

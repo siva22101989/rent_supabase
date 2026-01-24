@@ -126,11 +126,15 @@ npm run test
 npm run test:e2e
 
 # Run Security Audit (Application Level)
-npm run test:security
-
-# Run RLS Penetration Testing (Requires local DB)
-npm run security:verify-rls
+npm audit
 ```
+
+**Quality Assurance:**
+
+- **Unit Tests:** Utility types and core logic tested with Vitest.
+- **Type Safety:** Strict TypeScript configuration enabled.
+- **Security:** Routine `npm audit` checks and dependency monitoring.
+- **Integration:** Critical user flows verified.
 
 All billing logic is regression-tested against 10+ critical scenarios including leap years and complex boundaries.
 

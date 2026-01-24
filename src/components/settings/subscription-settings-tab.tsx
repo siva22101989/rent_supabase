@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CreditCard, CheckCircle2, AlertTriangle, Package, Zap } from 'lucide-react';
+import { CheckCircle2, Zap } from 'lucide-react';
 import { useSubscription } from '@/components/providers/subscription-context';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';

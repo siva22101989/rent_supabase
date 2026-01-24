@@ -185,10 +185,10 @@ describe('BillingService', () => {
       const result = BillingService.allocatePaymentFIFO(records, 1500);
 
       expect(result.allocations).toHaveLength(2);
-      expect(result.allocations[0].amount).toBe(1000);
-      expect(result.allocations[0].remainingDue).toBe(0);
-      expect(result.allocations[1].amount).toBe(500);
-      expect(result.allocations[1].remainingDue).toBe(1500);
+      expect(result.allocations[0]!.amount).toBe(1000); // First record fully paid
+      expect(result.allocations[0]!.remainingDue).toBe(0);
+      expect(result.allocations[1]!.amount).toBe(500);  // Second record partially paid
+      expect(result.allocations[1]!.remainingDue).toBe(1500);
       expect(result.unallocated).toBe(0);
     });
 
@@ -205,8 +205,8 @@ describe('BillingService', () => {
       const result = BillingService.allocatePaymentFIFO(records, 1000);
 
       expect(result.allocations).toHaveLength(1);
-      expect(result.allocations[0].amount).toBe(500);
-      expect(result.allocations[0].remainingDue).toBe(0);
+      expect(result.allocations[0]!.amount).toBe(500);
+      expect(result.allocations[0]!.remainingDue).toBe(0);
       expect(result.unallocated).toBe(500); // 500 excess
     });
 
@@ -220,10 +220,10 @@ describe('BillingService', () => {
       const result = BillingService.allocatePaymentFIFO(records, 2500);
 
       expect(result.allocations).toHaveLength(3);
-      expect(result.allocations[0].amount).toBe(1000);
-      expect(result.allocations[1].amount).toBe(1000);
-      expect(result.allocations[2].amount).toBe(500);
-      expect(result.allocations[2].remainingDue).toBe(500);
+      expect(result.allocations[0]!.amount).toBe(1000);
+      expect(result.allocations[1]!.amount).toBe(1000);
+      expect(result.allocations[2]!.amount).toBe(500);
+      expect(result.allocations[2]!.remainingDue).toBe(500);
       expect(result.unallocated).toBe(0);
     });
 
@@ -240,8 +240,8 @@ describe('BillingService', () => {
       const result = BillingService.allocatePaymentFIFO(records, 0);
 
       expect(result.allocations).toHaveLength(1);
-      expect(result.allocations[0].amount).toBe(0);
-      expect(result.allocations[0].remainingDue).toBe(1000);
+      expect(result.allocations[0]!.amount).toBe(0);
+      expect(result.allocations[0]!.remainingDue).toBe(1000);
       expect(result.unallocated).toBe(0);
     });
   });

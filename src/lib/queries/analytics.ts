@@ -7,7 +7,6 @@ import type {
     WarehouseAdminDetails, 
     ActivityLogEntry, 
     PlatformAnalytics,
-    AnalyticsGrowthData,
     CommodityDistribution
 } from '@/lib/definitions';
 
@@ -237,13 +236,13 @@ export const getPlatformAnalytics = cache(async (): Promise<PlatformAnalytics> =
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     const warehouseData = (warehouses || []).reduce((acc: Record<string, number>, w: any) => {
-        const month = months[new Date(w.created_at).getMonth()];
+        const month = months[new Date(w.created_at).getMonth()] || 'Unknown';
         acc[month] = (acc[month] || 0) + 1;
         return acc;
     }, {});
 
     const userData = (users || []).reduce((acc: Record<string, number>, u: any) => {
-        const month = months[new Date(u.created_at).getMonth()];
+        const month = months[new Date(u.created_at).getMonth()] || 'Unknown';
         acc[month] = (acc[month] || 0) + 1;
         return acc;
     }, {});

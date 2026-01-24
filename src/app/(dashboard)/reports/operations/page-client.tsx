@@ -7,8 +7,8 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
 import { 
-    Warehouse, TrendingUp, Package, Users, 
-    Clock, Activity, Target
+    Warehouse, Package, Users,
+    Clock, Activity
 } from "lucide-react";
 import type { 
     CapacityMetrics,

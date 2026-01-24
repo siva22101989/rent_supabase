@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { ActionsMenu } from "./actions-menu";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { customers as getCustomers, storageRecords as getStorageRecords } from "@/lib/data";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 
 export function StorageTable() {

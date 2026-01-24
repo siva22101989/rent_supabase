@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import type { TeamMember } from "@/lib/definitions";
 import { TeamMembersList } from "./team-members-list";
 import { TeamMemberDetails } from "./team-member-details";
 import { InviteLinkGenerator } from "./invite-link-generator";
@@ -10,18 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { useTeamMembers } from '@/hooks/use-team-members';
 import { approveJoinRequest, rejectJoinRequest } from '@/lib/warehouse-actions';
-import { Badge } from '@/components/ui/badge';
 import { Check, X } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 
 interface TeamManagerProps {
-  initialMembers: TeamMember[]; 
   pendingRequests?: any[]; // Array of notifications
   currentUserRole?: string;
 }
 
-export function TeamManager({ initialMembers, pendingRequests = [], currentUserRole = 'staff' }: TeamManagerProps) {
+export function TeamManager({ pendingRequests = [], currentUserRole = 'staff' }: TeamManagerProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const { toast } = useToast();

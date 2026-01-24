@@ -1,18 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
-import fs from 'fs';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz'; // Local service role key
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Note: This script only reads SQL files and doesn't connect to Supabase
 
 async function applyMigration() {
-    const migrationPath = path.resolve(process.cwd(), 'supabase/migrations/20260108000000_add_soft_delete.sql');
-    const sql = fs.readFileSync(migrationPath, 'utf8');
     
     console.log('Applying migration...');
     

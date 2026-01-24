@@ -1,13 +1,10 @@
-import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+
+
 
 // Revalidate every 30 seconds for fresh dashboard data
 export const revalidate = 30;
-import { getDashboardMetrics, getAvailableLots, getWarehouseDetails, getRecentInflows, getRecentOutflows } from "@/lib/queries";
+import { getDashboardMetrics, getWarehouseDetails, getRecentInflows, getRecentOutflows } from "@/lib/queries";
 import { getSubscriptionAction } from "@/lib/subscription-actions";
-import { Progress } from "@/components/ui/progress";
 // import { DashboardCharts } from "@/components/dashboard/dashboard-charts"; // Replaced by new Stats
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 // import { QuickActions } from "@/components/dashboard/quick-actions";

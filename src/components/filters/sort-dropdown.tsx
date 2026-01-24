@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import {
   Select,
@@ -29,7 +29,7 @@ export function SortDropdown({
   onChange,
   placeholder = 'Sort by...',
 }: SortDropdownProps) {
-  const selectedOption = options.find((opt) => opt.value === value);
+
 
   return (
     <Select value={value} onValueChange={onChange}>

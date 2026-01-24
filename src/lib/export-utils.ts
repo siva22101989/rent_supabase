@@ -1,5 +1,5 @@
 // import * as XLSX from 'xlsx'; // Removed for lazy loading
-import type { StorageRecord, Customer, Payment } from './definitions';
+import type { StorageRecord, Customer } from './definitions';
 import { formatCurrency } from './utils';
 import { format } from 'date-fns';
 

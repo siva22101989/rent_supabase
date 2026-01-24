@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2, FileText } from 'lucide-react';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { CustomerStatementReceipt } from './customer-statement-receipt';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
 
 interface Props {

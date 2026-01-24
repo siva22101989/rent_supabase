@@ -5,7 +5,6 @@ import { useFormState } from 'react-dom';
 import { ShieldAlert } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
 import { getAnomalyDetection } from '@/lib/actions/storage/records';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 type AnomalyState = {

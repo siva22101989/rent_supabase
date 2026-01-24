@@ -15,7 +15,7 @@ import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/layout/logo';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { getFriendlyErrorMessage } from '@/lib/error-utils';
 
 export default function LoginPage() {

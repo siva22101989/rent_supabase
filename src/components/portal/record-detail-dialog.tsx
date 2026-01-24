@@ -3,14 +3,12 @@
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar, Package, Receipt, TrendingDown, Wheat, Download } from "lucide-react";
+import { Receipt, Wheat, Download } from "lucide-react";
 import { format } from "date-fns";
 import { generateStatementPDF } from "@/lib/pdf-generator";
 

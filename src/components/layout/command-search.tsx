@@ -3,23 +3,15 @@
 
 import * as React from 'react';
 import {
-  Calculator,
-  Calendar,
   CreditCard,
   Settings,
-  Smile,
   User,
   Package,
   ArrowDownToDot,
   ArrowUpFromDot,
-  Warehouse,
   IndianRupee,
-  Users,
-  FileText,
   Search,
-  LayoutDashboard,
-  Sun,
-  Moon
+  LayoutDashboard
 } from 'lucide-react';
 
 import {
@@ -29,20 +21,16 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
-  CommandShortcut,
 } from '@/components/ui/command';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
-import { useTheme } from "next-themes";
 import { useDebounce } from '@/hooks/use-debounce';
 import { searchGlobal, type SearchResult } from '@/lib/actions/search';
 
 export function CommandSearch() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
-  const { setTheme } = useTheme();
   
   const [query, setQuery] = React.useState('');
   const debouncedQuery = useDebounce(query, 300);

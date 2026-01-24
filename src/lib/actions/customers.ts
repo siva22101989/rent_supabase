@@ -28,7 +28,7 @@ export async function fetchCustomers() {
     return await getCustomers();
 }
 
-export async function addCustomer(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function addCustomer(_prevState: FormState, formData: FormData): Promise<FormState> {
     return Sentry.startSpan(
         {
             op: "function",
@@ -169,7 +169,7 @@ export async function updateCustomer(customerId: string, formData: FormData): Pr
                 village: validatedFields.data.village || ''
             };
 
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('customers')
                 .update(updateData)
                 .eq('id', customerId)

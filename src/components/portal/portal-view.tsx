@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, ArrowRight, Clock, CreditCard, Package, History, Download } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
@@ -27,7 +25,6 @@ interface PortalViewProps {
 }
 
 export function PortalView({ portfolio, currentDate = new Date() }: PortalViewProps) {
-    const [activeTab, setActiveTab] = useState('active');
 
     // Calculate totals for the header based on ALL records initially? 
     // Usually header shows global "Current" state.
@@ -73,7 +70,7 @@ export function PortalView({ portfolio, currentDate = new Date() }: PortalViewPr
                 <div className="absolute -top-12 -left-12 w-40 h-40 bg-blue-400/20 rounded-full blur-2xl" />
             </div>
 
-            <Tabs defaultValue="active" className="w-full" onValueChange={setActiveTab}>
+            <Tabs defaultValue="active" className="w-full">
                 <div className="flex items-center justify-between px-1 mb-4">
                     <h2 className="text-xl font-black text-foreground tracking-tight">Your Locations</h2>
                     <TabsList className="bg-muted/50 border border-border shadow-sm rounded-full h-9 p-1">
@@ -183,7 +180,6 @@ function WarehouseList({ portfolio, type, currentDate }: { portfolio: PortfolioI
                         {wh.records.map((record) => {
                             // Use prop date to avoid hydration mismatch
                             const age = differenceInDays(currentDate, new Date(record.storage_start_date));
-                            const isOverdue = (record.billed - record.paid) > 0;
                             
                             return (
                                 <div key={record.id} className="p-4 hover:bg-muted/50 transition-colors group">

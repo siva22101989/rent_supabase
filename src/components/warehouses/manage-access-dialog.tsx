@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { generateInviteLink } from '@/lib/warehouse-actions';
 import { UserRole } from '@/types/db';
 import { useUnifiedToast } from '@/components/shared/toast-provider';
@@ -31,7 +31,6 @@ export function ManageAccessDialog() {
   
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
-  const [error, setError] = useState('');
   const [inviteRole, setInviteRole] = useState<UserRole>(UserRole.STAFF);
   const [copied, setCopied] = useState(false);
 

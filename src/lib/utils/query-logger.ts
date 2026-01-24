@@ -59,10 +59,6 @@ export function logQuery(log: QueryLog) {
     }
   }
 
-  const logData = {
-    ...log,
-    params: config.includeParams ? log.params : undefined,
-  };
 
   if (config.logToConsole) {
     const emoji = log.error ? '❌' : log.duration && log.duration > config.slowQueryThreshold ? '🐌' : '✅';

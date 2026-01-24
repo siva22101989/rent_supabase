@@ -26,7 +26,7 @@ export async function authenticatedAction<T>(
       op: "action",
       name: actionName,
     },
-    async (span) => {
+    async (_span) => {
       try {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();

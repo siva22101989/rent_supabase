@@ -16,7 +16,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { formatCurrency } from '@/lib/utils'; // Assumed availablity or I can just use Intl
 
 export function DeleteOutflowButton({ 
   transactionId, 

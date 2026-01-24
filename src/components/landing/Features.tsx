@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, Clock, Shield, Users, Zap } from 'lucide-react'
+import { BarChart3, Users, Zap } from 'lucide-react'
 import Image from 'next/image'
 
 const features = [

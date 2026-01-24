@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AddPaymentDialog } from '@/components/payments/add-payment-dialog';
 import { BulkPaymentDialog } from '@/components/payments/bulk-payment-dialog';
-import { Loader2, ChevronDown, ChevronRight, ArrowUpDown, MessageSquare } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
 import { getCustomerRecordsAction } from '@/lib/actions/storage/records';
 import { sendPaymentReminderSMS } from '@/lib/sms-actions';
 import { useToast } from '@/hooks/use-toast';
@@ -109,7 +109,7 @@ export function PendingPaymentsClient({ pendingCustomers }: PendingPaymentsClien
         }
     };
 
-    const handlePayRecord = (record: StorageRecord, customerBalance: number) => {
+    const handlePayRecord = (record: StorageRecord, _customerBalance: number) => {
         // Calculate balance for this specific record
         const payments = record.payments || [];
         const totalPaid = payments.reduce((sum: number, p: any) => sum + p.amount, 0);

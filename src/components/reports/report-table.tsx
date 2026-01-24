@@ -8,9 +8,8 @@ import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, toDate } from '@/lib/utils';
 import { ActionsMenu } from "@/components/dashboard/actions-menu";
-import { ChevronDown, ChevronRight, Warehouse } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { MobileCard } from "@/components/ui/mobile-card";
-import { calculateFinalRent } from '@/lib/billing';
 
 
 type ReportTableProps = {
@@ -553,9 +552,6 @@ function GroupedHamaliMobileList({ records, customers, getCustomerName, formatDa
         
         // Accumulate totals
         const hamaliBilled = Number(record.hamaliPayable) || 0;
-        const hamaliPaid = (record.payments || [])
-            .filter((p: any) => p.type === 'HAMALI') // Assuming payment type exists or heuristic
-            .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
         // Fallback if payments not strictly typed: calculate pro-rata or just use record.amountPaid if specific for hamali
         // For simplicity reusing report logic if possible.
         // In GroupedHamaliTable logic:

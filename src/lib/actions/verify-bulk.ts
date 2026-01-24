@@ -4,7 +4,6 @@ import { createClient } from '@/utils/supabase/server';
 import { processBulkOutflow } from '@/lib/actions/storage/bulk-outflow';
 import { getStorageRecord } from '@/lib/queries';
 import { logError } from '@/lib/error-logger';
-import { revalidatePath } from 'next/cache';
 
 const VERIFY_CUSTOMER_ID = 'VERIFY_TEST_USER';
 const COMMODITY = 'Test Soybean';
@@ -49,7 +48,7 @@ export async function runBulkVerification() {
         ];
 
         for (const r of recordsToCreate) {
-             const { error } = await supabase.from('storage_records').insert({
+             const { error: _error } = await supabase.from('storage_records').insert({
                  id: r.id,
                  customer_id: VERIFY_CUSTOMER_ID,
                  commodity_description: COMMODITY,
@@ -66,7 +65,7 @@ export async function runBulkVerification() {
         const { count } = await supabase.from('storage_records').select('*', { count: 'exact', head: true }).eq('customer_id', VERIFY_CUSTOMER_ID);
         if (count !== 3) {
             // If failed, try fetching warehouse_id explicitly
-             const { data: { user } } = await supabase.auth.getUser();
+             const { data: { user: _user } } = await supabase.auth.getUser();
              // Just abort if complex.
              // Actually, 'updateStorageRecord' uses 'getUserWarehouse'.
         }

@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ArrowUpToLine, ArrowDownToDot } from "lucide-react";
+import { ArrowUpToLine } from "lucide-react";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { PrintButton } from "@/components/common/print-button";
 import { SearchBar } from "@/components/ui/search-bar";

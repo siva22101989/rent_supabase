@@ -3,8 +3,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
-import { Loader2 } from 'lucide-react';
 import { SubmitButton } from "@/components/ui/submit-button";
 import { updateStorageRecordAction } from '@/lib/actions/storage/records';
 import { type InflowFormState } from '@/lib/actions/storage/inflow';

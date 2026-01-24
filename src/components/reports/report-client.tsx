@@ -3,7 +3,7 @@
 
 import { useState, useRef } from 'react';
 import type { Customer, StorageRecord } from "@/lib/definitions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';

@@ -1,7 +1,6 @@
 'use client';
 
 import { PageHeader } from "@/components/shared/page-header";
-import Head from 'next/head';
 
 export default function ApiDocsPage() {
   return (

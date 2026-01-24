@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -33,8 +33,8 @@ export function CreateWarehouseDialog({
 
   const handleCreate = async () => {
     // Pro check before submission
-    if (!checkFeature(FEATURES.MULTI_WAREHOUSE)) {
-        handleRestrictedAction(FEATURES.MULTI_WAREHOUSE);
+    if (!checkFeature(FEATURES.MULTI_WAREHOUSE!)) {
+        handleRestrictedAction(FEATURES.MULTI_WAREHOUSE!);
         onOpenChange(false);
         return;
     }

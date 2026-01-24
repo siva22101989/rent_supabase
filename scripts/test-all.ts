@@ -1,5 +1,4 @@
 import { spawn } from 'child_process';
-import chalk from 'chalk'; // Assuming chalk or similar is available, or use plain console
 
 async function runCommand(command: string, args: string[], name: string) {
     console.log(`\n🔵 Starting ${name}...`);

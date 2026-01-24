@@ -104,7 +104,6 @@ export async function checkSubscriptionLimits(warehouseId: string, action: 'add_
     if (!subscription || !subscription.plans) {
         // Fallback for "Free Tier" or "No Plan"
         // This logic should ideally be driven by a default plan in DB, but hardcoding for safety here as per original code.
-        const supabase = await createClient();
         // Since we already fetched usage, we check usage direct
         
         const FREE_LIMIT = 50;

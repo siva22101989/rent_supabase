@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useMemo, useRef } from 'react';
+
 import { PageHeader } from "@/components/shared/page-header";
 import Link from "next/link";
 import {
@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Users, Phone, MapPin } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
-import { useDebounce } from "@uidotdev/usehooks";
+
 import { usePagination } from '@/hooks/use-pagination';
 import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdown, ShareFilterButton, ExportButton, type MultiSelectOption, type SortOption } from '@/components/filters';
 import { exportCustomersWithFilters } from "@/lib/export-utils-filtered";
@@ -36,7 +36,7 @@ interface CustomerFilterState {
   sortBy: string;
 }
 
-const ITEMS_PER_PAGE = 20;
+
 
 export function CustomersPageClient({ 
   initialCustomers
@@ -49,8 +49,7 @@ export function CustomersPageClient({
   // but true scalability requires wiring the search input to the URL params.
   
   const containerRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
+
   
   // URL-synchronized filter state
   const [filters, setFilters] = useUrlFilters<CustomerFilterState>({
@@ -67,7 +66,7 @@ export function CustomersPageClient({
   const maxBalance = filters.maxBalance;
   const sortBy = filters.sortBy;
   
-  const debouncedSearch = useDebounce(query, 500);
+
   
   // Pagination
   const pagination = usePagination(20);

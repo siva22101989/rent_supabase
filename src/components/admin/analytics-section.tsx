@@ -16,7 +16,7 @@ interface AnalyticsSectionProps {
 
 export function AnalyticsSection({ data }: AnalyticsSectionProps) {
     const { checkFeature, isLoading } = useFeatureGate();
-    const canViewAnalytics = checkFeature(FEATURES.ANALYTICS_DASHBOARD);
+    const canViewAnalytics = checkFeature(FEATURES.ANALYTICS_DASHBOARD!);
 
     if (isLoading) {
         return <div className="h-[300px] flex items-center justify-center text-muted-foreground">Loading...</div>;

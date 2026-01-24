@@ -9,6 +9,16 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    // Additional strict type checking
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false, // Keep false for flexibility with Supabase types
+    // Better error reporting
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    // Existing settings
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",

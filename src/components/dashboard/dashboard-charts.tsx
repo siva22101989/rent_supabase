@@ -1,9 +1,8 @@
 'use client';
 
 import { useDashboardMetrics } from "@/hooks/use-dashboard-metrics";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { IndianRupee, Package, Warehouse, Users, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Warehouse, TrendingUp } from 'lucide-react';
 
 export function DashboardCharts({ metrics: initialMetrics }: { metrics?: any }) {
     // Upgrading to SWR for client-side revalidation

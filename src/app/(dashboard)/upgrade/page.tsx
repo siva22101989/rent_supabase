@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { PricingTable } from '@/components/subscription/pricing-table';
 import { useUnifiedToast } from '@/components/shared/toast-provider';

@@ -5,7 +5,6 @@
 
 import { textBeeService } from '@/lib/textbee';
 import { createClient } from '@/utils/supabase/server';
-import { revalidatePath } from 'next/cache';
 import { isSMSEnabled } from '@/lib/sms-settings-actions';
 import { hasSMSPermission } from '@/lib/sms-actions';
 import { logError } from '@/lib/error-logger';

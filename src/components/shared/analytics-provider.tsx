@@ -11,7 +11,7 @@ export function AnalyticsProvider() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const url = pathname + searchParams.toString();
+    // const url = pathname + searchParams.toString();
     // This is where you would log the page view to your analytics service
 
     

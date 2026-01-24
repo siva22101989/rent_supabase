@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { QrReader } from 'react-qr-reader';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -12,7 +12,6 @@ export function QRScanner() {
   const router = useRouter();
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const handleScan = (result: any) => {
     if (result) {
@@ -28,11 +27,6 @@ export function QRScanner() {
     }
   };
 
-  const handleError = (err: any) => {
-    console.error(err);
-    setError('Camera access denied or not available');
-    setScanning(false);
-  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -98,11 +92,6 @@ export function QRScanner() {
             </Alert>
           )}
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
 
           {!scanning && result && (
             <div className="flex gap-2 justify-center">
@@ -110,7 +99,6 @@ export function QRScanner() {
                 variant="outline"
                 onClick={() => {
                   setResult(null);
-                  setError(null);
                 }}
               >
                 Scan Another

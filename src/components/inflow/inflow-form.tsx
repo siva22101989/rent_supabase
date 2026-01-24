@@ -1,22 +1,19 @@
 
 'use client';
 
-import { useActionState, useEffect, useState, useRef, Suspense, startTransition } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useState, Suspense } from 'react';
+
 import { useSearchParams, useRouter } from 'next/navigation';
-import * as Sentry from "@sentry/nextjs";
+
 import { SubmitButton } from '@/components/ui/submit-button';
-import { addInflow, type InflowFormState } from '@/lib/actions/storage/inflow';
+import { addInflow } from '@/lib/actions/storage/inflow';
 // ... (rest of imports unchanged)
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer } from '@/lib/definitions';
-import { useUnifiedToast } from '@/components/shared/toast-provider';
-import { useFeatureGate, FEATURES } from '@/lib/feature-flags';
-import { Loader2 } from 'lucide-react';
+
 import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
@@ -49,13 +46,13 @@ function InflowFormInner({
     initialUnloadingRecords = [],
     selectedUnloadingId: propSelectedUnloadingId
 }: InflowFormInnerProps) {
-    const { success: toastSuccess, error: toastError } = useUnifiedToast();
+
     const searchParams = useSearchParams();
     const queryCustomerId = searchParams.get('customerId');
     
     // Use props as initial data if available, otherwise fallback to hooks
-    const { customers: hookCustomers, isLoading: customersLoading } = useCustomers();
-    const { crops: hookCrops, lots: hookLots, loading: staticLoading, refresh } = useStaticData();
+    const { customers: hookCustomers } = useCustomers();
+    const { crops: hookCrops, lots: hookLots, refresh } = useStaticData();
 
     const customers = propCustomers.length > 0 ? propCustomers : hookCustomers;
     const crops = propCrops.length > 0 ? propCrops : hookCrops;
@@ -77,7 +74,7 @@ function InflowFormInner({
     const [plotBags, setPlotBags] = useState(0);
     const [selectedLotId, setSelectedLotId] = useState('');
     const [selectedCropId, setSelectedCropId] = useState('');
-    const [sendSms, setSendSms] = useState(smsEnabledDefault);
+    const [sendSms] = useState(smsEnabledDefault);
     const [unloadingRecords, setUnloadingRecords] = useState<any[]>(initialUnloadingRecords);
     const [selectedUnloadingId, setSelectedUnloadingId] = useState(propSelectedUnloadingId || '');
 

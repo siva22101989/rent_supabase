@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Bell, CheckCheck, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
+import { Bell, CheckCheck, ChevronRight, ChevronDown } from 'lucide-react';
 import type { NotificationEntry } from '@/lib/definitions';
 import { markAllNotificationsAsRead, markNotificationsAsRead, getNotificationPreferences, type NotificationPreferences } from '@/lib/notification-actions';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,7 +22,6 @@ export function NotificationBell() {
     const [notifications, setNotifications] = useState<NotificationEntry[]>([]);
     const [hasUnread, setHasUnread] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const supabase = createClient();
 
     const { currentWarehouse } = useWarehouses();
@@ -65,7 +61,6 @@ export function NotificationBell() {
     // 3. Fetch Notifications & Subscribe
     const fetchNotes = async () => {
          try {
-             setError(null);
              const { data: { user } } = await supabase.auth.getUser();
              if (!user || !currentWarehouse) return;
 
@@ -93,7 +88,6 @@ export function NotificationBell() {
              
              if (error) {
                  console.error('Failed to fetch notifications:', error);
-                 setError('Failed to load notifications');
                  return;
              }
              
@@ -106,7 +100,6 @@ export function NotificationBell() {
              }
          } catch (err) {
              console.error('Error fetching notifications:', err);
-             setError('An error occurred');
          }
     };
 
@@ -177,15 +170,22 @@ export function NotificationBell() {
         });
         
         return Object.entries(groups)
-            .map(([key, items]) => ({
-                key,
-                title: items[0].title,
-                type: items[0].type,
-                items: items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-                latest: items[0],
-                count: items.length
-            }))
-            .sort((a, b) => new Date(b.latest.created_at).getTime() - new Date(a.latest.created_at).getTime());
+            .map(([key, items]) => {
+                const firstItem = items[0];
+                return {
+                    key,
+                    title: firstItem?.title ?? '',
+                    type: firstItem?.type ?? 'info',
+                    items: items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+                    latest: firstItem,
+                    count: items.length
+                };
+            })
+            .sort((a, b) => {
+                const aTime = a.latest ? new Date(a.latest.created_at).getTime() : 0;
+                const bTime = b.latest ? new Date(b.latest.created_at).getTime() : 0;
+                return bTime - aTime;
+            });
     }, [notifications]);
 
     const toggleGroup = (key: string, e: React.MouseEvent) => {
@@ -291,6 +291,7 @@ export function NotificationBell() {
 
                                 if (!isGroup) {
                                     const note = group.items[0];
+                                    if (!note) return null;
                                     return (
                                         <DropdownMenuItem 
                                             key={note.id} 
@@ -340,7 +341,7 @@ export function NotificationBell() {
                                                     </span>
                                                     {!isExpanded && (
                                                         <span className="text-xs text-muted-foreground truncate">
-                                                            Latest: {group.latest.message}
+                                                            Latest: {group.latest?.message}
                                                         </span>
                                                     )}
                                                 </div>

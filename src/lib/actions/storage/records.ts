@@ -64,7 +64,7 @@ const StorageRecordUpdateSchema = z.object({
   cropId: z.string().optional(),
 });
 
-export async function updateStorageRecordAction(recordId: string, prevState: FormState, formData: FormData): Promise<FormState> {
+export async function updateStorageRecordAction(recordId: string, _prevState: FormState, formData: FormData): Promise<FormState> {
     const rawData = {
         customerId: formData.get('customerId'),
         commodityDescription: formData.get('commodityDescription'),

@@ -7,8 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Warehouse, MapPin, Phone, Mail, Box } from "lucide-react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
-import { useFormStatus } from "react-dom";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 import { WarehouseSwitcher } from "./warehouse-switcher";

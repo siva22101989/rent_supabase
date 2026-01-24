@@ -3,11 +3,10 @@
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import * as Sentry from "@sentry/nextjs";
 import { getUserWarehouse } from './queries';
 import { logError } from '@/lib/error-logger';
 
-const { logger } = Sentry;
+
 
 async function checkAdminPermissions() {
     const supabase = await createClient();
@@ -119,7 +118,7 @@ export async function deleteWarehouseAction(warehouseId: string) {
     }
 
     const adminSupabase = createAdminClient(); // Use admin client for core deletion logic
-    const supabase = await createClient(); // Keep standard client for revalidatePath etc. if needed
+    // const supabase = await createClient(); // Keep standard client for revalidatePath etc. if needed
     
     try {
         // 1. Broad cleanup across all tables using warehouse_id

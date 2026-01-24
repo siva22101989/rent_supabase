@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import * as Sentry from "@sentry/nextjs";
 import { getAuthUser } from '@/lib/queries/auth';
 
-import { createClient } from '@/utils/supabase/server'; // might be needed for Sentry context? Service handles DB.
+
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logError, logWarning } from '@/lib/error-logger';
 import { ApiResponse } from '@/lib/api-response';
@@ -27,7 +27,7 @@ export type PaymentFormState = {
     data?: Record<string, any>;
 };
 
-export async function addPayment(prevState: PaymentFormState, formData: FormData): Promise<PaymentFormState> {
+export async function addPayment(_prevState: PaymentFormState, formData: FormData): Promise<PaymentFormState> {
     return Sentry.startSpan(
         {
             op: "function",
@@ -190,7 +190,7 @@ export type BulkPaymentFormState = ApiResponse<{
 }>;
 
 export async function processBulkPayment(
-    prevState: BulkPaymentFormState,
+    _prevState: BulkPaymentFormState,
     formData: FormData
 ): Promise<BulkPaymentFormState> {
     return Sentry.startSpan(

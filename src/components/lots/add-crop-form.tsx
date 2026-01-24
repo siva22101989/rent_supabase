@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 // Actually, looking at admin-actions.ts, addCrop returns Promise<void> and throws on error.
 // To use it with useActionState, we need a wrapper.
 
-async function addCropWrapper(prevState: any, formData: FormData) {
+async function addCropWrapper(_prevState: any, formData: FormData) {
     try {
         await addCrop(formData);
         return { success: true, message: 'Crop added successfully' };

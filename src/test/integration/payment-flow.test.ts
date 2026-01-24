@@ -218,12 +218,13 @@ describe('Payment Flow Integration Tests', () => {
 
       // 3. Verify allocation
       expect(result.allocations).toHaveLength(2);
-      expect(result.allocations[0].recordId).toBe(record1.data.id);
-      expect(result.allocations[0].amount).toBe(1000); // Fully paid
-      expect(result.allocations[1].recordId).toBe(record2.data.id);
-      expect(result.allocations[1].amount).toBe(500); // Partially paid
+      expect(result.allocations[0]!.recordId).toBe(record1.data.id);
+      expect(result.allocations[0]!.amount).toBe(1000); // Fully paid
+      expect(result.allocations[1]!.recordId).toBe(record2.data.id);
+      expect(result.allocations[1]!.amount).toBe(500); // Partially paid
       expect(result.unallocated).toBe(0);
     });
+
 
     it('should handle payment exceeding total dues', async () => {
       const record = await supabase
@@ -252,7 +253,7 @@ describe('Payment Flow Integration Tests', () => {
 
       const result = BillingService.allocatePaymentFIFO(pendingRecords, 1000);
 
-      expect(result.allocations[0].amount).toBe(500);
+      expect(result.allocations[0]!.amount).toBe(500);
       expect(result.unallocated).toBe(500); // Excess amount
     });
   });
@@ -355,12 +356,3 @@ describe('Payment Flow Integration Tests', () => {
     });
   });
 });
-
-/**
- * To enable these tests:
- * 
- * 1. Set up a test Supabase instance or use local Supabase
- * 2. Configure test environment variables in .env.test
- * 3. Remove the .skip from describe.skip
- * 4. Run: npm run test:integration
- */

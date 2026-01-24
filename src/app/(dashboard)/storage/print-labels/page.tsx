@@ -1,8 +1,6 @@
 import { PrintableLabelSheet } from '@/components/storage/printable-label-sheet';
 import { createClient } from '@/utils/supabase/server';
-import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Printer } from 'lucide-react';
 import Link from 'next/link';
 import { PrintHeader } from './print-header';
 

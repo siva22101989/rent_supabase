@@ -1,7 +1,6 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowDownToDot, ArrowUpFromDot } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ActivityItem {

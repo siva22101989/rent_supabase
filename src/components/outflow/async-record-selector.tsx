@@ -14,10 +14,9 @@ import { findRecordsAction } from '@/lib/actions/storage/records';
 
 interface AsyncRecordSelectorProps {
     onSelect: (recordId: string) => void;
-    customerId?: string; 
 }
 
-export function AsyncRecordSelector({ onSelect, customerId }: AsyncRecordSelectorProps) {
+export function AsyncRecordSelector({ onSelect }: AsyncRecordSelectorProps) {
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
   const [query, setQuery] = React.useState("")

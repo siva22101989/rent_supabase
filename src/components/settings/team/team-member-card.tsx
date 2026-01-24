@@ -1,7 +1,6 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { TeamMember } from "@/lib/definitions";
-import { User, Shield, Briefcase } from "lucide-react";
+
 
 interface TeamMemberCardProps {
   member: TeamMember;
@@ -16,15 +15,6 @@ export function TeamMemberCard({ member, isSelected, onClick }: TeamMemberCardPr
     staff: "bg-gray-100 text-gray-800 dark:bg-zinc-800 dark:text-zinc-300 border-gray-200 dark:border-zinc-700",
     suspended: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
   };
-
-  const roleIcon = {
-    admin: Shield,
-    manager: Briefcase,
-    staff: User,
-    suspended: User,
-  };
-
-  const Icon = roleIcon[member.role as keyof typeof roleIcon] || User;
 
   return (
     <div

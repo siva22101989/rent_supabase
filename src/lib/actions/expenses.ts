@@ -19,7 +19,7 @@ const ExpenseSchema = z.object({
   category: z.enum(expenseCategories, { required_error: 'Category is required.' }),
 });
 
-export async function addExpense(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function addExpense(_prevState: FormState, formData: FormData): Promise<FormState> {
     const rawData = {
         description: formData.get('description'),
         amount: formData.get('amount'),
@@ -51,7 +51,7 @@ export async function addExpense(prevState: FormState, formData: FormData): Prom
     }
 }
 
-export async function updateExpenseAction(expenseId: string, prevState: FormState, formData: FormData): Promise<FormState> {
+export async function updateExpenseAction(expenseId: string, _prevState: FormState, formData: FormData): Promise<FormState> {
   const validatedFields = ExpenseSchema.safeParse({
     description: formData.get('description'),
     amount: formData.get('amount'),

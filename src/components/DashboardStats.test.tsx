@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import React, { useEffect, useState } from 'react';
+import { describe, it, expect } from 'vitest';
+import { useEffect, useState } from 'react';
 
 // A simple component that fetches data (simulating DashboardStats)
 const MockDashboardStats = () => {
@@ -16,8 +16,8 @@ const MockDashboardStats = () => {
 
   return (
     <div>
-      <div data-testid="total-bags">{stats[0].total_bags}</div>
-      <div data-testid="revenue">{stats[0].revenue}</div>
+      <div data-testid="total-bags">{stats[0]!.total_bags}</div>
+      <div data-testid="revenue">{stats[0]!.revenue}</div>
     </div>
   );
 };

@@ -61,7 +61,7 @@ export function filtersToSearchParams<T extends FilterState>(
 
     // Handle dates (ISO string)
     if (value instanceof Date) {
-      params.set(key, value.toISOString().split('T')[0]); // YYYY-MM-DD format
+      params.set(key, value.toISOString().split('T')[0]!); // YYYY-MM-DD format
       return;
     }
 
@@ -69,10 +69,10 @@ export function filtersToSearchParams<T extends FilterState>(
     if (typeof value === 'object' && 'from' in value) {
       const dateRange = value as DateRange;
       if (dateRange.from) {
-        params.set('dateFrom', dateRange.from.toISOString().split('T')[0]);
+        params.set('dateFrom', dateRange.from.toISOString().split('T')[0]!);
       }
       if (dateRange.to) {
-        params.set('dateTo', dateRange.to.toISOString().split('T')[0]);
+        params.set('dateTo', dateRange.to.toISOString().split('T')[0]!);
       }
       return;
     }

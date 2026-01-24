@@ -38,7 +38,7 @@ async function main() {
     }
 
     // 2. Find Customer Record
-    const { data: customers, error: cErr } = await supabase
+    const { data: customers, error: _cErr } = await supabase
         .from('customers')
         .select('id, name, phone, linked_user_id')
         .eq('phone', '9121414605');

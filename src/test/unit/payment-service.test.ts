@@ -1,5 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PaymentService } from '@/lib/services/payments';
+import { describe, it, expect } from 'vitest';
 
 /**
  * Unit Tests - PaymentService
@@ -56,8 +55,8 @@ describe('PaymentService', () => {
       }).filter((r) => r.totalDue > 0);
 
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('rec-2');
-      expect(result[0].totalDue).toBe(1500); // 2500 billed - 1000 paid
+      expect(result[0]!.id).toBe('rec-2');
+      expect(result[0]!.totalDue).toBe(1500); // 2500 billed - 1000 paid
     });
 
     it('should calculate totalDue correctly with mixed payment types', () => {

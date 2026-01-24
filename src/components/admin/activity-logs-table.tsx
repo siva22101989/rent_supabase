@@ -17,7 +17,6 @@ import {
     Trash2, 
     ArrowUpCircle, 
     Search,
-    Filter,
     ArrowLeft,
     ArrowRight
 } from "lucide-react";

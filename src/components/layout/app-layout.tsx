@@ -129,7 +129,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const getBackLink = () => {
     if (isDashboard) return null;
-    const parts = pathname.split('/').filter(Boolean);
     
     // special cases for admin
     return { href: '/dashboard', label: 'Dashboard' };

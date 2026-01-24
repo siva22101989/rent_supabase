@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Warehouse, Package, Users, TrendingUp, IndianRupee } from "lucide-react";
+import { Warehouse, Package, Users, IndianRupee } from "lucide-react";
 
 interface DashboardStatsProps {
     metrics: {

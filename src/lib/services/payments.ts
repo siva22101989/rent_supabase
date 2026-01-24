@@ -1,6 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
 import { addPaymentToRecord } from '@/lib/data';
-import { logError } from '@/lib/error-logger';
 import { BillingService } from '@/lib/billing';
 import { getStorageRecord, getCustomer, getUserWarehouse } from '@/lib/queries';
 import type { Payment } from '@/lib/definitions';

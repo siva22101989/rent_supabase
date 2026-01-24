@@ -17,7 +17,7 @@ const AGMARKNET_API_BASE = 'https://api.data.gov.in/resource/9ef84268-d588-465a-
 const API_KEY = process.env.AGMARKNET_API_KEY || '579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b';
 
 // Cache duration: 24 hours (prices update once daily)
-const CACHE_DURATION_MS = 24 * 60 * 60 * 1000;
+
 
 export interface CommodityPrice {
   commodity: string;
@@ -240,24 +240,9 @@ export async function getCachedPrices(
  * Check if we can make an API request (rate limit protection)
  * Allows max 5 requests per minute
  */
-let apiRequestTimestamps: number[] = [];
 
-async function checkRateLimit(): Promise<boolean> {
-  const now = Date.now();
-  const oneMinuteAgo = now - 60000;
 
-  // Remove timestamps older than 1 minute
-  apiRequestTimestamps = apiRequestTimestamps.filter(ts => ts > oneMinuteAgo);
 
-  // If we've made 5+ requests in the last minute, deny
-  if (apiRequestTimestamps.length >= 5) {
-    return false;
-  }
-
-  // Add current timestamp
-  apiRequestTimestamps.push(now);
-  return true;
-}
 
 /**
  * Get sample data for development/testing
@@ -302,7 +287,7 @@ function getSampleData(commodity: string): CommodityPrice[] {
       max_price: price + 50,
       modal_price: price,
       arrival_quantity: Math.round(1000 + Math.random() * 500),
-      price_date: date.toISOString().split('T')[0],
+      price_date: date.toISOString().split('T')[0] ?? '',
     });
   }
 
@@ -348,7 +333,7 @@ export async function storePrices(prices: CommodityPrice[]): Promise<void> {
 export async function getPriceTrend(
   commodity: string,
   state?: string,
-  days: number = 30
+  _days: number = 30
 ): Promise<{
   current: number | null;
   average: number | null;
@@ -428,8 +413,8 @@ function calculateTrend(prices: CommodityPrice[]): 'rising' | 'falling' | 'stabl
   if (modalPrices.length < 3) return 'stable';
 
   // Simple slope calculation
-  const firstPrice = modalPrices[modalPrices.length - 1];
-  const lastPrice = modalPrices[0];
+  const firstPrice = modalPrices[modalPrices.length - 1]!;
+  const lastPrice = modalPrices[0]!;
   const slope = (lastPrice - firstPrice) / modalPrices.length;
 
   // Threshold: 1% change per day
@@ -449,10 +434,11 @@ function calculateTrend(prices: CommodityPrice[]): 'rising' | 'falling' | 'stabl
 function convertDateFormat(dateStr: string): string {
   try {
     const [day, month, year] = dateStr.split('/');
+    if (!day || !month || !year) throw new Error('Invalid date format');
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   } catch (error) {
     logError(error, { operation: 'convertDateFormat', metadata: { dateStr } });
-    return new Date().toISOString().split('T')[0]; // Fallback to today
+    return new Date().toISOString().split('T')[0] ?? ''; // Fallback to today
   }
 }
 

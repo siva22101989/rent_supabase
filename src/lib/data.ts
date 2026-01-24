@@ -4,7 +4,7 @@ import { cache } from 'react';
 import { getAuthUser } from '@/lib/queries/auth';
 
 import type { Customer, StorageRecord, Payment, Expense, ExpenseCategory } from '@/lib/definitions';
-import { Database, UserRole, AuditAction, AuditEntity } from '@/types/db';
+import { AuditAction, AuditEntity } from '@/types/db';
 
 // Database Row Interfaces
 interface DbCustomer {
@@ -66,7 +66,7 @@ interface DbExpense {
 }
 
 
-import { revalidatePath } from 'next/cache';
+
 import { logError } from '@/lib/error-logger';
 
 
@@ -372,6 +372,7 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<{ id: st
   // 2. Insert Payment (if any)
   if (record.payments && record.payments.length > 0) {
     const p = record.payments[0];
+    if (p) {
     const { error: paymentError } = await supabase
       .from('payments')
       .insert({
@@ -385,6 +386,7 @@ export const saveStorageRecord = async (record: StorageRecord): Promise<{ id: st
     if (paymentError) {
        logError(paymentError, { operation: 'insert_initial_payment', metadata: { recordId: insertedRecord.id } });
        // Log the error but don't fail the whole operation since the record is saved
+    }
     }
   }
 
@@ -534,15 +536,11 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
         .eq('warehouse_id', record.warehouse_id)
         .single();
     
-    // Check super admin fallback
-    let isSuperAdmin = false;
-    if (!assignment || !['owner', 'admin'].includes(assignment.role)) {
-         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-         if (profile?.role === 'super_admin') {
-             isSuperAdmin = true;
-         } else {
-             throw new Error("Access Denied: You do not have permission to delete records in this warehouse.");
-         }
+    // Fetch profile for role check
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+
+    if (assignment?.role !== 'owner' && assignment?.role !== 'admin' && profile?.role !== 'super_admin') {
+        throw new Error("Access Denied: You do not have permission to delete records in this warehouse.");
     }
 
     // Manual stock update REMOVED.
@@ -618,18 +616,18 @@ export const restoreStorageRecord = async (id: string): Promise<void> => {
     // ... skipping detailed role check for brevity, relying on RLS or action context? 
     // Ideally we duplicate the auth check from delete.
     // Let's assume the user triggering this just acted on the ID, so they likely have access.
-    // But to be safe:
+    // Check assignments
     const { data: assignment } = await supabase.from('warehouse_assignments')
         .select('role')
         .eq('user_id', user.id)
         .eq('warehouse_id', record.warehouse_id)
         .single();
     
-    let isSuperAdmin = false;
-    if (!assignment || !['owner', 'admin'].includes(assignment.role)) {
-         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-         if (profile?.role === 'super_admin') isSuperAdmin = true;
-         else throw new Error("Access Denied");
+    // Fetch profile for role check
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+
+    if (assignment?.role !== 'owner' && assignment?.role !== 'admin' && profile?.role !== 'super_admin') {
+        throw new Error("Access Denied: You do not have permission to restore records in this warehouse.");
     }
 
     // Manual stock restoral REMOVED.

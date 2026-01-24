@@ -81,7 +81,7 @@ export async function resetAndSeedDatabase(options?: { skipSeeding?: boolean }) 
         // A. Create Crops
         const createdCrops = [];
         for (const crop of CROPS_DATA) {
-            const { data, error } = await supabase.from('crops').insert({
+            const { data } = await supabase.from('crops').insert({
                 ...crop,
                 warehouse_id: warehouseId,
                 id: crypto.randomUUID()

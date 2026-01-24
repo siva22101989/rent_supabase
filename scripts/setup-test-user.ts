@@ -82,20 +82,25 @@ async function main() {
     // RLS Isolation test users
     const { data: warehouses } = await supabase.from('warehouses').select('id').order('name');
     if (warehouses && warehouses.length >= 2) {
-        // Warehouse A user
         await setupTestUser('warehouse-a@test.com', 'admin');
-        const userA = (await supabase.auth.admin.listUsers()).data.users.find(u => u.email === 'warehouse-a@test.com');
-        if (userA) {
-            await supabase.from('profiles').update({ warehouse_id: warehouses[0].id }).eq('id', userA.id);
-            await supabase.from('user_warehouses').upsert({ user_id: userA.id, warehouse_id: warehouses[0].id, role: 'owner' });
+        const userAResult = await supabase.auth.admin.listUsers();
+        if (userAResult.data && userAResult.data.users) {
+            const userA = userAResult.data.users.find(u => u.email === 'warehouse-a@test.com');
+            if (userA) {
+                await supabase.from('profiles').update({ warehouse_id: warehouses[0]!.id }).eq('id', userA.id);
+                await supabase.from('user_warehouses').upsert({ user_id: userA.id, warehouse_id: warehouses[0]!.id, role: 'owner' }, { onConflict: 'user_id,warehouse_id' });
+            }
         }
 
         // Warehouse B user
         await setupTestUser('warehouse-b@test.com', 'admin');
-        const userB = (await supabase.auth.admin.listUsers()).data.users.find(u => u.email === 'warehouse-b@test.com');
-        if (userB) {
-            await supabase.from('profiles').update({ warehouse_id: warehouses[1].id }).eq('id', userB.id);
-            await supabase.from('user_warehouses').upsert({ user_id: userB.id, warehouse_id: warehouses[1].id, role: 'owner' });
+        const userBResult = await supabase.auth.admin.listUsers();
+        if (userBResult.data && userBResult.data.users) {
+            const userB = userBResult.data.users.find(u => u.email === 'warehouse-b@test.com');
+            if (userB) {
+                await supabase.from('profiles').update({ warehouse_id: warehouses[1]!.id }).eq('id', userB.id);
+                await supabase.from('user_warehouses').upsert({ user_id: userB.id, warehouse_id: warehouses[1]!.id, role: 'owner' }, { onConflict: 'user_id,warehouse_id' });
+            }
         }
     }
 

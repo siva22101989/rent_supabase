@@ -3,9 +3,8 @@
 import { createClient } from '@/utils/supabase/server';
 import { logError } from './error-logger';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { redirect } from 'next/navigation';
 
-export async function sendPortalLoginLink(prevState: any, formData: FormData) {
+export async function sendPortalLoginLink(_: any, formData: FormData) {
     const rawPhone = formData.get('phone') as string;
     
     if (!rawPhone || typeof rawPhone !== 'string') {

@@ -70,7 +70,7 @@ test.describe('Core E2E Workflow', () => {
 
             // Select the stock to withdraw
             // Assuming the UI lists batches/crops
-            const stockRow = page.getByText(/Available: 100/i).first(); 
+            // This selector might need tuning based on actual Outflow UI list
             // This selector might need tuning based on actual Outflow UI list
             // For now, let's assume we proceed to selection screen
             

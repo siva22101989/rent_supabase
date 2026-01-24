@@ -12,7 +12,6 @@ import { FormState } from './common';
 import { roleHierarchy } from '@/lib/definitions';
 import { getTeamMembers } from '@/lib/queries';
 
-const { logger } = Sentry;
 
 export async function signOutAction() {
   const supabase = await createClient();
@@ -20,13 +19,13 @@ export async function signOutAction() {
   redirect('/login');
 }
 
-export async function changePassword(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function changePassword(_: FormState, formData: FormData): Promise<FormState> {
     return Sentry.startSpan(
         {
             op: "function",
             name: "changePassword",
         },
-        async (span) => {
+        async (_) => {
             const password = formData.get('password') as string;
             const confirmPassword = formData.get('confirmPassword') as string;
 
@@ -70,7 +69,7 @@ const TeamMemberSchema = z.object({
   role: z.enum(['admin', 'manager', 'staff']),
 });
 
-export async function createTeamMember(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function createTeamMember(_: FormState, formData: FormData): Promise<FormState> {
   const validatedFields = TeamMemberSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
@@ -157,7 +156,7 @@ const UserProfileSchema = z.object({
     phone: z.string().optional(),
 });
 
-export async function updateUserProfile(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function updateUserProfile(_: FormState, formData: FormData): Promise<FormState> {
     const validatedFields = UserProfileSchema.safeParse({
         fullName: formData.get('fullName'),
         phone: formData.get('phone'),
@@ -284,7 +283,7 @@ export async function deactivateTeamMember(userId: string) {
         if (authError) throw authError;
 
         // Also update profile
-        const { error: profileError } = await supabase.from('profiles').update({
+        await supabase.from('profiles').update({
              role: 'suspended' 
         }).eq('id', userId);
 

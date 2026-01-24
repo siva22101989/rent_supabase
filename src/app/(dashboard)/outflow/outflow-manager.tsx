@@ -18,7 +18,6 @@ export function OutflowManager({ initialOutflows, smsEnabledDefault }: OutflowMa
     return (
         <>
             <OutflowForm 
-                records={[]} // Still needs the dropdown records if applicable, or we fetch them in the manager
                 smsEnabledDefault={smsEnabledDefault}
                 onSuccess={(newOutflow) => {
                     addOptimisticOutflow(newOutflow);

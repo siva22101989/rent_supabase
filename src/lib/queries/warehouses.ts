@@ -2,11 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { cache } from 'react';
 import type { UserWarehouse } from '@/lib/definitions';
 import { getAuthUser } from './auth';
-import { Database } from '@/types/supabase';
 import { logError } from '@/lib/error-logger';
-
-type Profiles = Database['public']['Tables']['profiles']['Row'];
-type WarehouseAssignments = Database['public']['Tables']['warehouse_assignments']['Row'];
 
 
 // Helper to get current user's warehouse

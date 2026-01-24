@@ -4,7 +4,6 @@
 import { useState, useMemo } from 'react';
 import { usePagination } from '@/hooks/use-pagination';
 import { Pagination } from '@/components/ui/pagination';
-import { PageHeader } from '@/components/shared/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -205,7 +204,7 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                     {activeRecords.length > 0 && totalDue > 0 && (
                         <AddPaymentDialog 
                             record={{
-                                ...activeRecords[0],
+                                ...activeRecords[0]!,
                                 balanceDue: totalDue
                             }} 
                         />

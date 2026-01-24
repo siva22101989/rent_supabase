@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowRight, BookOpen, Truck, Wallet, Users, BarChart3, Settings, Shield, Check, X, Minus } from "lucide-react";
+import { ArrowRight, BookOpen, Truck, Wallet, Users, BarChart3, Settings, Shield, Check, Minus } from "lucide-react";
 
 export default function GuidePage() {
   return (

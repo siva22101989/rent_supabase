@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { exportToExcel } from "@/lib/export-utils";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, UserCog, CheckSquare, XSquare } from "lucide-react";
+import { Trash2, UserCog, CheckSquare } from "lucide-react";
 import { 
     AlertDialog, 
     AlertDialogAction, 

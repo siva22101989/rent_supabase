@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { cache } from 'react';
+
 
 export interface SystemHealth {
     status: 'online' | 'degraded' | 'offline';

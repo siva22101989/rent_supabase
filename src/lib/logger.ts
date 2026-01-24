@@ -66,7 +66,6 @@ export async function logActivity(
     }
 }
 
-import { getNotificationPreferences } from '@/lib/notification-actions';
 import type { NotificationCategory } from '@/lib/definitions';
 
 export async function createNotification(
@@ -85,7 +84,6 @@ export async function createNotification(
 
         // If specific user, check their preferences
         if (forUserId) {
-            const prefs = await getNotificationPreferences(warehouseId);
             // Note: getNotificationPreferences fetches for current auth user.
             // If forUserId != current user, we can't easily check their prefs without a new function or admin privs.
             // For now, let's skip preference check on creation if strictly enforcing requires extra queries.

@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,14 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import type { StorageRecord, Customer } from "@/lib/definitions";
-import { EditStorageDialog } from "@/components/storage/edit-storage-dialog";
+import { useRef, useState, useMemo } from 'react';
 import { FinalizeDryingDialog } from "@/components/storage/finalize-drying-dialog";
-import Link from 'next/link';
-import { FileText } from 'lucide-react';
 import { EmptyState } from "@/components/ui/empty-state";
 import { MobileCard } from "@/components/ui/mobile-card";
-import { useDebounce } from "@uidotdev/usehooks";
-import { useEffect, useState, useRef } from 'react';
 import { usePagination } from '@/hooks/use-pagination';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Printer } from "lucide-react";
@@ -35,9 +31,9 @@ import { FilterPopover, FilterSection, MultiSelect, NumberRangeInput, SortDropdo
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { useUrlFilters } from '@/hooks/use-url-filters';
-import { countActiveFilters } from '@/lib/url-filters';
+import { useDebounce } from "@uidotdev/usehooks";
+import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 
 // Filter state interface
 interface StorageFilterState {
@@ -76,7 +72,6 @@ export function StoragePageClient({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   
   
@@ -117,7 +112,7 @@ export function StoragePageClient({
   const pagination = usePagination(20);
   const pageSize = pagination.pageSize;
   
-  const { data, isLoading, mutate, error } = useSWR(
+  const { data, isLoading } = useSWR(
     ['storage-records', page, debouncedSearch, statusFilter, pageSize], 
     async ([_, p, q, s, size]) => fetchStorageRecordsAction(p as number, size as number, q as string, s as any),
     {

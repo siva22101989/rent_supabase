@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowRight, AlertCircle, Loader2, PackageMinus, Calculator } from "lucide-react";
+import { AlertCircle, Loader2, PackageMinus, Calculator } from "lucide-react";
 import { formatCurrency } from '@/lib/utils';
 import { processBulkOutflow, type BulkOutflowResult } from '@/lib/actions/storage/bulk-outflow';
 import { useUnifiedToast } from '@/components/shared/toast-provider';
@@ -40,10 +40,10 @@ const initialState: BulkOutflowResult = {
     success: false
 };
 
-export function BulkOutflowDialog({ customer, records, onOpenChange }: BulkOutflowDialogProps) {
+export function BulkOutflowDialog({ customer, records, onOpenChange: _onOpenChange }: BulkOutflowDialogProps) {
     const [open, setOpen] = useState(false);
     // Removed step state
-    const { success: showSuccess, error: showError } = useUnifiedToast();
+    const { success: showSuccess } = useUnifiedToast();
     const router = useRouter();
 
     const [state, formAction, isPending] = useActionState(processBulkOutflow, initialState);
@@ -55,7 +55,7 @@ export function BulkOutflowDialog({ customer, records, onOpenChange }: BulkOutfl
     const [commodity, setCommodity] = useState<string>('');
     const [bagsToWithdraw, setBagsToWithdraw] = useState<string>('');
     const [rentPaidNow, setRentPaidNow] = useState<string>('');
-    const [withdrawalDate, setWithdrawalDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [withdrawalDate, setWithdrawalDate] = useState<string>(new Date().toISOString().split('T')[0] || '');
     const [sendSms, setSendSms] = useState(true);
 
     const [excludedRecordIds, setExcludedRecordIds] = useState<Set<string>>(new Set());
