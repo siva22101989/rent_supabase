@@ -69,7 +69,7 @@ const nextConfig: NextConfig = {
   },
   poweredByHeader: false,
   compress: true,
-  serverExternalPackages: ['import-in-the-middle', 'require-in-the-middle'],
+  serverExternalPackages: ['import-in-the-middle', 'require-in-the-middle', 'rimraf', 'fstream'],
   turbopack: {},
 };
 

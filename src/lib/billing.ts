@@ -16,6 +16,30 @@ export type RecordStatusInfo = {
   alert: string | null;
 };
 
+/**
+ * Determine the current status of a storage record
+ * 
+ * Analyzes a storage record to determine if it's active or withdrawn.
+ * In this system, rent is only calculated at withdrawal time, so active
+ * records don't have billing dates or current rates.
+ * 
+ * @param record - The storage record to analyze
+ * @returns Status information including status string, billing date, rate, and alerts
+ * 
+ * @example
+ * ```typescript
+ * const record: StorageRecord = {
+ *   id: '123',
+ *   storageStartDate: new Date('2024-01-01'),
+ *   storageEndDate: null,
+ *   bagsStored: 100
+ * };
+ * 
+ * const status = getRecordStatus(record);
+ * console.log(status.status); // 'Active'
+ * console.log(status.nextBillingDate); // null (rent calculated at withdrawal)
+ * ```
+ */
 export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
   const safeRecord = {
     ...record,
@@ -43,6 +67,55 @@ export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
 }
 
 
+/**
+ * Calculate final rent for bags being withdrawn from storage
+ * 
+ * Uses tiered pricing based on storage duration:
+ * - 0-6 months: Uses 6-month rate
+ * - 7-12 months: Uses 1-year rate  
+ * - 12+ months: Multi-year calculation (1st year + additional years)
+ * 
+ * Month calculation rounds UP - even 1 day into new month counts as full month.
+ * Minimum charge is handled by 6-month bracket.
+ * 
+ * @param record - The storage record being withdrawn from
+ * @param withdrawalDate - Date of withdrawal
+ * @param bagsToWithdraw - Number of bags to withdraw
+ * @param pricing - Optional dynamic pricing override {price6m, price1y}
+ * @returns Object containing rent, months stored, rent per bag, and prepaid rent (always 0 in this system)
+ * 
+ * @example Basic withdrawal after 3 months
+ * ```typescript
+ * const record = {
+ *   id: '123',
+ *   storageStartDate: new Date('2024-01-01'),
+ *   bagsStored: 100,
+ *   // ... other fields
+ * };
+ * 
+ * const result = calculateFinalRent(
+ *   record,
+ *   new Date('2024-04-01'), // 3 months later
+ *   50 // withdraw 50 bags
+ * );
+ * 
+ * console.log(result.monthsStored); // 3
+ * console.log(result.rentPerBag); // RATE_6_MONTHS (e.g., 50)
+ * console.log(result.rent); // 50 bags × 50 = 2500
+ * ```
+ * 
+ * @example Multi-year storage (14 months)
+ * ```typescript
+ * const result = calculateFinalRent(
+ *   record,
+ *   new Date('2025-03-01'), // 14 months later  
+ *   100
+ * );
+ * 
+ * console.log(result.monthsStored); // 14
+ * console.log(result.rentPerBag); // RATE_1_YEAR + (2 × RATE_1_YEAR)
+ * ```
+ */
 export function calculateFinalRent(
     record: StorageRecord, 
     withdrawalDate: Date, 

@@ -17,36 +17,51 @@ export async function exportToExcelWithFilters<T extends Record<string, any>>(
   metadata: ExportMetadata,
   sheetName: string = 'Data'
 ) {
-  // Dynamic import XLSX
-  const XLSX = await import('xlsx');
-  const wb = XLSX.utils.book_new();
+  // Dynamic import ExcelJS
+  const ExcelJS = await import('exceljs');
+  const workbook = new ExcelJS.Workbook();
 
   // 1. Create Metadata Sheet
-  const metadataRows = [
-    ['Export Summary'],
-    ['Total Records', metadata.totalRecords],
-    ['Filtered Records', metadata.filteredRecords],
-    ['Export Date', metadata.exportDate.toLocaleString()],
-    [],
-    ['Applied Filters:'],
-    ...metadata.appliedFilters.map(f => [f.label, f.value])
-  ];
-
-  const metadataWs = XLSX.utils.aoa_to_sheet(metadataRows);
+  const metadataWs = workbook.addWorksheet('Summary');
   
-  // Style metadata header
-  if (!metadataWs['!cols']) metadataWs['!cols'] = [];
-  metadataWs['!cols'][0] = { wch: 20 }; // Label col width
-  metadataWs['!cols'][1] = { wch: 40 }; // Value col width
+  // Add metadata rows
+  metadataWs.addRow(['Export Summary']);
+  metadataWs.addRow(['Total Records', metadata.totalRecords]);
+  metadataWs.addRow(['Filtered Records', metadata.filteredRecords]);
+  metadataWs.addRow(['Export Date', metadata.exportDate.toLocaleString()]);
+  metadataWs.addRow([]);
+  metadataWs.addRow(['Applied Filters:']);
+  metadata.appliedFilters.forEach(f => {
+    metadataWs.addRow([f.label, f.value]);
+  });
 
-  XLSX.utils.book_append_sheet(wb, metadataWs, 'Summary');
+  // Set column widths
+  metadataWs.getColumn(1).width = 20;
+  metadataWs.getColumn(2).width = 40;
 
   // 2. Create Data Sheet
-  const dataWs = XLSX.utils.json_to_sheet(data);
-  XLSX.utils.book_append_sheet(wb, dataWs, sheetName);
+  const dataWs = workbook.addWorksheet(sheetName);
+  if (data.length > 0) {
+    const headers = Object.keys(data[0]!);
+    dataWs.columns = headers.map(header => ({
+      header,
+      key: header,
+      width: 15
+    }));
+    data.forEach(row => dataWs.addRow(row));
+  }
 
-  // 3. Generate File
-  XLSX.writeFile(wb, `${filename}-${new Date().toISOString().split('T')[0]}.xlsx`);
+  // 3. Generate File and Download
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}-${new Date().toISOString().split('T')[0]}.xlsx`;
+  link.click();
+  window.URL.revokeObjectURL(url);
 }
 
 /**

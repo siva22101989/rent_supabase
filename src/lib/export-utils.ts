@@ -454,29 +454,84 @@ export function generateMonthlySummaryPDF(
 }
 
 /**
- * Export data to Excel
+ * Export data to Excel file using ExcelJS
+ * 
+ * Generic function to export any array of objects to Excel format.
+ * Automatically extracts headers from object keys and creates worksheet.
+ * Downloads file with timestamp appended to filename.
+ * 
+ * @param data - Array of objects to export (objects should have consistent keys)
+ * @param filename - Base filename without extension (timestamp auto-appended)
+ * @param sheetName - Name of the worksheet tab (default: 'Sheet1')
+ * 
+ * @example Export customer data
+ * ```typescript
+ * const customers = [
+ *   { name: 'John Doe', phone: '+911234567890', balance: 5000 },
+ *   { name: 'Jane Smith', phone: '+919876543210', balance: 3000 }
+ * ];
+ * 
+ * await exportToExcel(customers, 'customer-list', 'Customers');
+ * // Downloads: customer-list-2024-01-24.xlsx
+ * ```
  */
 export async function exportToExcel<T extends Record<string, any>>(
     data: T[],
     filename: string,
     sheetName: string = 'Sheet1'
 ) {
-    // Dynamic import XLSX
-    const XLSX = await import('xlsx');
+    // Dynamic import ExcelJS
+    const ExcelJS = await import('exceljs');
     
     // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(sheetName);
     
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    // Convert data to rows (header + data rows)
+    if (data.length > 0) {
+        // Extract headers from first object
+        const headers = Object.keys(data[0]!);
+        worksheet.columns = headers.map(header => ({
+            header,
+            key: header,
+            width: 15
+        }));
+        
+        // Add data rows
+        data.forEach(row => {
+            worksheet.addRow(row);
+        });
+    }
     
-    // Generate Excel file and trigger download
-    XLSX.writeFile(wb, `${filename}-${new Date().toISOString().split('T')[0]}.xlsx`);
+    // Generate Excel file buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    
+    // Create blob and trigger download
+    const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}-${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
 }
 
 /**
- * Export Storage Records to Excel
+ * Export storage records to Excel
+ * 
+ * Formats storage records into Excel with columns for record number, dates,
+ * commodity, location, bags stored, financials, and status.
+ * 
+ * @param records - Array of storage records to export
+ * 
+ * @example
+ * ```typescript
+ * const records = await getStorageRecords({ status: 'active' });
+ * exportStorageRecordsToExcel(records);
+ * // Downloads: storage-records-2024-01-24.xlsx
+ * ```
  */
 export function exportStorageRecordsToExcel(records: StorageRecord[]) {
     const data = records.map(r => ({
@@ -495,7 +550,30 @@ export function exportStorageRecordsToExcel(records: StorageRecord[]) {
 }
 
 /**
- * Export Customers to Excel
+ * Export customers with their stats to Excel
+ * 
+ * Exports customer list with name, contact info, and current storage statistics.
+ * Requires pre-computed recordsMap with customer stats (active bags, total due).
+ * 
+ * @param customers - Array of customer records
+ * @param recordsMap - Map of customer ID to their storage stats
+ * 
+ * @example
+ * ```typescript
+ * const customers = await getCustomers();
+ * const recordsMap = new Map();
+ * 
+ * // Build stats map
+ * const records = await getActiveRecords();
+ * records.forEach(r => {
+ *   const stats = recordsMap.get(r.customerId) || { activeBags: 0, totalDue: 0 };
+ *   stats.activeBags += r.bagsStored;
+ *   stats.totalDue += r.balanceDue;
+ *   recordsMap.set(r.customerId, stats);
+ * });
+ * 
+ * exportCustomersToExcel(customers, recordsMap);
+ * ```
  */
 export function exportCustomersToExcel(
     customers: Customer[],
@@ -518,29 +596,84 @@ export function exportCustomersToExcel(
 }
 
 /**
- * Export Financial Report to Excel
+ * Export financial report to Excel with multiple sheets
+ * 
+ * Creates a comprehensive financial Excel workbook with three sheets:
+ * 1. Summary - Key financial metrics (revenue, expenses, profit)
+ * 2. Top Customers - Customer revenue breakdown
+ * 3. Aging Analysis - Outstanding receivables by age buckets
+ * 
+ * @param data - Financial data object containing summary, topCustomers, and aging arrays
+ * @param data.summary - Array of {label, value} for summary metrics
+ * @param data.topCustomers - Array of customer revenue data
+ * @param data.aging - Array of aging bucket data {range, count, amount}
+ * 
+ * @example
+ * ```typescript
+ * const financialData = {
+ *   summary: [
+ *     { label: 'Total Revenue', value: 500000 },
+ *     { label: 'Total Collected', value: 450000 },
+ *     { label: 'Outstanding', value: 50000 }
+ *   ],
+ *   topCustomers: [
+ *     { name: 'Customer A', revenue: 100000, paid: 90000, outstanding: 10000 }
+ *   ],
+ *   aging: [
+ *     { range: '0-30 days', count: 10, amount: 5000 }
+ *   ]
+ * };
+ * 
+ * await exportFinancialReportToExcel(financialData);
+ * // Downloads: financial-report-2024-01-24.xlsx with 3 sheets
+ * ```
  */
 export async function exportFinancialReportToExcel(data: {
     summary: { label: string; value: number }[];
     topCustomers: { name: string; revenue: number; paid: number; outstanding: number }[];
     aging: { range: string; count: number; amount: number }[];
 }) {
-    const XLSX = await import('xlsx');
-    const wb = XLSX.utils.book_new();
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
     
     // Summary sheet
-    const summaryWs = XLSX.utils.json_to_sheet(data.summary);
-    XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+    const summaryWs = workbook.addWorksheet('Summary');
+    summaryWs.columns = [
+        { header: 'label', key: 'label', width: 20 },
+        { header: 'value', key: 'value', width: 15 }
+    ];
+    data.summary.forEach(row => summaryWs.addRow(row));
     
     // Top Customers sheet
-    const customersWs = XLSX.utils.json_to_sheet(data.topCustomers);
-    XLSX.utils.book_append_sheet(wb, customersWs, 'Top Customers');
+    const customersWs = workbook.addWorksheet('Top Customers');
+    customersWs.columns = [
+        { header: 'name', key: 'name', width: 20 },
+        { header: 'revenue', key: 'revenue', width: 15 },
+        { header: 'paid', key: 'paid', width: 15 },
+        { header: 'outstanding', key: 'outstanding', width: 15 }
+    ];
+    data.topCustomers.forEach(row => customersWs.addRow(row));
     
     // Aging Analysis sheet
-    const agingWs = XLSX.utils.json_to_sheet(data.aging);
-    XLSX.utils.book_append_sheet(wb, agingWs, 'Aging Analysis');
+    const agingWs = workbook.addWorksheet('Aging Analysis');
+    agingWs.columns = [
+        { header: 'range', key: 'range', width: 20 },
+        { header: 'count', key: 'count', width: 15 },
+        { header: 'amount', key: 'amount', width: 15 }
+    ];
+    data.aging.forEach(row => agingWs.addRow(row));
     
-    XLSX.writeFile(wb, `financial-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+    // Generate buffer and download
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `financial-report-${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
 }
 
 /**
@@ -620,111 +753,109 @@ export function generateCustomReportPDF(
     let title = '';
     let content = '';
 
-    // 0. Customer Dues Details
+    // 0. Customer Dues Details - STATEMENT OF ACCOUNT FORMAT
     if (reportType === 'customer-dues-details') {
          const customerName = data.customer?.name || 'Customer';
-         title = `Customer Dues Statement - ${customerName}`;
-         const isHamaliOnly = data.duesType === 'hamali';
+         title = `Statement of Account - ${customerName}`;
          
-         // Calculate Totals
-         const totalRentDue = data.data.reduce((sum: number, r: any) => sum + r.rentDue, 0);
-         const totalHamaliDue = data.data.reduce((sum: number, r: any) => sum + r.hamaliDue, 0);
-         const totalRentPaid = data.data.reduce((sum: number, r: any) => sum + r.rentPaid, 0);
-         const totalHamaliPaid = data.data.reduce((sum: number, r: any) => sum + r.hamaliPaid, 0);
-         const totalBalance = data.data.reduce((sum: number, r: any) => sum + r.totalBalance, 0);
-
-         // Helper for table cells
-         const rentHeader = isHamaliOnly ? '' : '<th style="text-align: right">Rent Due</th>';
-         const rentSummary = isHamaliOnly ? '' : `
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 10px; color: #666;">Total Rent Due</div>
-                    <div style="font-weight: bold; color: #2980b9;">${formatCurrency(totalRentDue - totalRentPaid)}</div>
-                </div>`;
+         // USE NEW STATEMENT OF ACCOUNT FORMAT
+         if (data.transactions && data.summary) {
+           const { transactions, summary } = data;
+           
+           const ledgerRows = transactions.map((t: any) => `
+             <tr style="font-size: 11px;">
+               <td style="padding: 6px 8px; border-bottom: 1px solid #eee;">${new Date(t.date).toLocaleDateString()}</td>
+               <td style="padding: 6px 8px; border-bottom: 1px solid #eee;">${t.description}</td>
+               <td style="padding: 6px 8px; border-bottom: 1px solid #eee;">${t.invoiceNo}</td>
+               <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${t.bagsIn || ''}</td>
+               <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${t.bagsOut || ''}</td>
+               <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${t.hamali ? formatCurrency(t.hamali) : ''}</td>
+               <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${t.rent ? formatCurrency(t.rent) : ''}</td>
+               <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${t.credit ? formatCurrency(t.credit) : ''}</td>
+               <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">${formatCurrency(t.balance)}</td>
+             </tr>
+           `).join('');
+           
+           content = `
+             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+               <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                 <table style="width: 100%; font-size: 12px;">
+                   <tr><td><strong>Total Bags In:</strong></td><td style="text-align: right;">${summary.totalBagsIn}</td></tr>
+                   <tr><td><strong>Total Bags Out:</strong></td><td style="text-align: right;">${summary.totalBagsOut}</td></tr>
+                   <tr><td><strong>Balance Stock:</strong></td><td style="text-align: right; font-weight: bold;">${summary.balanceStock}</td></tr>
+                 </table>
+               </div>
+               <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                 <table style="width: 100%; font-size: 12px;">
+                   <tr><td><strong>Total Hamali:</strong></td><td style="text-align: right;">₹${formatCurrency(summary.totalHamali)}</td></tr>
+                   <tr><td><strong>Total Rent:</strong></td><td style="text-align: right;">₹${formatCurrency(summary.totalRent)}</td></tr>
+                   <tr><td><strong>Total Paid:</strong></td><td style="text-align: right;">₹${formatCurrency(summary.totalPaid)}</td></tr>
+                   <tr><td><strong>Balance Due:</strong></td><td style="text-align: right; font-weight: bold; color: #e74c3c;">₹${formatCurrency(summary.balanceDue)}</td></tr>
+                 </table>
+               </div>
+             </div>
+             
+             <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px;">
+               <thead>
+                 <tr style="background-color: #34495e; color: white;">
+                   <th style="padding: 10px 8px; text-align: left; border: 1px solid #2c3e50;">Date</th>
+                   <th style="padding: 10px 8px; text-align: left; border: 1px solid #2c3e50;">Description</th>
+                   <th style="padding: 10px 8px; text-align: left; border: 1px solid #2c3e50;">Invoice No</th>
+                   <th style="padding: 10px 8px; text-align: right; border: 1px solid #2c3e50; width: 80px;">Bags In</th>
+                   <th style="padding: 10px 8px; text-align: right; border: 1px solid #2c3e50; width: 80px;">Bags Out</th>
+                   <th style="padding: 10px 8px; text-align: right; border: 1px solid #2c3e50; width: 100px;">Hamali</th>
+                   <th style="padding: 10px 8px; text-align: right; border: 1px solid #2c3e50; width: 100px;">Rent</th>
+                   <th style="padding: 10px 8px; text-align: right; border: 1px solid #2c3e50; width: 100px;">Credit</th>
+                   <th style="padding: 10px 8px; text-align: right; border: 1px solid #2c3e50; width: 100px;">Balance</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 ${ledgerRows}
+                 <tr style="font-weight: bold; background-color: #ecf0f1;">
+                   <td colspan="3" style="padding: 10px 8px; border-top: 2px solid #34495e;">Totals:</td>
+                   <td style="padding: 10px 8px; text-align: right; border-top: 2px solid #34495e;">${summary.totalBagsIn}</td>
+                   <td style="padding: 10px 8px; text-align: right; border-top: 2px solid #34495e;">${summary.totalBagsOut}</td>
+                   <td style="padding: 10px 8px; text-align: right; border-top: 2px solid #34495e;">₹${formatCurrency(summary.totalHamali)}</td>
+                   <td style="padding: 10px 8px; text-align: right; border-top: 2px solid #34495e;">₹${formatCurrency(summary.totalRent)}</td>
+                   <td style="padding: 10px 8px; text-align: right; border-top: 2px solid #34495e;">₹${formatCurrency(summary.totalPaid)}</td>
+                   <td style="padding: 10px 8px; text-align: right; border-top: 2px solid #34495e;">₹${formatCurrency(summary.balanceDue)}</td>
+                 </tr>
+               </tbody>
+             </table>
+           `;
+         } else {
+           content = `<p style="color: red;">Error: Statement of Account data not available. Please regenerate the report.</p>`;
+         }
+     }
          
-         const rows = data.data.map((r: any) => `
-            <tr>
-                <td>${new Date(r.date).toLocaleDateString()}</td>
-                <td>${r.commodity}</td>
-                <td style="text-align: right">${r.bags}</td>
-                <td style="text-align: right">${formatCurrency(r.hamaliDue)}</td>
-                ${isHamaliOnly ? '' : `<td style="text-align: right">${formatCurrency(r.rentDue)}${r.isProjected ? '*' : ''}</td>`}
-                <td style="text-align: right">${formatCurrency(r.hamaliPaid + r.rentPaid)}</td>
-                <td style="text-align: right; font-weight: bold;">${formatCurrency(r.totalBalance)}</td>
-            </tr>
-         `).join('');
-
-         content = `
-            <div class="summary-box" style="display: flex; gap: 20px; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 10px; color: #666;">Total Hamali Due</div>
-                    <div style="font-weight: bold; color: #e67e22;">${formatCurrency(totalHamaliDue - totalHamaliPaid)}</div>
-                </div>
-                ${rentSummary}
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 10px; color: #666;">Total Outstanding${isHamaliOnly ? ' (Hamali Only)' : ''}</div>
-                    <div style="font-weight: bold; font-size: 16px; color: #c0392b;">${formatCurrency(totalBalance)}</div>
-                </div>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Commodity</th>
-                        <th style="text-align: right">Bags</th>
-                        <th style="text-align: right">Hamali Due</th>
-                        ${rentHeader}
-                        <th style="text-align: right">Paid</th>
-                        <th style="text-align: right">Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows}
-                    <tr style="font-weight: bold; background-color: #f0f0f0;">
-                        <td colspan="3" style="text-align: right;">Total:</td>
-                        <td style="text-align: right;">${formatCurrency(totalHamaliDue)}</td>
-                        ${isHamaliOnly ? '' : `<td style="text-align: right;">${formatCurrency(totalRentDue)}</td>`}
-                        <td style="text-align: right;">${formatCurrency(totalRentPaid + totalHamaliPaid)}</td>
-                        <td style="text-align: right;">${formatCurrency(totalBalance)}</td>
-                    </tr>
-                </tbody>
-            </table>
-            <div style="margin-top: 10px; font-size: 10px; color: #666;">
-                ${isHamaliOnly ? '' : '* Projected rent for active stock calculated till today.'}
-            </div>
-         `;
-    }
     
     // 1. All Customers Report
-    if (reportType === 'all-customers') {
+    else if (reportType === 'all-customers') {
         title = 'All Customers List';
-        const rows = data.data.map((c: any, index: number) => {
-            // Calculate active bags from stats
-            const customerStats = data.stats.filter((s: any) => s.customer_id === c.id);
-            const activeBags = customerStats.reduce((sum: number, s: any) => sum + s.bags_stored, 0);
-            
-            return `
+        const rows = data.data.map((c: any, index: number) => `
                 <tr>
                     <td>${index + 1}</td>
                     <td>${c.name}</td>
                     <td>${c.phone}</td>
                     <td>${c.village || '-'}</td>
                     <td>${c.entry_date ? new Date(c.entry_date).toLocaleDateString() : '-'}</td>
-                    <td style="text-align: right">${activeBags}</td>
+                    <td style="text-align: right">${c.activeBags || 0}</td>
+                    <td style="text-align: right; ${(c.outstanding || 0) > 0 ? 'color: #e74c3c; font-weight: bold;' : ''}">${formatCurrency(c.outstanding || 0)}</td>
                 </tr>
-            `;
-        }).join('');
+            `
+        ).join('');
         
         content = `
             <table>
                 <thead>
                     <tr>
                         <th style="width: 5%">#</th>
-                        <th style="width: 25%">Name</th>
-                        <th style="width: 15%">Phone</th>
-                        <th style="width: 20%">Village</th>
-                        <th style="width: 15%">Join Date</th>
+                        <th style="width: 20%">Name</th>
+                        <th style="width: 12%">Phone</th>
+                        <th style="width: 18%">Village</th>
+                        <th style="width: 12%">Join Date</th>
                         <th style="width: 10%; text-align: right">Active Bags</th>
+                        <th style="width: 13%; text-align: right">Outstanding</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -904,6 +1035,8 @@ export function generateCustomReportPDF(
                 <td>${new Date(p.payment_date).toLocaleDateString()}</td>
                 <td>${p.storage_records?.record_number || p.storage_records?.id?.substring(0, 8) || '-'}</td>
                 <td>${p.customers?.name || 'Unknown'}</td>
+                <td>${p.payment_mode || 'Cash'}</td>
+                <td>${p.type || 'Other'}</td>
                 <td>${p.notes || '-'}</td>
                 <td style="text-align: right">${formatCurrency(p.amount)}</td>
             </tr>
@@ -918,14 +1051,16 @@ export function generateCustomReportPDF(
                         <th>Date</th>
                         <th>Ref #</th>
                         <th>Customer</th>
-                        <th>Mode/Notes</th>
+                        <th>Mode</th>
+                        <th>Type</th>
+                        <th>Notes</th>
                         <th style="text-align: right">Amount</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${rows}
                     <tr style="font-weight: bold; background-color: #f0f0f0;">
-                        <td colspan="4" style="text-align: right;">Total Collected:</td>
+                        <td colspan="6" style="text-align: right;">Total Collected:</td>
                         <td style="text-align: right;">${formatCurrency(totalCollected)}</td>
                     </tr>
                 </tbody>
@@ -1127,17 +1262,15 @@ export function exportCustomReportToExcel(
 
     if (reportType === 'all-customers') {
         filename = 'all-customers';
-        exportData = data.data.map((c: any) => {
-            const customerStats = data.stats.filter((s: any) => s.customer_id === c.id);
-            const activeBags = customerStats.reduce((sum: number, s: any) => sum + s.bags_stored, 0);
-            return {
-                'Name': c.name,
-                'Phone': c.phone,
-                'Village': c.village,
-                'Join Date': c.entry_date ? new Date(c.entry_date).toLocaleDateString() : '-',
-                'Active Bags': activeBags
-            };
-        });
+        exportData = data.data.map((c: any, index: number) => ({
+            '#': index + 1,
+            'Name': c.name,
+            'Phone': c.phone,
+            'Village': c.village || '-',
+            'Join Date': c.entry_date ? new Date(c.entry_date).toLocaleDateString() : '-',
+            'Active Bags': c.activeBags || 0,
+            'Outstanding': c.outstanding || 0
+        }));
     } else if (reportType === 'active-inventory') {
         filename = 'active-inventory';
         exportData = data.data.map((r: any) => ({
@@ -1185,9 +1318,39 @@ export function exportCustomReportToExcel(
             'Date': new Date(p.payment_date).toLocaleDateString(),
             'Ref #': p.storage_records?.record_number || p.storage_records?.id?.substring(0, 8) || '-',
             'Customer': p.customers?.name || 'Unknown',
-            'Mode/Notes': p.notes || '-',
+            'Payment Mode': p.payment_mode || 'Cash',
+            'Payment Type': p.type || 'Other',
+            'Notes': p.notes || '-',
             'Amount': p.amount
         }));
+    } else if (reportType === 'customer-dues-details') {
+        filename = `customer-dues-${data.customer.name.replace(/\s/g, '-').toLowerCase()}`;
+        const isHamaliOnly = data.duesType === 'hamali';
+        
+        exportData = data.data.map((r: any) => {
+            const dateRange = r.endDate 
+                ? `${new Date(r.date).toLocaleDateString()} to ${new Date(r.endDate).toLocaleDateString()}`
+                : `${new Date(r.date).toLocaleDateString()} to Active`;
+            
+            const record: any = {
+                'Ref #': r.recordNumber,
+                'Storage Period': dateRange,
+                'Commodity': r.commodity,
+                'Bags': r.bags,
+                'Status': r.status,
+                'Hamali Due': r.hamaliDue,
+            };
+            
+            // Only add Rent columns if not Hamali-only view
+            if (!isHamaliOnly) {
+                record['Rent Due'] = r.rentDue;
+            }
+            
+            record['Paid'] = r.hamaliPaid + r.rentPaid;
+            record['Balance'] = r.totalBalance;
+            
+            return record;
+        });
     } else if (reportType === 'pending-dues') {
         filename = 'pending-dues';
         exportData = data.data.map((c: any) => ({

@@ -63,7 +63,7 @@ export function InflowListClient({ inflows }: InflowListClientProps) {
             result = result.filter(i =>
                 i.customerName?.toLowerCase().includes(search) ||
                 i.commodity?.toLowerCase().includes(search) ||
-                i.recordNumber?.toLowerCase().includes(search) ||
+                i.recordNumber?.toString().toLowerCase().includes(search) ||
                 i.id?.toLowerCase().includes(search)
             );
         }

@@ -18,9 +18,6 @@ import { logError } from './error-logger';
       const supabase = await createClient();
       const warehouseId = await getUserWarehouse();
   
-      // Dynamic import for billing utils to avoid circular dependency issues if any
-      const { calculateFinalRent } = await import('@/lib/billing');
-  
       if (!warehouseId) {
         throw new Error('Unauthorized');
       }
@@ -32,12 +29,13 @@ import { logError } from './error-logger';
         const { data: customer } = await supabase.from('customers').select('*').eq('id', filters.customerId).single();
         if (!customer) throw new Error("Customer not found");
   
-        // Fetch ALL records for customer
+        // Fetch ALL records for customer WITH withdrawal transactions AND payment details
         const { data: records } = await supabase
           .from('storage_records')
           .select(`
               *,
-              payments (amount, type, payment_date)
+              payments (amount, type, payment_date, notes),
+              withdrawal_transactions (bags_withdrawn, withdrawal_date, rent_collected)
           `)
           .eq('customer_id', filters.customerId)
           .eq('warehouse_id', warehouseId)
@@ -47,33 +45,21 @@ import { logError } from './error-logger';
         if (!records) return { type: 'customer-dues-details', data: [], customer };
   
         const processedRecords = records.map((record: any) => {
-            // 1. Calculate Rent Due
+            // 1. Calculate Rent Due - SUM ALL WITHDRAWAL TRANSACTIONS
             let rentDue = 0;
             let isprojected = false;
   
             // Filter: If Hamali Only, ignore Rent Logic entirely
             if (filters?.duesType !== 'hamali') {
-                if (record.storage_end_date) {
-                     // Closed Record: Trust the billed amount
-                     rentDue = record.total_rent_billed || 0;
-                } else {
-                      // Active Record: Calculate accrued rent till NOW
-                     const result = calculateFinalRent(
-                         { 
-                             ...record, 
-                             storageStartDate: record.storage_start_date, 
-                             storageEndDate: null 
-                         },
-                         new Date(), // Calculated till TODAY
-                         record.bags_stored
-                     );
-                     // Use proper logic: If DB has a value (manual/migrated), use max to be safe.
-                     rentDue = Math.max(record.total_rent_billed || 0, result.rent);
-                     isprojected = true;
-                }
+                // Sum rent from all withdrawal transactions for this record
+                const withdrawals = record.withdrawal_transactions || [];
+                rentDue = withdrawals.reduce((sum: number, w: any) => 
+                  sum + (parseFloat(w.rent_collected) || 0), 0);
+                
+                // Note: Records with no withdrawals will have rentDue = 0
             }
   
-            // 2. Hamali Due
+            // 2. Hamali Due - FOR ALL RECORDS (both active and closed)
             const hamaliDue = record.hamali_payable || 0;
   
             // 3. Payments made against THIS record
@@ -118,6 +104,7 @@ import { logError } from './error-logger';
                 recordId: record.id,
                 recordNumber: record.record_number || record.id.substring(0, 8),
                 date: record.storage_start_date,
+                endDate: record.storage_end_date,
                 commodity: record.commodity_description,
                 bags: record.bags_stored,
                 status: record.storage_end_date ? 'Closed' : 'Active',
@@ -128,7 +115,9 @@ import { logError } from './error-logger';
                 rentBalance: Math.round(rentBalance),
                 hamaliBalance: Math.round(hamaliBalance),
                 totalBalance: Math.round(totalBalance),
-                isProjected: isprojected
+                isProjected: isprojected,
+                withdrawalTransactions: record.withdrawal_transactions || [], // Pass for PDF export
+                payments: record.payments || [] // Pass payment history for PDF export
             };
         });
   
@@ -139,16 +128,83 @@ import { logError } from './error-logger';
             return new Date(b.date).getTime() - new Date(a.date).getTime();
         });
   
-        // Filter based on includeHistory flag and balance check
         const finalData = processedRecords.filter(r => 
             filters.includeHistory || r.totalBalance > 0 || r.status === 'Active'
         );
+  
+        // BUILD STATEMENT OF ACCOUNT - Chronological Transaction Ledger
+        const transactions: any[] = [];
+        
+        records.forEach((record: any) => {
+          transactions.push({
+            date: record.storage_start_date,
+            type: 'inflow',
+            description: `Inflow - ${record.commodity_description || 'Storage'}`,
+            invoiceNo: record.record_number || record.id.substring(0, 8),
+            bagsIn: record.bags_stored,
+            bagsOut: null,
+            hamali: record.hamali_payable || 0,
+            rent: null,
+            credit: null
+          });
+          
+          (record.withdrawal_transactions || []).forEach((wt: any) => {
+            transactions.push({
+              date: wt.withdrawal_date,
+              type: 'outflow',
+              description: 'Outflow',
+              invoiceNo: record.record_number || record.id.substring(0, 8),
+              bagsIn: null,
+              bagsOut: wt.bags_withdrawn,
+              hamali: null,
+              rent: parseFloat(wt.rent_collected) || 0,
+              credit: null
+            });
+          });
+          
+          (record.payments || []).forEach((p: any) => {
+            transactions.push({
+              date: p.payment_date,
+              type: 'payment',
+              description: `Payment - ${p.type || 'General'}`,
+              invoiceNo: record.record_number || record.id.substring(0, 8),
+              bagsIn: null,
+              bagsOut: null,
+              hamali: null,
+              rent: null,
+              credit: p.amount
+            });
+          });
+        });
+        
+        transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        let runningBalance = 0;
+        transactions.forEach(t => {
+          runningBalance += (t.hamali || 0) + (t.rent || 0) - (t.credit || 0);
+          t.balance = runningBalance;
+        });
+        
+        const summary = {
+          totalBagsIn: transactions.filter(t => t.type === 'inflow').reduce((sum, t) => sum + (t.bagsIn || 0), 0),
+          totalBagsOut: transactions.filter(t => t.type === 'outflow').reduce((sum, t) => sum + (t.bagsOut || 0), 0),
+          balanceStock: 0,
+          totalHamali: transactions.filter(t => t.type === 'inflow').reduce((sum, t) => sum + (t.hamali || 0), 0),
+          totalRent: transactions.filter(t => t.type === 'outflow').reduce((sum, t) => sum + (t.rent || 0), 0),
+          totalPaid: transactions.filter(t => t.type === 'payment').reduce((sum, t) => sum + (t.credit || 0), 0),
+          balanceDue: 0
+        };
+        
+        summary.balanceStock = summary.totalBagsIn - summary.totalBagsOut;
+        summary.balanceDue = (summary.totalHamali + summary.totalRent) - summary.totalPaid;
   
         return {
             type: 'customer-dues-details',
             data: finalData,
             customer,
-            duesType: filters.duesType // Pass it back for PDF renderer
+            transactions,
+            summary,
+            duesType: filters.duesType
         };
     }
 
@@ -160,18 +216,54 @@ import { logError } from './error-logger';
       .eq('warehouse_id', warehouseId)
       .order('name');
       
-    // Fetch active stats for each customer
+    // Fetch active stats for each customer with payments
     const { data: activeRecords } = await supabase
       .from('storage_records')
-      .select('customer_id, bags_stored, total_rent_billed, hamali_payable')
+      .select(`
+        customer_id, 
+        bags_stored, 
+        total_rent_billed, 
+        hamali_payable,
+        storage_start_date,
+        storage_end_date,
+        payments (amount)
+      `)
       .eq('warehouse_id', warehouseId)
-      .is('storage_end_date', null)
       .is('deleted_at', null);
+    
+    // Calculate outstanding per customer
+    const customersWithOutstanding = customers?.map(c => {
+      const customerRecords = activeRecords?.filter(r => r.customer_id === c.id) || [];
+      let totalDues = 0;
+      let totalPaid = 0;
+      let activeBags = 0;
+            
+      customerRecords.forEach((r: any) => {
+        // Calculate billed amount - sum withdrawal transaction rents + hamali
+        const withdrawals = r.withdrawal_transactions || [];
+        const rentFromWithdrawals = withdrawals.reduce((sum: number, w: any) => 
+          sum + (parseFloat(w.rent_collected) || 0), 0);
+        
+        let billed = rentFromWithdrawals + (r.hamali_payable || 0);
+        
+        // Count active bags
+        activeBags += r.bags_stored || 0;
+        
+        const paid = (r.payments || []).reduce((sum: number, p: any) => sum + p.amount, 0);
+        totalDues += billed;
+        totalPaid += paid;
+      });
+      
+      return {
+        ...c,
+        activeBags,
+        outstanding: Math.max(0, totalDues - totalPaid)
+      };
+    }) || customers;
     
     return { 
       type: 'all-customers', 
-      data: customers, 
-      stats: activeRecords 
+      data: customersWithOutstanding
     };
   }
 
@@ -319,7 +411,8 @@ import { logError } from './error-logger';
       .from('storage_records')
       .select(`
         *,
-        payments (amount)
+        payments (amount),
+        withdrawal_transactions (rent_collected)
       `)
       .eq('warehouse_id', warehouseId)
       .is('deleted_at', null); 
@@ -332,7 +425,13 @@ import { logError } from './error-logger';
        let totalPaid = 0;
        
        userRecords.forEach((r: any) => {
-         const billed = (r.total_rent_billed || 0) + (r.hamali_payable || 0);
+         // Calculate rent from withdrawal transactions
+         const withdrawals = r.withdrawal_transactions || [];
+         const rentFromWithdrawals = withdrawals.reduce((sum: number, w: any) => 
+           sum + (parseFloat(w.rent_collected) || 0), 0);
+         
+         let billed = rentFromWithdrawals + (r.hamali_payable || 0);
+         
          const paid = (r.payments || []).reduce((sum: number, p: any) => sum + p.amount, 0);
          totalDues += billed;
          totalPaid += paid;
@@ -344,7 +443,8 @@ import { logError } from './error-logger';
          totalPaid,
          balance: totalDues - totalPaid
        };
-    }).filter(c => c.balance > 1); // Only showing > 1 to avoid rounding noise
+    }).filter(c => c.balance > 1) // Only showing > 1 to avoid rounding noise
+       .sort((a, b) => b.balance - a.balance); // Sort by outstanding DESC
 
     return {
       type: 'pending-dues',
