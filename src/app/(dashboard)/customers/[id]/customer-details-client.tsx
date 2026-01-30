@@ -33,6 +33,7 @@ import { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { BulkOutflowDialog } from '@/components/customers/bulk-outflow-dialog';
+import { PaymentLinkDialog } from './payment-link-dialog';
 
 interface CustomerDetailsClientProps {
     customer: Customer;
@@ -192,6 +193,15 @@ export function CustomerDetailsClient({ customer, initialRecords }: CustomerDeta
                 <div className="flex flex-wrap gap-2">
                     {/* Pass filtered records AND the date range to the statement button */}
                     <CustomerStatementButton customer={customer} records={filteredRecords} dateRange={dateRange} />
+                    
+                    {/* Payment Link Button - Show if customer has phone and pending dues */}
+                    {customer.phone && totalDue > 0 && (
+                        <PaymentLinkDialog 
+                            customerId={customer.id}
+                            customerName={customer.name}
+                            defaultAmount={totalDue}
+                        />
+                    )}
                     
                     <EditCustomerDialog customer={customer} />
                     <DeleteCustomerButton customerId={customer.id} customerName={customer.name} variant="destructive" />

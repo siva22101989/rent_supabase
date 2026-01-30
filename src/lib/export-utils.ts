@@ -827,48 +827,17 @@ export function generateCustomReportPDF(
            content = `<p style="color: red;">Error: Statement of Account data not available. Please regenerate the report.</p>`;
          }
      }
-         
-    
-    // 1. All Customers Report
-    else if (reportType === 'all-customers') {
-        title = 'All Customers List';
-        const rows = data.data.map((c: any, index: number) => `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${c.name}</td>
-                    <td>${c.phone}</td>
-                    <td>${c.village || '-'}</td>
-                    <td>${c.entry_date ? new Date(c.entry_date).toLocaleDateString() : '-'}</td>
-                    <td style="text-align: right">${c.activeBags || 0}</td>
-                    <td style="text-align: right; ${(c.outstanding || 0) > 0 ? 'color: #e74c3c; font-weight: bold;' : ''}">${formatCurrency(c.outstanding || 0)}</td>
-                </tr>
-            `
-        ).join('');
-        
-        content = `
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 5%">#</th>
-                        <th style="width: 20%">Name</th>
-                        <th style="width: 12%">Phone</th>
-                        <th style="width: 18%">Village</th>
-                        <th style="width: 12%">Join Date</th>
-                        <th style="width: 10%; text-align: right">Active Bags</th>
-                        <th style="width: 13%; text-align: right">Outstanding</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows}
-                </tbody>
-            </table>
-        `;
-    }
-    
-    // 2. Active Inventory Report
-    else if (reportType === 'active-inventory') {
+     
+     // 2. Active Inventory Report
+     else if (reportType === 'active-inventory') {
         title = 'Active Inventory Report';
-        const rows = data.data.map((r: any) => `
+        const rows = data.data.map((r: any) => {
+            // Color code by age
+            const ageColor = r.ageCategory === 'Very Old' ? '#e74c3c' :
+                           r.ageCategory === 'Old' ? '#e67e22' :
+                           r.ageCategory === 'Medium' ? '#f39c12' : '#27ae60';
+            
+            return `
             <tr>
                 <td>${r.record_number || r.id.substring(0, 8)}</td>
                 <td>${new Date(r.storage_start_date).toLocaleDateString()}</td>
@@ -876,12 +845,47 @@ export function generateCustomReportPDF(
                 <td>${r.commodity_description || '-'}</td>
                 <td>${r.location || '-'}</td>
                 <td style="text-align: right">${r.bags_stored}</td>
+                <td style="text-align: right; font-weight: bold;">${r.daysInStorage || 0}</td>
+                <td><span style="color: ${ageColor}; font-weight: bold;">${r.ageCategory}</span></td>
             </tr>
-        `).join('');
+        `}).join('');
         
         const totalBags = data.data.reduce((sum: number, r: any) => sum + r.bags_stored, 0);
+        const avgDays = Math.round(data.data.reduce((sum: number, r: any) => sum + (r.daysInStorage || 0), 0) / data.data.length);
+        
+        // Count by age category
+        const ageCounts = data.data.reduce((acc: any, r: any) => {
+            acc[r.ageCategory] = (acc[r.ageCategory] || 0) + 1;
+            return acc;
+        }, {});
         
         content = `
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 12px;">
+                    <div>
+                        <strong>Total Records:</strong> ${data.data.length}
+                    </div>
+                    <div>
+                        <strong>Total Bags:</strong> ${totalBags}
+                    </div>
+                    <div>
+                        <strong>Avg Days in Storage:</strong> ${avgDays}
+                    </div>
+                    <div style="color: #27ae60;">
+                        <strong>Recent (0-30d):</strong> ${ageCounts['Recent'] || 0}
+                    </div>
+                    <div style="color: #f39c12;">
+                        <strong>Medium (30-90d):</strong> ${ageCounts['Medium'] || 0}
+                    </div>
+                    <div style="color: #e67e22;">
+                        <strong>Old (90-180d):</strong> ${ageCounts['Old'] || 0}
+                    </div>
+                    <div style="color: #e74c3c;">
+                        <strong>Very Old (>180d):</strong> ${ageCounts['Very Old'] || 0}
+                    </div>
+                </div>
+            </div>
+            
             <table>
                 <thead>
                     <tr>
@@ -891,6 +895,8 @@ export function generateCustomReportPDF(
                         <th>Commodity</th>
                         <th>Location</th>
                         <th style="text-align: right">Bags</th>
+                        <th style="text-align: right">Days</th>
+                        <th>Age</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -898,6 +904,7 @@ export function generateCustomReportPDF(
                     <tr style="font-weight: bold; background-color: #f0f0f0;">
                         <td colspan="5" style="text-align: right;">Total Active Stock:</td>
                         <td style="text-align: right;">${totalBags}</td>
+                        <td colspan="2"></td>
                     </tr>
                 </tbody>
             </table>
@@ -907,38 +914,98 @@ export function generateCustomReportPDF(
     // 3. Transaction History
     else if (reportType === 'transaction-history') {
         title = 'Transaction History (Last 1000 Records)';
-        const rows = data.data.map((r: any) => {
-            const status = r.storage_end_date ? 'Completed' : 'Active';
-            const statusColor = r.storage_end_date ? '#27ae60' : '#d35400';
+        
+        // Group transactions by date
+        const groupedByDate = data.groupedByDate || {};
+        const dates = Object.keys(groupedByDate).sort((a, b) => 
+          new Date(b).getTime() - new Date(a).getTime()
+        );
+        
+        let content = '';
+        
+        dates.forEach(dateKey => {
+          const dayTransactions = groupedByDate[dateKey];
+          
+          // Calculate daily totals
+          const dailyTotals = {
+            inflowBags: dayTransactions.filter((t: any) => t.type === 'inflow').reduce((sum: number, t: any) => sum + (t.bags || 0), 0),
+            outflowBags: dayTransactions.filter((t: any) => t.type === 'outflow').reduce((sum: number, t: any) => sum + (t.bags || 0), 0),
+            payments: dayTransactions.filter((t: any) => t.type === 'payment').reduce((sum: number, t: any) => sum + (t.amount || 0), 0),
+            totalAmount: dayTransactions.reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0)
+          };
+          
+          const rows = dayTransactions.map((t: any) => {
+            // Transaction type icon/indicator
+            const typeIcon = t.type === 'inflow' ? '↓' : t.type === 'outflow' ? '↑' : '₹';
+            const typeColor = t.type === 'inflow' ? '#27ae60' : t.type === 'outflow' ? '#e67e22' : '#3498db';
+            const typeLabel = t.type.charAt(0).toUpperCase() + t.type.slice(1);
             
             return `
-            <tr>
-                <td>${r.record_number || r.id.substring(0, 8)}</td>
-                <td>${new Date(r.storage_start_date).toLocaleDateString()}</td>
-                <td>${r.customers?.name || 'Unknown'}</td>
-                <td>${r.commodity_description || '-'}</td>
-                <td style="text-align: right">${r.bags_stored}</td>
-                <td style="text-align: center; color: ${statusColor}; font-weight: bold;">${status}</td>
-            </tr>
+              <tr>
+                <td><span style="color: ${typeColor}; font-weight: bold; font-size: 14px;">${typeIcon}</span> ${typeLabel}</td>
+                <td>${t.recordNumber || '-'}</td>
+                <td>${t.customerName || 'Unknown'}</td>
+                <td>${t.description}</td>
+                <td style="text-align: right">${t.bags > 0 ? t.bags : '-'}</td>
+                <td style="text-align: right">${t.amount > 0 ? formatCurrency(t.amount) : '-'}</td>
+              </tr>
             `;
-        }).join('');
-        
-        content = `
-            <table>
+          }).join('');
+          
+          content += `
+            <div style="margin-top: 20px;">
+              <h3 style="background: #34495e; color: white; padding: 8px 12px; margin: 0;">${dateKey}</h3>
+              <table style="margin-top: 0;">
                 <thead>
-                    <tr>
-                        <th>Record #</th>
-                        <th>Date In</th>
-                        <th>Customer</th>
-                        <th>Commodity</th>
-                        <th style="text-align: right">Bags</th>
-                        <th style="text-align: center">Status</th>
-                    </tr>
+                  <tr>
+                    <th style="width: 12%">Type</th>
+                    <th style="width: 10%">Record #</th>
+                    <th style="width: 18%">Customer</th>
+                    <th style="width: 30%">Description</th>
+                    <th style="width: 12%; text-align: right">Bags</th>
+                    <th style="width: 18%; text-align: right">Amount</th>
+                  </tr>
                 </thead>
                 <tbody>
-                    ${rows}
+                  ${rows}
+                  <tr style="background: #ecf0f1; font-weight: bold;">
+                    <td colspan="4" style="text-align: right;">Daily Totals:</td>
+                    <td style="text-align: right;">
+                      ${dailyTotals.inflowBags > 0 ? `↓${dailyTotals.inflowBags}` : ''} 
+                      ${dailyTotals.outflowBags > 0 ? `↑${dailyTotals.outflowBags}` : ''}
+                    </td>
+                    <td style="text-align: right;">₹${formatCurrency(dailyTotals.totalAmount)}</td>
+                  </tr>
                 </tbody>
-            </table>
+              </table>
+            </div>
+          `;
+        });
+        
+        // Overall summary at top
+        const totalTransactions = data.data.length;
+        const totalInflows = data.data.filter((t: any) => t.type === 'inflow').length;
+        const totalOutflows = data.data.filter((t: any) => t.type === 'outflow').length;
+        const totalPayments = data.data.filter((t: any) => t.type === 'payment').length;
+        
+        content = `
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; font-size: 12px;">
+              <div>
+                <strong>Total Transactions:</strong> ${totalTransactions}
+              </div>
+              <div style="color: #27ae60;">
+                <strong>Inflows:</strong> ${totalInflows}
+              </div>
+              <div style="color: #e67e22;">
+                <strong>Outflows:</strong> ${totalOutflows}
+              </div>
+              <div style="color: #3498db;">
+                <strong>Payments:</strong> ${totalPayments}
+              </div>
+            </div>
+          </div>
+          ${content}
         `;
     }
     
@@ -1063,6 +1130,84 @@ export function generateCustomReportPDF(
                         <td colspan="6" style="text-align: right;">Total Collected:</td>
                         <td style="text-align: right;">${formatCurrency(totalCollected)}</td>
                     </tr>
+                </tbody>
+            </table>
+        `;
+    }
+
+    // 7. All Customers List
+    else if (reportType === 'all-customers') {
+        title = 'All Customers List';
+        const rows = data.data.map((c: any, index: number) => {
+            const statusColor = c.paymentStatus === 'paid' ? '#27ae60' : 
+                               c.paymentStatus === 'partial' ? '#f39c12' : '#e74c3c';
+            const statusBadge = `<span style="color: ${statusColor}; font-weight: bold;">${c.paymentStatus.toUpperCase()}</span>`;
+            const lastActivity = c.lastActivity ? new Date(c.lastActivity).toLocaleDateString() : 'N/A';
+            
+            return `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${c.name}</td>
+                <td>${c.phone || '-'}</td>
+                <td>${c.village || '-'}</td>
+                <td style="text-align: right">${c.totalBagsIn || 0}</td>
+                <td style="text-align: right">${c.totalBagsOut || 0}</td>
+                <td style="text-align: right; font-weight: bold;">${c.balanceStock || 0}</td>
+                <td style="text-align: right">${c.activeBags || 0}</td>
+                <td style="text-align: right">${formatCurrency(c.outstanding || 0)}</td>
+                <td>${statusBadge}</td>
+                <td style="font-size: 10px;">${lastActivity}</td>
+            </tr>
+        `}).join('');
+        
+        const totalBagsIn = data.data.reduce((sum: number, c: any) => sum + (c.totalBagsIn || 0), 0);
+        const totalBagsOut = data.data.reduce((sum: number, c: any) => sum + (c.totalBagsOut || 0), 0);
+        const totalBalance = data.data.reduce((sum: number, c: any) => sum + (c.balanceStock || 0), 0);
+        const totalActive = data.data.reduce((sum: number, c: any) => sum + (c.activeBags || 0), 0);
+        const totalOutstanding = data.data.reduce((sum: number, c: any) => sum + (c.outstanding || 0), 0);
+        
+        content = `
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 12px;">
+                    <div>
+                        <strong>Total Customers:</strong> ${data.data.length}
+                    </div>
+                    <div>
+                        <strong>Total Bags In:</strong> ${totalBagsIn}
+                    </div>
+                    <div>
+                        <strong>Total Bags Out:</strong> ${totalBagsOut}
+                    </div>
+                    <div>
+                        <strong>Balance Stock:</strong> <span style="font-weight: bold; color: #2980b9;">${totalBalance}</span>
+                    </div>
+                    <div>
+                        <strong>Active Stock:</strong> ${totalActive}
+                    </div>
+                    <div>
+                        <strong>Total Outstanding:</strong> <span style="font-weight: bold; color: #e74c3c;">₹${formatCurrency(totalOutstanding)}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Village</th>
+                        <th style="text-align: right">Bags In</th>
+                        <th style="text-align: right">Bags Out</th>
+                        <th style="text-align: right">Balance</th>
+                        <th style="text-align: right">Active</th>
+                        <th style="text-align: right">Outstanding</th>
+                        <th>Status</th>
+                        <th>Last Activity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
                 </tbody>
             </table>
         `;

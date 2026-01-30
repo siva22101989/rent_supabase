@@ -216,54 +216,99 @@ import { logError } from './error-logger';
       .eq('warehouse_id', warehouseId)
       .order('name');
       
-    // Fetch active stats for each customer with payments
+    // Fetch all records with withdrawals and payments
     const { data: activeRecords } = await supabase
       .from('storage_records')
       .select(`
         customer_id, 
         bags_stored, 
-        total_rent_billed, 
-        hamali_payable,
         storage_start_date,
         storage_end_date,
-        payments (amount)
+        created_at,
+        updated_at,
+        payments (amount, payment_date),
+        withdrawal_transactions (bags_withdrawn, rent_collected, withdrawal_date)
       `)
       .eq('warehouse_id', warehouseId)
       .is('deleted_at', null);
     
-    // Calculate outstanding per customer
-    const customersWithOutstanding = customers?.map(c => {
+    // Calculate comprehensive stats per customer
+    const customersWithStats = customers?.map(c => {
       const customerRecords = activeRecords?.filter(r => r.customer_id === c.id) || [];
+      
       let totalDues = 0;
       let totalPaid = 0;
+      let totalBagsIn = 0;
+      let totalBagsOut = 0;
       let activeBags = 0;
-            
+      let lastActivityDate: Date | null = null;
+      
       customerRecords.forEach((r: any) => {
-        // Calculate billed amount - sum withdrawal transaction rents + hamali
+        // Track bags in (total stored across all records)
+        totalBagsIn += r.bags_stored || 0;
+        
+        // Track bags out (total withdrawn)
         const withdrawals = r.withdrawal_transactions || [];
+        const bagsWithdrawn = withdrawals.reduce((sum: number, w: any) => 
+          sum + (w.bags_withdrawn || 0), 0);
+        totalBagsOut += bagsWithdrawn;
+        
+        // Calculate actual rent from withdrawals
         const rentFromWithdrawals = withdrawals.reduce((sum: number, w: any) => 
           sum + (parseFloat(w.rent_collected) || 0), 0);
         
-        let billed = rentFromWithdrawals + (r.hamali_payable || 0);
+        totalDues += rentFromWithdrawals + (r.hamali_payable || 0);
         
-        // Count active bags
-        activeBags += r.bags_stored || 0;
+        // Track payments
+        const payments = r.payments || [];
+        const recordPaid = payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+        totalPaid += recordPaid;
         
-        const paid = (r.payments || []).reduce((sum: number, p: any) => sum + p.amount, 0);
-        totalDues += billed;
-        totalPaid += paid;
+        // Count active bags (not yet withdrawn)
+        if (!r.storage_end_date) {
+          activeBags += (r.bags_stored || 0) - bagsWithdrawn;
+        }
+        
+        // Track last activity (latest of: storage_start, withdrawal, payment, update)
+        const dates = [
+          new Date(r.storage_start_date),
+          new Date(r.updated_at),
+          ...withdrawals.map((w: any) => new Date(w.withdrawal_date)),
+          ...payments.map((p: any) => new Date(p.payment_date))
+        ];
+        const latestDate = new Date(Math.max(...dates.map(d => d.getTime())));
+        if (!lastActivityDate || latestDate > lastActivityDate) {
+          lastActivityDate = latestDate;
+        }
       });
+      
+      const outstanding = Math.max(0, totalDues - totalPaid);
+      const balanceStock = totalBagsIn - totalBagsOut;
+      
+      // Determine payment status
+      let paymentStatus = 'paid';
+      if (outstanding > 1) {
+        paymentStatus = totalPaid > 0 ? 'partial' : 'unpaid';
+      }
       
       return {
         ...c,
+        totalBagsIn,
+        totalBagsOut,
+        balanceStock,
         activeBags,
-        outstanding: Math.max(0, totalDues - totalPaid)
+        totalDues,
+        totalPaid,
+        outstanding,
+        lastActivity: lastActivityDate,
+        paymentStatus,
+        recordCount: customerRecords.length
       };
     }) || customers;
     
     return { 
       type: 'all-customers', 
-      data: customersWithOutstanding
+      data: customersWithStats
     };
   }
 
@@ -279,10 +324,29 @@ import { logError } from './error-logger';
       .is('storage_end_date', null)
       .is('deleted_at', null)
       .order('storage_start_date');
+    
+    // Add aging analysis
+    const now = new Date();
+    const recordsWithAging = records?.map(r => {
+      const startDate = new Date(r.storage_start_date);
+      const daysInStorage = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Categorize by age
+      let ageCategory = 'Recent';  // 0-30 days
+      if (daysInStorage > 180) ageCategory = 'Very Old';      // > 6 months
+      else if (daysInStorage > 90) ageCategory = 'Old';       // 3-6 months
+      else if (daysInStorage > 30) ageCategory = 'Medium';    // 1-3 months
+      
+      return {
+        ...r,
+        daysInStorage,
+        ageCategory
+      };
+    });
       
     return {
       type: 'active-inventory',
-      data: records
+      data: recordsWithAging
     };
   }
 
@@ -467,7 +531,8 @@ import { logError } from './error-logger';
         .from('storage_records')
         .select(`
           *,
-          payments (amount, type)
+          payments (amount, type),
+          withdrawal_transactions (rent_collected)
         `)
         .eq('warehouse_id', warehouseId)
         .is('deleted_at', null);
@@ -480,16 +545,21 @@ import { logError } from './error-logger';
          let hamaliPaid = 0;
          let otherPaid = 0; // Payments without type or 'other'
          
-         userRecords.forEach((r: any) => {
-           rentBilled += (r.total_rent_billed || 0);
-           hamaliBilled += (r.hamali_payable || 0); // Assuming hamali_payable is numeric
-           
-           (r.payments || []).forEach((p: any) => {
-               if (p.type === 'rent') rentPaid += p.amount;
-               else if (p.type === 'hamali') hamaliPaid += p.amount;
-               else otherPaid += p.amount;
-           });
-         });
+          userRecords.forEach((r: any) => {
+            // Calculate actual rent from withdrawal transactions (same logic as Statement of Account)
+            const withdrawals = r.withdrawal_transactions || [];
+            const rentFromWithdrawals = withdrawals.reduce((sum: number, w: any) => 
+              sum + (parseFloat(w.rent_collected) || 0), 0);
+            
+            rentBilled += rentFromWithdrawals;
+            hamaliBilled += (r.hamali_payable || 0);
+            
+            (r.payments || []).forEach((p: any) => {
+                if (p.type === 'rent') rentPaid += p.amount;
+                else if (p.type === 'hamali') hamaliPaid += p.amount;
+                else otherPaid += p.amount;
+            });
+          });
          
          // Logic: 
          // Rent Pending = Rent Billed - Rent Paid.
@@ -587,22 +657,83 @@ import { logError } from './error-logger';
     };
   }
 
-  // 8. Transaction History (Fallback / Last 1000)
+  // 8. Transaction History (Last 1000 Recent Transactions)
   if (reportType === 'transaction-history') {
     const { data: records } = await supabase
       .from('storage_records')
       .select(`
         *,
-        customers (name)
+        customers (name),
+        withdrawal_transactions (withdrawal_date, bags_withdrawn, rent_collected),
+        payments (payment_date, amount, type)
       `)
       .eq('warehouse_id', warehouseId)
       .is('deleted_at', null)
-      .order('storage_start_date', { ascending: false })
-      .limit(1000); // Limit for safety
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    
+    // Transform into transaction entries grouped by date
+    const transactions: any[] = [];
+    
+    records?.forEach(r => {
+      // Inflow transaction
+      transactions.push({
+        date: new Date(r.storage_start_date),
+        type: 'inflow',
+        recordNumber: r.record_number,
+        customerName: r.customers?.name,
+        commodity: r.commodity_description,
+        bags: r.bags_stored,
+        amount: r.hamali_payable,
+        description: `Inflow - ${r.bags_stored} bags received`
+      });
       
+      // Withdrawal transactions
+      r.withdrawal_transactions?.forEach((w: any) => {
+        transactions.push({
+          date: new Date(w.withdrawal_date),
+          type: 'outflow',
+          recordNumber: r.record_number,
+          customerName: r.customers?.name,
+          commodity: r.commodity_description,
+          bags: w.bags_withdrawn,
+          amount: w.rent_collected,
+          description: `Outflow - ${w.bags_withdrawn} bags withdrawn`
+        });
+      });
+      
+      // Payment transactions
+      r.payments?.forEach((p: any) => {
+        transactions.push({
+          date: new Date(p.payment_date),
+          type: 'payment',
+          recordNumber: r.record_number,
+          customerName: r.customers?.name,
+          bags: 0,
+          amount: p.amount,
+          paymentType: p.type,
+          description: `Payment - ${p.type || 'general'}`
+        });
+      });
+    });
+    
+    // Sort by date descending
+    transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+    
+    // Group by date for daily totals
+    const groupedByDate = transactions.reduce((acc: any, t) => {
+      const dateKey = t.date.toLocaleDateString();
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      acc[dateKey].push(t);
+      return acc;
+    }, {});
+    
     return {
       type: 'transaction-history',
-      data: records
+      data: transactions,
+      groupedByDate
     };
   }
 

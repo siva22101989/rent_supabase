@@ -26,11 +26,41 @@ export const getDashboardMetrics = cache(async () => {
         totalStock = lots.reduce((acc, lot) => acc + (lot.current_stock || 0), 0);
     }
 
+    // Calculate pending revenue (total dues - total paid)
+    const { data: revenueRecords } = await supabase
+        .from('storage_records')
+        .select(`
+            hamali_payable,
+            withdrawal_transactions (rent_collected),
+            payments (amount)
+        `)
+        .eq('warehouse_id', warehouseId)
+        .is('deleted_at', null);
+
+    let totalDues = 0;
+    let totalPaid = 0;
+
+    revenueRecords?.forEach((r: any) => {
+        // Calculate actual rent from withdrawal transactions
+        const withdrawals = r.withdrawal_transactions || [];
+        const rentFromWithdrawals = withdrawals.reduce((sum: number, w: any) => 
+            sum + (parseFloat(w.rent_collected) || 0), 0);
+        
+        totalDues += rentFromWithdrawals + (r.hamali_payable || 0);
+        
+        // Sum all payments
+        const payments = r.payments || [];
+        totalPaid += payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+    });
+
+    const pendingRevenue = Math.max(0, totalDues - totalPaid);
+
     return {
         totalCapacity,
         totalStock,
         occupancyRate: totalCapacity > 0 ? (totalStock / totalCapacity) * 100 : 0,
-        activeRecordsCount: activeRecordsCount || 0
+        activeRecordsCount: activeRecordsCount || 0,
+        pendingRevenue
     };
 });
 

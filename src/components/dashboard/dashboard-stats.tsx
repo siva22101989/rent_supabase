@@ -9,6 +9,7 @@ interface DashboardStatsProps {
         totalStock: number;
         occupancyRate: number;
         activeRecordsCount: number;
+        pendingRevenue?: number;
     } | null;
 }
 
@@ -45,8 +46,8 @@ export function DashboardStats({ metrics }: DashboardStatsProps) {
         },
          {
             title: "Pending Revenue",
-            value: "₹0", // Placeholder/Mock until backend is ready
-            subValue: "Estimated",
+            value: `₹${(metrics.pendingRevenue || 0).toLocaleString()}`,
+            subValue: "Outstanding",
             icon: IndianRupee,
             color: "text-orange-600",
             bg: "bg-orange-100",
