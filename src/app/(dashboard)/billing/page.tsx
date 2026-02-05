@@ -2,13 +2,15 @@ import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, History, Zap } from 'lucide-react';
+import { CreditCard, Zap } from 'lucide-react';
 import Link from 'next/link';
 
-import { getSubscriptionAction } from '@/lib/subscription-actions';
+import { getSubscriptionAction, getAllPlans } from '@/lib/subscription-actions';
 import { getUserWarehouse } from '@/lib/queries';
 import { PlanTier } from '@/lib/feature-flags';
 import { createClient } from '@/utils/supabase/server';
+import { UpgradePlanButton } from '@/components/billing/upgrade-plan-button';
+import { PaymentHistory } from '@/components/billing/payment-history';
 
 
 export const revalidate = 60; // Revalidate every 60 seconds
@@ -21,20 +23,22 @@ export const metadata = {
 export default async function BillingPage() {
   const currentWarehouseId = await getUserWarehouse() || '';
   
-  // Parallel fetching - subscription and record count
+  // Parallel fetching - subscription, record count, and available plans
   const supabase = await createClient();
-  const [subscriptionData, { count: recordCount }] = await Promise.all([
+  const [subscriptionData, { count: recordCount }, availablePlans] = await Promise.all([
     getSubscriptionAction(currentWarehouseId),
     supabase
       .from('storage_records')
       .select('*', { count: 'exact', head: true })
       .eq('warehouse_id', currentWarehouseId)
-      .is('deleted_at', null)
+      .is('deleted_at', null),
+    getAllPlans()
   ]);
 
   const currentPlan = {
     name: subscriptionData?.plans?.name || 'Free Tier',
     tier: (subscriptionData?.plans?.tier as PlanTier) || 'free',
+    display_name: subscriptionData?.plans?.display_name || 'Free',
     status: subscriptionData?.status || 'active',
     renewalDate: subscriptionData?.current_period_end 
         ? new Date(subscriptionData.current_period_end).toLocaleDateString() 
@@ -97,39 +101,33 @@ export default async function BillingPage() {
                 <Button variant="outline" size="sm" asChild>
                     <Link href="/billing/invoices">View Invoices</Link>
                 </Button>
-                <Button size="sm" asChild>
-                    <Link href="/upgrade">Change Plan</Link>
-                </Button>
+                <UpgradePlanButton 
+                  currentTier={currentPlan.tier}
+                  warehouseId={currentWarehouseId}
+                  availablePlans={availablePlans || []}
+                />
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Stats/Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Payment Methods</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 text-sm border p-3 rounded-lg opacity-50 italic">
-                <CreditCard className="h-4 w-4" />
-                <span>No cards added yet</span>
-            </div>
-            <Button variant="outline" className="w-full text-xs" disabled>
-                Add Payment Method
-            </Button>
-          </CardContent>
-          <CardHeader className="border-t pt-4">
-            <CardTitle className="text-lg">Billing History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground italic">
-                    <History className="h-3 w-3" />
-                    <span>No recent transactions</span>
-                </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Payment Methods</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3 text-sm border p-3 rounded-lg opacity-50 italic">
+                  <CreditCard className="h-4 w-4" />
+                  <span>Payment via Razorpay</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Secure payments powered by Razorpay. Supports UPI, Cards, Net Banking, and more.
+              </p>
+            </CardContent>
+          </Card>
+
+          <PaymentHistory warehouseId={currentWarehouseId} />
+        </div>
       </div>
     </div>
   );

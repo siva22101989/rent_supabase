@@ -417,3 +417,310 @@ export async function manualProcessExpiries(): Promise<SubscriptionState> {
     data: result
   };
 }
+
+// ============================================================================
+// Subscription Payment Functions (Razorpay Integration)
+// ============================================================================
+
+import { createPaymentLink } from '@/lib/services/razorpay-service';
+import { textBeeService } from '@/lib/textbee';
+import { addDays, format } from 'date-fns';
+
+export type SubscriptionPaymentLinkResult = {
+  success: boolean;
+  linkUrl?: string;
+  linkId?: string;
+  error?: string;
+};
+
+export type SubscriptionPayment = {
+  id: string;
+  amount: number;
+  payment_status: string;
+  payment_method?: string;
+  payment_date: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  plans: {
+    display_name: string;
+    tier: string;
+  };
+};
+
+/**
+ * Create a Razorpay payment link for subscription upgrade or renewal
+ */
+export async function createSubscriptionPaymentLink(
+  warehouseId: string,
+  planTier: string,
+  isRenewal: boolean = false
+): Promise<SubscriptionPaymentLinkResult> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // 1. Get plan details
+    const { data: plan, error: planError } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('tier', planTier)
+      .single();
+
+    if (planError || !plan) {
+      logError(planError || new Error('Plan not found'), { 
+        operation: 'createSubscriptionPaymentLink', 
+        metadata: { planTier }
+      });
+      return { success: false, error: 'Invalid plan selected' };
+    }
+
+    // 2. Get warehouse owner details
+    const { data: warehouse, error: whError } = await supabase
+      .from('warehouses')
+      .select('owner_id, name')
+      .eq('id', warehouseId)
+      .single();
+
+    if (whError || !warehouse) {
+      return { success: false, error: 'Warehouse not found' };
+    }
+
+    // 3. Get owner profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name, phone')
+      .eq('id', warehouse.owner_id)
+      .single();
+
+    if (profileError || !profile || !profile.phone) {
+      return { success: false, error: 'Owner phone number not available' };
+    }
+
+    // 4. Create payment link via Razorpay service
+    const linkResult = await createPaymentLink({
+      warehouseId,
+      customerId: warehouse.owner_id, // Using owner as customer
+      customerName: profile.full_name || 'Warehouse Owner',
+      customerPhone: profile.phone,
+      amount: plan.price,
+      description: `${plan.display_name} - ${isRenewal ? 'Renewal' : 'Subscription'}`,
+      expiryInDays: 3, // Pay within 3 days
+    });
+
+    if (!linkResult.success || !linkResult.shortUrl) {
+      return { 
+        success: false, 
+        error: linkResult.error || 'Failed to create payment link' 
+      };
+    }
+
+    // 5. Update payment link metadata to mark it as a subscription payment
+    if (linkResult.linkId) {
+      await supabase
+        .from('payment_links')
+        .update({
+          metadata: {
+            subscription_payment: true,
+            plan_tier: planTier,
+            plan_id: plan.id,
+            is_renewal: isRenewal,
+            warehouse_id: warehouseId
+          }
+        })
+        .eq('id', linkResult.linkId);
+    }
+
+    // 6. Send SMS with payment link
+    const businessName = process.env.RAZORPAY_BUSINESS_NAME || 'GrainFlow';
+    const smsMessage = isRenewal
+      ? `Your ${plan.display_name} subscription is expiring soon. Renew now: ${linkResult.shortUrl}\n- ${businessName}`
+      : `Upgrade to ${plan.display_name} (₹${plan.price.toLocaleString('en-IN')}). Pay: ${linkResult.shortUrl}\n- ${businessName}`;
+
+    try {
+      await textBeeService.sendSMS({
+        to: profile.phone,
+        message: smsMessage
+      });
+    } catch (smsError) {
+      logError(smsError as Error, { operation: 'createSubscriptionPaymentLink:SMS' });
+      // Continue even if SMS fails
+    }
+
+    return {
+      success: true,
+      linkUrl: linkResult.shortUrl,
+      linkId: linkResult.linkId
+    };
+  } catch (error: any) {
+    logError(error, { operation: 'createSubscriptionPaymentLink' });
+    return {
+      success: false,
+      error: error.message || 'Failed to create subscription payment link'
+    };
+  }
+}
+
+/**
+ * Activate subscription after successful payment
+ * Called by webhook handler
+ */
+export async function activateSubscriptionPayment(
+  warehouseId: string,
+  planId: string,
+  paymentDetails: {
+    razorpay_payment_id: string;
+    razorpay_payment_link_id: string;
+    amount: number;
+    payment_method: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { createAdminClient } = await import('@/utils/supabase/admin');
+    const supabase = await createAdminClient();
+
+    // 1. Get plan details
+    const { data: plan, error: planError } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('id', planId)
+      .single();
+
+    if (planError || !plan) {
+      throw new Error('Plan not found');
+    }
+
+    // 2. Calculate billing period
+    const now = new Date();
+    const periodEnd = addDays(now, plan.duration_days || 30);
+
+    // 3. Upsert subscription (activate it)
+    const { data: subscription, error: subError } = await supabase
+      .from('subscriptions')
+      .upsert({
+        warehouse_id: warehouseId,
+        plan_id: planId,
+        status: 'active',
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        razorpay_last_payment_id: paymentDetails.razorpay_payment_id,
+        payment_method: paymentDetails.payment_method,
+        next_billing_date: periodEnd.toISOString(),
+        auto_renew_enabled: false, // Payment link mode
+        updated_at: now.toISOString()
+      }, { onConflict: 'warehouse_id' })
+      .select()
+      .single();
+
+    if (subError) {
+      throw subError;
+    }
+
+    // 4. Record payment in subscription_payments table
+    const { error: paymentError } = await supabase
+      .from('subscription_payments')
+      .insert({
+        subscription_id: subscription.id,
+        warehouse_id: warehouseId,
+        plan_id: planId,
+        razorpay_payment_id: paymentDetails.razorpay_payment_id,
+        razorpay_payment_link_id: paymentDetails.razorpay_payment_link_id,
+        amount: paymentDetails.amount,
+        payment_status: 'success',
+        payment_method: paymentDetails.payment_method,
+        payment_date: now.toISOString(),
+        billing_period_start: now.toISOString(),
+        billing_period_end: periodEnd.toISOString()
+      });
+
+    if (paymentError) {
+      // Log but don't fail - subscription is already activated
+      logError(paymentError, { operation: 'activateSubscriptionPayment:recordPayment' });
+    }
+
+    // 5. Send confirmation SMS
+    try {
+      const { data: warehouse } = await supabase
+        .from('warehouses')
+        .select('owner_id')
+        .eq('id', warehouseId)
+        .single();
+
+      if (warehouse?.owner_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, phone')
+          .eq('id', warehouse.owner_id)
+          .single();
+
+        if (profile?.phone) {
+          const businessName = process.env.RAZORPAY_BUSINESS_NAME || 'GrainFlow';
+          await textBeeService.sendSMS({
+            to: profile.phone,
+            message: `✅ ${plan.display_name} activated! Valid until ${format(periodEnd, 'dd MMM yyyy')}\n- ${businessName}`
+          });
+        }
+      }
+    } catch (smsError) {
+      logError(smsError as Error, { operation: 'activateSubscriptionPayment:SMS' });
+    }
+
+    // 6. Revalidate subscription-related pages
+    revalidatePath('/billing');
+    revalidatePath('/settings');
+
+    return { success: true };
+  } catch (error: any) {
+    logError(error, { 
+      operation: 'activateSubscriptionPayment', 
+      warehouseId,
+      metadata: { planId }
+    });
+    return {
+      success: false,
+      error: error.message || 'Failed to activate subscription'
+    };
+  }
+}
+
+/**
+ * Get subscription payment history for a warehouse
+ */
+export async function getSubscriptionPaymentHistory(
+  warehouseId: string
+): Promise<SubscriptionPayment[]> {
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('subscription_payments')
+      .select(`
+        id,
+        amount,
+        payment_status,
+        payment_method,
+        payment_date,
+        billing_period_start,
+        billing_period_end,
+        plans (
+          display_name,
+          tier
+        )
+      `)
+      .eq('warehouse_id', warehouseId)
+      .order('payment_date', { ascending: false });
+
+    if (error) {
+      logError(error, { operation: 'getSubscriptionPaymentHistory', warehouseId });
+      return [];
+    }
+
+    return (data || []) as any[];
+  } catch (error: any) {
+    logError(error, { operation: 'getSubscriptionPaymentHistory' });
+    return [];
+  }
+}

@@ -381,32 +381,79 @@ import { logError } from './error-logger';
     };
   }
 
-  // 4. Outflow Register (Filtered by End Date)
+  // 4. Outflow Register - Shows individual withdrawal transactions
   if (reportType === 'outflow-register') {
-    let query = supabase
-      .from('storage_records')
+    const baseQuery = supabase
+      .from('withdrawal_transactions')
       .select(`
-        *,
-        customers (name)
+        id,
+        withdrawal_date,
+        bags_withdrawn,
+        rent_collected,
+        storage_record_id,
+        storage_records (
+          id,
+          record_number,
+          commodity_description,
+          customer_id,
+          customers (
+            id,
+            name
+          )
+        )
       `)
       .eq('warehouse_id', warehouseId)
       .is('deleted_at', null)
-      .not('storage_end_date', 'is', null) // Only completed/outflow records
-      .order('storage_end_date', { ascending: false });
+      .order('withdrawal_date', { ascending: false });
+
+    const { data: allRecords, error: queryError } = await baseQuery;
+
+    if (queryError) {
+      throw queryError;
+    }
+
+    // Apply date filters on withdrawal_date
+    let filteredRecords = allRecords || [];
 
     if (filters?.startDate) {
-      query = query.gte('storage_end_date', filters.startDate);
-    }
-    if (filters?.endDate) {
-      const nextDay = new Date(filters.endDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      query = query.lt('storage_end_date', nextDay.toISOString());
+      const startDate = new Date(filters.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      filteredRecords = filteredRecords.filter(r => {
+        const recordDate = new Date(r.withdrawal_date);
+        return recordDate >= startDate;
+      });
     }
 
-    const { data: records } = await query;
+    if (filters?.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      filteredRecords = filteredRecords.filter(r => {
+        const recordDate = new Date(r.withdrawal_date);
+        return recordDate <= endDate;
+      });
+    }
+
+    // Transform to match expected format
+    const transformedData = filteredRecords.map(record => {
+      // Supabase returns storage_records as an object (not array) when using foreign key relationship
+      const storageRecord = record.storage_records as any;
+      
+      return {
+        id: record.id,
+        record_number: storageRecord?.record_number,
+        storage_end_date: record.withdrawal_date, // Use withdrawal_date as the "outflow date"
+        commodity_description: storageRecord?.commodity_description,
+        bags_stored: record.bags_withdrawn, // Bags withdrawn in this transaction
+        total_rent_billed: parseFloat(record.rent_collected || '0'),
+        hamali_payable: 0, // Not tracked at withdrawal level
+        customer_id: storageRecord?.customer_id,
+        customers: storageRecord?.customers,
+      };
+    });
+
     return {
       type: 'outflow-register',
-      data: records,
+      data: transformedData,
       period: filters
     };
   }

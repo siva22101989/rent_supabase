@@ -72,6 +72,7 @@ export function CustomReportGenerator({ warehouseName, allowExport }: CustomRepo
         try {
             // 1. Fetch Data
             const data = await fetchReportData(reportType, {
+                startDate: startDate || undefined,
                 endDate: endDate || undefined,
                 customerId: selectedCustomerId || undefined,
                 includeHistory: includeHistory,

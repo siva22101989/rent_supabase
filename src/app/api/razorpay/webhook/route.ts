@@ -62,7 +62,21 @@ export async function POST(request: NextRequest) {
  */
 async function handlePaymentCaptured(payment: any) {
   try {
-    // Process payment and create record
+    // First check if this is a subscription payment
+    const supabase = await createClient();
+    const { data: linkData } = await supabase
+      .from('payment_links')
+      .select('*, metadata')
+      .eq('razorpay_link_id', payment.order_id)
+      .single();
+
+    // Handle subscription payments
+    if (linkData?.metadata?.subscription_payment === true) {
+      await handleSubscriptionPayment(payment, linkData);
+      return;
+    }
+
+    // Handle regular customer payments
     const result = await processPaymentCapture(payment);
 
     if (!result.success) {
@@ -82,7 +96,6 @@ async function handlePaymentCaptured(payment: any) {
 
     // Send confirmation SMS to customer
     try {
-      const supabase = await createClient();
       const { data: customer } = await supabase
         .from('customers')
         .select('name, phone')
@@ -119,5 +132,46 @@ async function handlePaymentFailed(payment: any) {
 
   } catch (error) {
     logError(error as Error, { operation: 'handlePaymentFailed' });
+  }
+}
+
+/**
+ * Handle subscription payment capture
+ */
+async function handleSubscriptionPayment(payment: any, linkData: any) {
+  try {
+    const { warehouse_id, plan_id } = linkData.metadata;
+
+    // Import activation function
+    const { activateSubscriptionPayment } = await import('@/lib/subscription-actions');
+
+    // Activate subscription with payment details
+    const result = await activateSubscriptionPayment(warehouse_id, plan_id, {
+      razorpay_payment_id: payment.id,
+      razorpay_payment_link_id: linkData.id,
+      amount: payment.amount / 100, // Convert from paise to rupees
+      payment_method: payment.method
+    });
+
+    if (result.success) {
+      console.log('Subscription activated for warehouse:', warehouse_id);
+      
+      // Mark payment link as completed
+      const supabase = await createClient();
+      await supabase
+        .from('payment_links')
+        .update({ status: 'completed' })
+        .eq('id', linkData.id);
+    } else {
+      logError(new Error('Failed to activate subscription'), {
+        operation: 'handleSubscriptionPayment',
+        metadata: { paymentId: payment.id, error: result.error }
+      });
+    }
+  } catch (error) {
+    logError(error as Error, { 
+      operation: 'handleSubscriptionPayment', 
+      metadata: { payment, linkData } 
+    });
   }
 }
