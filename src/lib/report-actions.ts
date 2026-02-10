@@ -141,7 +141,7 @@ import { logError } from './error-logger';
             type: 'inflow',
             description: `Inflow - ${record.commodity_description || 'Storage'}`,
             invoiceNo: record.record_number || record.id.substring(0, 8),
-            bagsIn: record.bags_stored,
+            bagsIn: record.bags_in || (record.bags_stored + (record.withdrawal_transactions || []).reduce((sum: number, w: any) => sum + (w.bags_withdrawn || 0), 0)),
             bagsOut: null,
             hamali: record.hamali_payable || 0,
             rent: null,

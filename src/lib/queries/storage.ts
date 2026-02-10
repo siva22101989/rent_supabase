@@ -359,7 +359,7 @@ export const searchActiveStorageRecords = cache(async (query: string, limit = 20
       customerName: r.customer?.name,
       commodity: r.commodity_description,
       date: new Date(r.storage_start_date),
-      bags: (r.bags_stored || 0) - (r.withdrawal_transactions || []).reduce((sum: number, w: any) => sum + (w.bags_withdrawn || 0), 0)
+      bags: r.bags_stored || 0 // records.bags_stored is already the current balance
   }));
 });
 
