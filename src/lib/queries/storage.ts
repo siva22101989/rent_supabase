@@ -66,37 +66,45 @@ export const getDashboardMetrics = cache(async () => {
 
 // Helper to map DB result to types
 function mapRecords(records: any[]): StorageRecord[] {
-  return records.map((r: any) => ({
-    id: r.id,
-    recordNumber: r.record_number,
-    customerId: r.customer_id,
-    customerName: r.customer?.name || 'Unknown',
-    cropId: r.crop_id,
-    lotId: r.lot_id, // Added for capacity checks
-    commodityDescription: r.commodity_description,
-    location: r.location,
-    bagsIn: r.bags_in || r.bags_stored,
-    bagsOut: r.bags_out || 0,
-    bagsStored: r.bags_stored,
-    storageStartDate: new Date(r.storage_start_date),
-    storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
-    billingCycle: r.billing_cycle,
-    payments: (r.payments || []).map((p: any) => ({
-      amount: p.amount,
-      date: new Date(p.payment_date),
-      type: p.type || 'other',
-      notes: p.notes,
-      paymentNumber: p.payment_number
-    })),
-    hamaliPayable: r.hamali_payable,
-    totalRentBilled: r.total_rent_billed,
-    outflowInvoiceNo: r.outflow_invoice_no,
-    lorryTractorNo: r.lorry_tractor_no,
-    inflowType: r.inflow_type,
-    plotBags: r.plot_bags,
-    loadBags: r.load_bags,
-    khataAmount: r.khata_amount,
-  }));
+  return records.map((r: any) => {
+    // Calculate total withdrawn bags from withdrawal transactions
+    const withdrawals = r.withdrawal_transactions || [];
+    const totalWithdrawn = withdrawals
+      .filter((w: any) => !w.deleted_at) // Exclude soft-deleted withdrawals
+      .reduce((sum: number, w: any) => sum + (w.bags_withdrawn || 0), 0);
+    
+    return {
+      id: r.id,
+      recordNumber: r.record_number,
+      customerId: r.customer_id,
+      customerName: r.customer?.name || 'Unknown',
+      cropId: r.crop_id,
+      lotId: r.lot_id, // Added for capacity checks
+      commodityDescription: r.commodity_description,
+      location: r.location,
+      bagsIn: r.bags_in || r.bags_stored,
+      bagsOut: totalWithdrawn, // Actual withdrawn bags from transactions
+      bagsStored: r.bags_stored,
+      storageStartDate: new Date(r.storage_start_date),
+      storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
+      billingCycle: r.billing_cycle,
+      payments: (r.payments || []).map((p: any) => ({
+        amount: p.amount,
+        date: new Date(p.payment_date),
+        type: p.type || 'other',
+        notes: p.notes,
+        paymentNumber: p.payment_number
+      })),
+      hamaliPayable: r.hamali_payable,
+      totalRentBilled: r.total_rent_billed,
+      outflowInvoiceNo: r.outflow_invoice_no,
+      lorryTractorNo: r.lorry_tractor_no,
+      inflowType: r.inflow_type,
+      plotBags: r.plot_bags,
+      loadBags: r.load_bags,
+      khataAmount: r.khata_amount,
+    };
+  });
 }
 
 // Query builder helper to reduce duplication
@@ -116,6 +124,8 @@ function buildStorageRecordsQuery(
   const selectParts = ['*'];
   if (includePayments) selectParts.push('payments (*)');
   if (includeCustomer) selectParts.push('customer:customers(name)');
+  // Include withdrawal transactions to calculate actual remaining stock
+  selectParts.push('withdrawal_transactions (bags_withdrawn)');
 
   let query = supabase
     .from('storage_records')
