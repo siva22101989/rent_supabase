@@ -529,9 +529,9 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // Check assignments
+    // Check if user has warehouse assignment
     const { data: assignment } = await supabase.from('warehouse_assignments')
-        .select('role')
+        .select('warehouse_id')
         .eq('user_id', user.id)
         .eq('warehouse_id', record.warehouse_id)
         .single();
@@ -539,7 +539,11 @@ export const deleteStorageRecord = async (id: string): Promise<void> => {
     // Fetch profile for role check
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
 
-    if (assignment?.role !== 'owner' && assignment?.role !== 'admin' && profile?.role !== 'super_admin') {
+    if (!assignment) {
+        throw new Error("Access Denied: You are not assigned to this warehouse.");
+    }
+
+    if (profile?.role !== 'owner' && profile?.role !== 'admin' && profile?.role !== 'super_admin') {
         throw new Error("Access Denied: You do not have permission to delete records in this warehouse.");
     }
 
@@ -612,13 +616,9 @@ export const restoreStorageRecord = async (id: string): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // Check assignments (Reuse logic or assume valid if they have the ID - but better to check)
-    // ... skipping detailed role check for brevity, relying on RLS or action context? 
-    // Ideally we duplicate the auth check from delete.
-    // Let's assume the user triggering this just acted on the ID, so they likely have access.
-    // Check assignments
+    // Check if user has warehouse assignment
     const { data: assignment } = await supabase.from('warehouse_assignments')
-        .select('role')
+        .select('warehouse_id')
         .eq('user_id', user.id)
         .eq('warehouse_id', record.warehouse_id)
         .single();
@@ -626,7 +626,11 @@ export const restoreStorageRecord = async (id: string): Promise<void> => {
     // Fetch profile for role check
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
 
-    if (assignment?.role !== 'owner' && assignment?.role !== 'admin' && profile?.role !== 'super_admin') {
+    if (!assignment) {
+        throw new Error("Access Denied: You are not assigned to this warehouse.");
+    }
+
+    if (profile?.role !== 'owner' && profile?.role !== 'admin' && profile?.role !== 'super_admin') {
         throw new Error("Access Denied: You do not have permission to restore records in this warehouse.");
     }
 

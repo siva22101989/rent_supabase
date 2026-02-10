@@ -69,7 +69,6 @@ export const getUserWarehouses = cache(async (): Promise<UserWarehouse[]> => {
             id,
             user_id,
             warehouse_id,
-            role,
             warehouse:warehouses (
                 id,
                 name,
@@ -82,11 +81,18 @@ export const getUserWarehouses = cache(async (): Promise<UserWarehouse[]> => {
         
     if (!data) return [];
 
+    // Fetch user's role from profile
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
     return data.map((item: any) => ({
         id: item.id,
         userId: item.user_id,
         warehouseId: item.warehouse_id,
-        role: item.role,
+        role: profile?.role, // Use profiles.role as single source of truth
         warehouse: Array.isArray(item.warehouse) ? item.warehouse[0] : item.warehouse
     }));
 });
@@ -156,7 +162,7 @@ export const getTeamMembers = cache(async () => {
     // 1. Get assignments first
     const { data: assignments, error: assignmentError } = await supabase
         .from('warehouse_assignments')
-        .select('user_id, role, created_at')
+        .select('user_id, created_at')
         .eq('warehouse_id', warehouseId);
 
     if (assignmentError) {
@@ -190,7 +196,7 @@ export const getTeamMembers = cache(async () => {
             id: profile.id,
             email: profile.email,
             fullName: profile.full_name,
-            role: assignment.role || profile.role, // Prioritize assignment role
+            role: profile.role, // Use profiles.role as single source of truth
             createdAt: new Date(assignment.created_at || profile.created_at), // Use assignment time if available
         };
     }).filter(Boolean);
@@ -201,11 +207,25 @@ export const getTeamMembers = cache(async () => {
 
 export async function getMemberAssignments(userId: string) {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    
+    // Get warehouse assignments
+    const { data: assignments, error } = await supabase
         .from('warehouse_assignments')
-        .select('warehouse_id, role')
+        .select('warehouse_id')
         .eq('user_id', userId);
     
     if (error) return [];
-    return data;
+    
+    // Get user's role from profile
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+    
+    // Return assignments with role from profile
+    return assignments?.map(a => ({
+        warehouse_id: a.warehouse_id,
+        role: profile?.role // Use profiles.role as single source of truth
+    })) || [];
 }
