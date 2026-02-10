@@ -318,18 +318,26 @@ import { logError } from './error-logger';
       .from('storage_records')
       .select(`
         *,
-        customers (name)
+        customers (name),
+        withdrawal_transactions (bags_withdrawn)
       `)
       .eq('warehouse_id', warehouseId)
       .is('storage_end_date', null)
       .is('deleted_at', null)
       .order('storage_start_date');
     
-    // Add aging analysis
+    // Add aging analysis and calculate net stock
     const now = new Date();
     const recordsWithAging = records?.map(r => {
       const startDate = new Date(r.storage_start_date);
       const daysInStorage = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Calculate Stock dynamically: Inflow - Outflows
+      let currentStock = r.bags_stored;
+      if (r.bags_in !== null && r.bags_in !== undefined) {
+          const totalWithdrawn = r.withdrawal_transactions?.reduce((sum: number, w: any) => sum + (w.bags_withdrawn || 0), 0) || 0;
+          currentStock = r.bags_in - totalWithdrawn;
+      }
       
       // Categorize by age
       let ageCategory = 'Recent';  // 0-30 days
@@ -339,10 +347,11 @@ import { logError } from './error-logger';
       
       return {
         ...r,
+        bags_stored: currentStock, // Use calculated stock
         daysInStorage,
         ageCategory
       };
-    });
+    }).filter(r => r.bags_stored > 0) || []; // Show only available stock
       
     return {
       type: 'active-inventory',
