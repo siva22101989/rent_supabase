@@ -85,34 +85,26 @@ export async function createWarehouse(name: string, location: string, capacity: 
 
 export async function switchWarehouse(warehouseId: string): Promise<ActionState> {
     return authenticatedAction('switchWarehouse', async (user, supabase, userRole) => {
-        // userRole already provided by authenticatedAction
+        // userRole already provided by authenticatedAction from profiles.role
         const isSuperAdmin = userRole === UserRole.SUPER_ADMIN;
 
-        let role = UserRole.STAFF; // Default fallback
-
-        if (isSuperAdmin) {
-            // Super Admin bypasses assignment check
-            role = UserRole.SUPER_ADMIN;
-        } else {
-            // Verify Access for normal users
+        if (!isSuperAdmin) {
+            // Verify Access for normal users (just check assignment exists)
             const { data: access } = await supabase
                 .from('warehouse_assignments')
-                .select('role')
+                .select('warehouse_id')
                 .eq('user_id', user.id)
                 .eq('warehouse_id', warehouseId)
+                .is('deleted_at', null)
                 .single();
 
             if (!access) return { message: 'Access Denied', success: false };
-            role = access.role;
         }
 
-        // Update Profile
+        // Update Profile warehouse_id (role stays the same - from profiles.role)
         const { error } = await supabase
             .from('profiles')
-            .update({ 
-                warehouse_id: warehouseId,
-                role: role 
-            })
+            .update({ warehouse_id: warehouseId })
             .eq('id', user.id);
 
         if (error) throw error;
@@ -154,7 +146,6 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
     const { data, error } = await supabase
         .from('warehouse_assignments')
         .select(`
-            role,
             warehouse_id,
             warehouses (
                 id,
@@ -172,10 +163,10 @@ export async function getUserWarehouses(): Promise<WarehouseWithRole[]> {
     }
 
 
-    // Type assertion or mapping
+    // Type assertion or mapping - use profile.role for all warehouses
     return (data as any[]).map((d: any) => ({
         id: d.warehouse_id,
-        role: d.role,
+        role: profile?.role || UserRole.STAFF, // Use profile role as single source of truth
         name: d.warehouses?.name || 'Unknown',
         location: d.warehouses?.location || '',
         gst_number: d.warehouses?.gst_number || ''

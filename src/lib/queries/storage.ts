@@ -218,7 +218,8 @@ export const getStorageRecord = cache(async (id: string): Promise<StorageRecord 
     .select(`
       *,
       payments (*),
-      customer:customers(name)
+      customer:customers(name),
+      withdrawal_transactions (bags_withdrawn)
     `)
     .eq('id', id)
     .single();
@@ -330,7 +331,8 @@ export const searchActiveStorageRecords = cache(async (query: string, limit = 20
       storage_start_date,
       commodity_description,
       bags_stored,
-      customer:customers!inner(name) 
+      customer:customers!inner(name),
+      withdrawal_transactions (bags_withdrawn) 
     `)
     .eq('warehouse_id', warehouseId)
     .is('deleted_at', null)
@@ -357,7 +359,7 @@ export const searchActiveStorageRecords = cache(async (query: string, limit = 20
       customerName: r.customer?.name,
       commodity: r.commodity_description,
       date: new Date(r.storage_start_date),
-      bags: r.bags_stored
+      bags: (r.bags_stored || 0) - (r.withdrawal_transactions || []).reduce((sum: number, w: any) => sum + (w.bags_withdrawn || 0), 0)
   }));
 });
 
@@ -379,7 +381,8 @@ export const getPaginatedStorageRecords = cache(async (
             .select(`
                 *,
                 payments (*),
-                customer:customers${isSearchByCustomerName ? '!inner' : ''}(name)
+                customer:customers${isSearchByCustomerName ? '!inner' : ''}(name),
+                withdrawal_transactions (bags_withdrawn)
             `, { count: 'exact' })
             .eq('warehouse_id', warehouseId);
 

@@ -72,9 +72,10 @@ export async function addOutflow(_prevState: OutflowFormState, formData: FormDat
                 return { message: 'Record not found.', success: false, data: rawData };
             }
 
-            if (bagsToWithdraw > originalRecord.bagsStored) {
-                logWarning("Attempted to withdraw more bags than available", { operation: 'addOutflow', metadata: { recordId, available: originalRecord.bagsStored, requested: bagsToWithdraw } });
-                return { message: 'Cannot withdraw more bags than are in storage.', success: false, data: rawData };
+            const currentStock = originalRecord.bagsIn - originalRecord.bagsOut;
+            if (bagsToWithdraw > currentStock) {
+                logWarning("Attempted to withdraw more bags than available", { operation: 'addOutflow', metadata: { recordId, available: currentStock, requested: bagsToWithdraw } });
+                return { message: `Cannot withdraw more bags than are in storage. (Available: ${currentStock})`, success: false, data: rawData };
             }
 
             // Compare dates only (ignore time) to allow same-day withdrawals
