@@ -831,25 +831,17 @@ export function generateCustomReportPDF(
      // 2. Active Inventory Report
      else if (reportType === 'active-inventory') {
         title = 'Active Inventory Report';
-        const rows = data.data.map((r: any) => {
-            // Color code by age
-            const ageColor = r.ageCategory === 'Very Old' ? '#e74c3c' :
-                           r.ageCategory === 'Old' ? '#e67e22' :
-                           r.ageCategory === 'Medium' ? '#f39c12' : '#27ae60';
-            
-            return `
-            <tr>
-                <td>${r.record_number || r.id.substring(0, 8)}</td>
-                <td>${new Date(r.storage_start_date).toLocaleDateString()}</td>
-                <td>${r.customers?.name || 'Unknown'}</td>
-                <td>${r.commodity_description || '-'}</td>
-                <td>${r.location || '-'}</td>
-                <td style="text-align: right">${r.bags_stored}</td>
-                <td style="text-align: right; font-weight: bold;">${r.daysInStorage || 0}</td>
-                <td><span style="color: ${ageColor}; font-weight: bold;">${r.ageCategory}</span></td>
-            </tr>
-        `}).join('');
         
+        // Group by Customer
+        const groupedByCustomer = data.data.reduce((acc: any, r: any) => {
+            const customerName = r.customers?.name || 'Unknown';
+            if (!acc[customerName]) acc[customerName] = [];
+            acc[customerName].push(r);
+            return acc;
+        }, {});
+
+        const sortedCustomers = Object.keys(groupedByCustomer).sort();
+
         const totalBags = data.data.reduce((sum: number, r: any) => sum + r.bags_stored, 0);
         const avgDays = Math.round(data.data.reduce((sum: number, r: any) => sum + (r.daysInStorage || 0), 0) / data.data.length);
         
@@ -858,57 +850,69 @@ export function generateCustomReportPDF(
             acc[r.ageCategory] = (acc[r.ageCategory] || 0) + 1;
             return acc;
         }, {});
-        
-        content = `
+
+        const summaryHtml = `
             <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 12px;">
-                    <div>
-                        <strong>Total Records:</strong> ${data.data.length}
-                    </div>
-                    <div>
-                        <strong>Total Bags:</strong> ${totalBags}
-                    </div>
-                    <div>
-                        <strong>Avg Days in Storage:</strong> ${avgDays}
-                    </div>
-                    <div style="color: #27ae60;">
-                        <strong>Recent (0-30d):</strong> ${ageCounts['Recent'] || 0}
-                    </div>
-                    <div style="color: #f39c12;">
-                        <strong>Medium (30-90d):</strong> ${ageCounts['Medium'] || 0}
-                    </div>
-                    <div style="color: #e67e22;">
-                        <strong>Old (90-180d):</strong> ${ageCounts['Old'] || 0}
-                    </div>
-                    <div style="color: #e74c3c;">
-                        <strong>Very Old (>180d):</strong> ${ageCounts['Very Old'] || 0}
-                    </div>
+                    <div><strong>Total Records:</strong> ${data.data.length}</div>
+                    <div><strong>Total Bags:</strong> ${totalBags}</div>
+                    <div><strong>Avg Days in Storage:</strong> ${avgDays}</div>
+                    <div style="color: #27ae60;"><strong>Recent (0-30d):</strong> ${ageCounts['Recent'] || 0}</div>
+                    <div style="color: #f39c12;"><strong>Medium (30-90d):</strong> ${ageCounts['Medium'] || 0}</div>
+                    <div style="color: #e67e22;"><strong>Old (90-180d):</strong> ${ageCounts['Old'] || 0}</div>
+                    <div style="color: #e74c3c;"><strong>Very Old (>180d):</strong> ${ageCounts['Very Old'] || 0}</div>
                 </div>
             </div>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>Record #</th>
-                        <th>Date In</th>
-                        <th>Customer</th>
-                        <th>Commodity</th>
-                        <th>Location</th>
-                        <th style="text-align: right">Bags</th>
-                        <th style="text-align: right">Days</th>
-                        <th>Age</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows}
-                    <tr style="font-weight: bold; background-color: #f0f0f0;">
-                        <td colspan="5" style="text-align: right;">Total Active Stock:</td>
-                        <td style="text-align: right;">${totalBags}</td>
-                        <td colspan="2"></td>
-                    </tr>
-                </tbody>
-            </table>
         `;
+
+        const customerTables = sortedCustomers.map(customerName => {
+            const records = groupedByCustomer[customerName];
+            const customerTotalBags = records.reduce((sum: number, r: any) => sum + r.bags_stored, 0);
+            
+            const rows = records.map((r: any) => {
+                const ageColor = r.ageCategory === 'Very Old' ? '#e74c3c' :
+                               r.ageCategory === 'Old' ? '#e67e22' :
+                               r.ageCategory === 'Medium' ? '#f39c12' : '#27ae60';
+                return `
+                    <tr>
+                        <td>${r.record_number || r.id.substring(0, 8)}</td>
+                        <td>${new Date(r.storage_start_date).toLocaleDateString()}</td>
+                        <td>${r.commodity_description || '-'}</td>
+                        <td>${r.location || '-'}</td>
+                        <td style="text-align: right">${r.bags_stored}</td>
+                        <td style="text-align: right; font-weight: bold;">${r.daysInStorage || 0}</td>
+                        <td><span style="color: ${ageColor}; font-weight: bold;">${r.ageCategory}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div style="margin-bottom: 20px;">
+                    <h3 style="background: #34495e; color: white; padding: 8px 12px; margin: 0; font-size: 14px; display: flex; justify-content: space-between;">
+                        <span>${customerName}</span>
+                        <span>Total Bags: ${customerTotalBags}</span>
+                    </h3>
+                    <table style="margin-top: 0;">
+                        <thead>
+                            <tr style="background-color: #ecf0f1; color: #333;">
+                                <th>Record #</th>
+                                <th>Date In</th>
+                                <th>Commodity</th>
+                                <th>Location</th>
+                                <th style="text-align: right">Bags</th>
+                                <th style="text-align: right">Days</th>
+                                <th>Age</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }).join('');
+
+        content = summaryHtml + customerTables;
     }
     
     // 3. Transaction History
