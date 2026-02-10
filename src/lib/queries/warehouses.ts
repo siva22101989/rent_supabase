@@ -63,7 +63,7 @@ export const getUserWarehouses = cache(async (): Promise<UserWarehouse[]> => {
     const user = await getAuthUser();
     if (!user) return [];
 
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from('warehouse_assignments')
         .select(`
             id,
@@ -77,16 +77,26 @@ export const getUserWarehouses = cache(async (): Promise<UserWarehouse[]> => {
                 created_at
             )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .is('deleted_at', null); // Only get active assignments
         
+    if (error) {
+        console.error('Error fetching warehouse assignments:', error);
+        return [];
+    }
+    
     if (!data) return [];
 
     // Fetch user's role from profile
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
+    
+    if (profileError) {
+        console.error('Error fetching profile:', profileError);
+    }
 
     return data.map((item: any) => ({
         id: item.id,
