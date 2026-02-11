@@ -73,6 +73,13 @@ function mapRecords(records: any[]): StorageRecord[] {
       .filter((w: any) => !w.deleted_at) // Exclude soft-deleted withdrawals
       .reduce((sum: number, w: any) => sum + (w.bags_withdrawn || 0), 0);
     
+    const initialStock = (r.bags_in !== null && r.bags_in !== undefined) 
+      ? r.bags_in 
+      : (r.bags_stored + totalWithdrawn);
+    
+    // Dynamically calculate current stock to fix any data corruption where bags_stored wasn't updated
+    const currentStock = Math.max(0, initialStock - totalWithdrawn);
+
     return {
       id: r.id,
       recordNumber: r.record_number,
@@ -82,9 +89,9 @@ function mapRecords(records: any[]): StorageRecord[] {
       lotId: r.lot_id, // Added for capacity checks
       commodityDescription: r.commodity_description,
       location: r.location,
-      bagsIn: r.bags_in || r.bags_stored,
+      bagsIn: initialStock,
       bagsOut: totalWithdrawn, // Actual withdrawn bags from transactions
-      bagsStored: r.bags_stored,
+      bagsStored: currentStock, // Use calculated stock instead of potentially stale DB value
       storageStartDate: new Date(r.storage_start_date),
       storageEndDate: r.storage_end_date ? new Date(r.storage_end_date) : null,
       billingCycle: r.billing_cycle,
