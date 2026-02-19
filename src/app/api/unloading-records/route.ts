@@ -7,15 +7,8 @@ export async function GET() {
         const supabase = await createClient();
         const warehouseId = await getUserWarehouse();
 
-        const { checkFeatureAccess } = await import('@/services/subscription-service');
-
         if (!warehouseId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const { allowed, message } = await checkFeatureAccess(warehouseId, 'allow_api');
-        if (!allowed) {
-            return NextResponse.json({ error: message || 'API access not available on this plan' }, { status: 403 });
         }
 
         const { data, error } = await supabase

@@ -183,7 +183,7 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
     // Check if record is completed & Get details for Capacity Check
     const { data: record, error: fetchError } = await supabase
         .from('storage_records')
-        .select('storage_end_date, customer_id, lot_id, bags_stored, crop_id')
+        .select('storage_end_date, customer_id, lot_id, bags_stored, bags_out, crop_id')
         .eq('id', recordId)
         .single();
 
@@ -253,10 +253,12 @@ export async function updateStorageRecordSimple(recordId: string, formData: {
     }
 
     // Transform to database column names
+    // Transform to database column names
     const updateData: any = {
         commodity_description: finalCommodityDescription,
         location: finalLocation,
-        bags_stored: formData.bagsStored,
+        bags_in: formData.bagsStored,
+        bags_stored: formData.bagsStored - (record.bags_out || 0),
         hamali_payable: formData.hamaliPayable,
         storage_start_date: new Date(formData.storageStartDate),
     };

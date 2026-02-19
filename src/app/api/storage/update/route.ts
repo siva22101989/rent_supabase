@@ -3,19 +3,8 @@ import { updateStorageRecordSimple } from '@/lib/actions/storage/records';
 
 export async function POST(request: NextRequest) {
     try {
-        const { getUserWarehouse } = await import('@/lib/queries/warehouses');
-        const { checkFeatureAccess } = await import('@/services/subscription-service');
-        
-        const warehouseId = await getUserWarehouse();
-        if (!warehouseId) {
-            return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-        }
-        
-        const { allowed, message } = await checkFeatureAccess(warehouseId, 'allow_api');
-        if (!allowed) {
-            return NextResponse.json({ success: false, message: message || 'API access not allowed' }, { status: 403 });
-        }
 
+        // Parse request body
         const body = await request.json();
         const { id, ...formData } = body;
 

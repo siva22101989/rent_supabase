@@ -30,6 +30,7 @@ interface StorageRecord {
     commodityDescription: string;
     location: string;
     bagsStored: number;
+    bagsIn?: number;
     storageStartDate: string | Date;
     hamaliPayable: number;
     storageEndDate?: string | Date | null;
@@ -68,6 +69,27 @@ export function EditStorageDialog({
 
     // Can't edit if already completed (has end date)
     const isCompleted = !!record.storageEndDate;
+
+    // Auto-calculate Hamali logic
+    const initialBags = record.bagsIn || record.bagsStored || 0;
+    const initialHamali = record.hamaliPayable || 0;
+    const ratePerBag = initialBags > 0 ? (initialHamali / initialBags) : 0;
+
+    const [bags, setBags] = useState<string | number>(initialBags);
+    const [hamali, setHamali] = useState<string | number>(initialHamali);
+
+    const handleBagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newBags = e.target.value;
+        setBags(newBags);
+        
+        // Auto-calc hamali
+        if (ratePerBag > 0 && newBags) {
+            const numBags = parseFloat(newBags);
+            if (!isNaN(numBags)) {
+                setHamali((numBags * ratePerBag).toFixed(2));
+            }
+        }
+    };
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -224,35 +246,33 @@ export function EditStorageDialog({
                             </div>
                         )}
                         {/* Common Fields */}
-                        {!(userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin') && (
-                            <>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="commodityDescription">Commodity Description *</Label>
-                                    <Input
-                                        id="commodityDescription"
-                                        name="commodityDescription"
-                                        defaultValue={record.commodityDescription}
-                                        required
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="location">Location *</Label>
-                                    <Input
-                                        id="location"
-                                        name="location"
-                                        defaultValue={record.location}
-                                        required
-                                    />
-                                </div>
-                            </>
-                        )}
+                        {/* Common Fields */}
                         <div className="grid gap-2">
-                            <Label htmlFor="bagsStored">Number of Bags *</Label>
+                            <Label htmlFor="commodityDescription">Commodity Description *</Label>
+                            <Input
+                                id="commodityDescription"
+                                name="commodityDescription"
+                                defaultValue={record.commodityDescription}
+                                required
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="location">Location *</Label>
+                            <Input
+                                id="location"
+                                name="location"
+                                defaultValue={record.location}
+                                required
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="bagsStored">Number of Bags (Initial Inflow) *</Label>
                             <Input
                                 id="bagsStored"
                                 name="bagsStored"
                                 type="number"
-                                defaultValue={record.bagsStored}
+                                value={bags}
+                                onChange={handleBagsChange}
                                 required
                                 min="1"
                             />
@@ -264,8 +284,12 @@ export function EditStorageDialog({
                                 name="hamaliPayable"
                                 type="number"
                                 step="0.01"
-                                defaultValue={record.hamaliPayable}
+                                value={hamali}
+                                onChange={(e) => setHamali(e.target.value)}
                             />
+                            <p className="text-xs text-muted-foreground">
+                                Rate: ₹{ratePerBag.toFixed(2)} / bag (Auto-calculated)
+                            </p>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="storageStartDate">Storage Start Date *</Label>
