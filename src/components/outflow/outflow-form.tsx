@@ -38,14 +38,16 @@ export function OutflowForm({
     const [bagsToWithdraw, setBagsToWithdraw] = useState(0);
     const [withdrawalDate, setWithdrawalDate] = useState(new Date());
     
-    const [finalRent, setFinalRent] = useState(0);
+    const [standardRent, setStandardRent] = useState(0);
+    const [discount, setDiscount] = useState(0);
     const [storageMonths, setStorageMonths] = useState(0);
     const [hamaliPending, setHamaliPending] = useState(0);
     const [isLoadingRecord, setIsLoadingRecord] = useState(false);
     const [sendSms] = useState(smsEnabledDefault);
 
-    // Filtered logic removed in favor of Async Search
-    const totalPayable = finalRent + hamaliPending;
+    // Calculate net rent based on discount
+    const netRent = Math.max(0, standardRent - discount);
+    const totalPayable = netRent + hamaliPending;
 
     const handleRecordSelect = async (recordId: string) => {
         setSelectedRecordId(recordId);
@@ -92,14 +94,14 @@ export function OutflowForm({
 
             if (bagsToWithdraw > 0) {
                 const { rent, monthsStored } = calculateFinalRent(safeRecord, withdrawalDate, bagsToWithdraw, pricing);
-                setFinalRent(rent);
+                setStandardRent(rent);
                 setStorageMonths(monthsStored);
             } else {
-                setFinalRent(0);
+                setStandardRent(0);
                 setStorageMonths(0);
             }
         } else {
-            setFinalRent(0);
+            setStandardRent(0);
             setStorageMonths(0);
             setHamaliPending(0);
         }
@@ -232,9 +234,29 @@ export function OutflowForm({
                                         <span className="font-mono">{storageMonths} months</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Rent Due for {bagsToWithdraw} bags</span>
-                                        <span className="font-mono" data-testid="calculated-rent">₹{finalRent.toFixed(2)}</span>
+                                        <span className="text-muted-foreground">Standard Rent</span>
+                                        <span className="font-mono">₹{standardRent.toFixed(2)}</span>
                                     </div>
+                                    
+                                    <div className="space-y-1">
+                                         <Label htmlFor="discount" className="text-xs text-muted-foreground">Discount</Label>
+                                         <Input 
+                                            id="discount" 
+                                            name="discount" 
+                                            type="number" 
+                                            placeholder="0" 
+                                            min="0"
+                                            value={discount}
+                                            onChange={(e) => setDiscount(Number(e.target.value))}
+                                            className="h-8"
+                                        />
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-sm font-medium">
+                                        <span className="text-muted-foreground">Net Rent Due</span>
+                                        <span className="font-mono" data-testid="calculated-rent">₹{netRent.toFixed(2)}</span>
+                                    </div>
+
                                      <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Pending Hamali Charges</span>
                                         <span className="font-mono">₹{hamaliPending.toFixed(2)}</span>
@@ -262,7 +284,7 @@ export function OutflowForm({
                                         </p>
                                     </div>
                                 </div>
-                                <input type="hidden" name="finalRent" value={finalRent} />
+                                <input type="hidden" name="finalRent" value={netRent} />
                             </div>
                         </>
                     )}

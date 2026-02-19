@@ -337,6 +337,7 @@ export const searchActiveStorageRecords = cache(async (query: string, limit = 20
       record_number,
       storage_start_date,
       commodity_description,
+      location,
       bags_stored,
       customer:customers!inner(name),
       withdrawal_transactions (bags_withdrawn) 
@@ -365,6 +366,7 @@ export const searchActiveStorageRecords = cache(async (query: string, limit = 20
       recordNumber: r.record_number,
       customerName: r.customer?.name,
       commodity: r.commodity_description,
+      location: r.location,
       date: new Date(r.storage_start_date),
       bags: r.bags_stored || 0 // records.bags_stored is already the current balance
   }));

@@ -26,6 +26,7 @@ const OutflowSchema = z.object({
         return !isNaN(date.getTime()) && date <= new Date();
     }, { message: "Date cannot be in the future" }),
     finalRent: z.coerce.number().nonnegative('Final rent cannot be negative.'),
+    discount: z.coerce.number().nonnegative('Discount cannot be negative.').optional(),
     amountPaidNow: z.coerce.number().nonnegative('Amount paid must be non-negative.').optional(),
 });
 
@@ -47,6 +48,7 @@ export async function addOutflow(_prevState: OutflowFormState, formData: FormDat
                 bagsToWithdraw: formData.get('bagsToWithdraw'),
                 withdrawalDate: formData.get('withdrawalDate'),
                 finalRent: formData.get('finalRent'),
+                discount: formData.get('discount'),
                 amountPaidNow: formData.get('amountPaidNow'),
             };
             const recordIdForLimit = rawData.recordId as string;
@@ -62,7 +64,7 @@ export async function addOutflow(_prevState: OutflowFormState, formData: FormDat
                 return { message: `Invalid data: ${message}`, success: false, data: rawData };
             }
             
-            const { recordId, bagsToWithdraw, withdrawalDate, finalRent, amountPaidNow } = validatedFields.data;
+            const { recordId, bagsToWithdraw, withdrawalDate, finalRent, discount, amountPaidNow } = validatedFields.data;
             span.setAttribute("bagsToWithdraw", bagsToWithdraw);
             
             const originalRecord = await getStorageRecord(recordId);
@@ -84,6 +86,7 @@ export async function addOutflow(_prevState: OutflowFormState, formData: FormDat
             }
 
             const paymentMade = amountPaidNow || 0;
+            const discountAmount = discount || 0;
             
             const { updates: recordUpdate } = BillingService.calculateOutflowImpact(
                 originalRecord, 
@@ -117,7 +120,7 @@ export async function addOutflow(_prevState: OutflowFormState, formData: FormDat
                 // Keeping two sources of truth causes sync issues.
 
                 // Save Withdrawal Transaction Audit
-                const transactionId = await saveWithdrawalTransaction(recordId, bagsToWithdraw, new Date(withdrawalDate), finalRent);
+                const transactionId = await saveWithdrawalTransaction(recordId, bagsToWithdraw, new Date(withdrawalDate), finalRent, discountAmount);
 
                 // Send SMS Notification
                 const sendSms = formData.get('sendSms') === 'true';

@@ -654,7 +654,8 @@ export const saveWithdrawalTransaction = async (
     recordId: string, 
     bagsWithdrawn: number, 
     date: Date | string, 
-    rentCollected: number = 0
+    rentCollected: number = 0,
+    discount: number = 0
 ): Promise<string | null> => {
     'use server';
     const supabase = await createClient();
@@ -667,7 +668,8 @@ export const saveWithdrawalTransaction = async (
         warehouse_id: warehouseId,
         bags_withdrawn: bagsWithdrawn,
         withdrawal_date: date,
-        rent_collected: rentCollected
+        rent_collected: rentCollected,
+        discount: discount
     }).select('id').single();
 
     if (error) {

@@ -118,7 +118,7 @@ export function AsyncRecordSelector({ onSelect }: AsyncRecordSelectorProps) {
                             />
                             <div className="flex flex-col">
                                 <span className="font-semibold">{record.customerName}</span>
-                                <span className="text-xs text-muted-foreground">#{record.recordNumber} • {record.commodity} • {record.bags} bags</span>
+                                <span className="text-xs text-muted-foreground">#{record.recordNumber} • {record.location || 'No Location'} • {record.bags} bags</span>
                             </div>
                         </div>
                     ))}
